@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useTransition } from "react";
 import {
+  Building2Icon,
   ChevronsUpDownIcon,
   LayoutDashboardIcon,
   LogOutIcon,
@@ -40,6 +41,7 @@ export type ShellUser = {
   email: string;
   avatarUrl: string | null;
   organizationName: string;
+  organizationLogoUrl: string | null;
   roleName: string | null;
 };
 
@@ -69,6 +71,12 @@ const MASTER_NAV: NavItem[] = [
 ];
 
 const SETTINGS_NAV: NavItem[] = [
+  {
+    label: "Organization",
+    href: "/settings/organization",
+    icon: Building2Icon,
+    permission: "organization",
+  },
   {
     label: "Team",
     href: "/settings/team",
@@ -151,7 +159,11 @@ function SidebarContent({
 
   return (
     <div className="flex h-full flex-col gap-6 overflow-y-auto p-3">
-      <Brand className="px-1.5 pt-1.5" />
+      <Brand
+        className="px-1.5 pt-1.5"
+        name={user.organizationName}
+        logoUrl={user.organizationLogoUrl}
+      />
 
       <div className="flex-1 space-y-6">
         {primary.length > 0 ? (
@@ -175,13 +187,6 @@ function SidebarContent({
             <NavLinks items={settings} onNavigate={onNavigate} />
           </div>
         ) : null}
-      </div>
-
-      <div className="bg-muted/40 rounded-lg p-2.5">
-        <p className="truncate text-sm font-medium">{user.organizationName}</p>
-        <p className="text-muted-foreground truncate text-xs">
-          {user.roleName ?? "Member"}
-        </p>
       </div>
     </div>
   );

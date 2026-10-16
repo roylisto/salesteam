@@ -15,6 +15,7 @@ export default async function AppLayout({
         email: user.email,
         avatarUrl: user.avatarUrl,
         organizationName: user.organization.name,
+        organizationLogoUrl: user.organization.logoUrl,
         roleName: user.role?.name ?? null,
       }}
       permissions={user.permissions}
