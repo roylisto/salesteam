@@ -211,7 +211,9 @@ export async function completePasswordReset(
   await db.transaction(async (tx) => {
     await tx
       .update(users)
-      .set({ passwordHash })
+      // The member just picked their own password, so the forced
+      // first-login change no longer applies.
+      .set({ passwordHash, mustChangePassword: false })
       .where(eq(users.id, user.id));
 
     await tx

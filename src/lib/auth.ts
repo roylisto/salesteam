@@ -14,6 +14,8 @@ export type CurrentUser = {
   avatarUrl: string | null;
   isOrganizationOwner: boolean;
   isAdmin: boolean;
+  /** True while the member still uses the system-generated password (forced change on first login). */
+  mustChangePassword: boolean;
   organization: {
     id: number;
     name: string;
@@ -73,6 +75,7 @@ export const getCurrentUser = cache(
       avatarUrl: context.user.avatarUrl,
       isOrganizationOwner: context.user.isOrganizationOwner,
       isAdmin: context.user.isAdmin,
+      mustChangePassword: context.user.mustChangePassword,
       organization: {
         id: context.organization.id,
         name: context.organization.name,

@@ -1,3 +1,5 @@
+import { redirect } from "next/navigation";
+
 import { AppShell } from "@/components/app-shell";
 import { requireUser } from "@/lib/auth";
 
@@ -7,6 +9,10 @@ export default async function AppLayout({
   children: React.ReactNode;
 }) {
   const user = await requireUser();
+
+  // Members still on the system-generated password must pick their own one
+  // before they can use the app.
+  if (user.mustChangePassword) redirect("/change-password");
 
   return (
     <AppShell

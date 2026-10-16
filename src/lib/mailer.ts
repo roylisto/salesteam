@@ -57,6 +57,40 @@ export async function sendMail(message: MailMessage): Promise<void> {
   });
 }
 
+/** Emails the system-generated initial password to a newly added member. */
+export async function sendMemberCredentialsEmail(options: {
+  to: string;
+  name: string;
+  temporaryPassword: string;
+}): Promise<void> {
+  const { to, name, temporaryPassword } = options;
+  const subject = `Your ${APP_NAME} login details`;
+
+  const text = [
+    `Hi ${name},`,
+    "",
+    `You have been added to ${APP_NAME}.`,
+    `Your temporary password is: ${temporaryPassword}`,
+    "",
+    "Sign in with your email address and this password. On your first sign-in",
+    "you will be asked to choose your own password.",
+    "",
+    "If you were not expecting this, please contact your administrator.",
+  ].join("\n");
+
+  const html = `
+    <div style="font-family:system-ui,Segoe UI,Helvetica,Arial,sans-serif;line-height:1.6;color:#0f172a">
+      <p>Hi ${name},</p>
+      <p>You have been added to ${APP_NAME}. Use the temporary password below to sign in:</p>
+      <p style="font-size:20px;font-weight:700;letter-spacing:2px;padding:12px 16px;background:#f1f5f9;border-radius:8px;display:inline-block">${temporaryPassword}</p>
+      <p>On your first sign-in you will be asked to choose your own password.</p>
+      <p style="color:#64748b;font-size:13px">If you were not expecting this, please contact your administrator.</p>
+    </div>
+  `;
+
+  await sendMail({ to, subject, text, html });
+}
+
 /** Emails a freshly issued temporary password to a member. */
 export async function sendTemporaryPasswordEmail(options: {
   to: string;

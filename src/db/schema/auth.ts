@@ -63,6 +63,13 @@ export const users = pgTable(
     phone: varchar("phone", { length: 30 }),
     avatarUrl: text("avatar_url"),
     isActive: boolean("is_active").default(true).notNull(),
+    /**
+     * True while the member is still using the system-generated password issued
+     * when the account was created — they are forced to pick their own one on
+     * first login. Cleared by the change-password flow (and by a completed
+     * forgot-password reset).
+     */
+    mustChangePassword: boolean("must_change_password").default(false).notNull(),
     isAdmin: boolean("is_admin").default(false).notNull(),
     isOrganizationOwner: boolean("is_organization_owner")
       .default(false)
