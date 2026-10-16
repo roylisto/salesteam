@@ -17,6 +17,7 @@ export const PERMISSIONS = [
   { key: "visits", label: "Call Visits" },
   { key: "finance", label: "Finance" },
   { key: "payments", label: "Payment Methods" },
+  { key: "areas", label: "Area Management" },
   { key: "team", label: "Team & Accounts" },
   { key: "roles", label: "Roles & Permissions" },
 ] as const;

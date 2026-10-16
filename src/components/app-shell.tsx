@@ -7,6 +7,7 @@ import {
   ChevronsUpDownIcon,
   LayoutDashboardIcon,
   LogOutIcon,
+  MapPinIcon,
   MenuIcon,
   ShieldCheckIcon,
   UsersIcon,
@@ -55,6 +56,15 @@ const PRIMARY_NAV: NavItem[] = [
     href: "/dashboard",
     icon: LayoutDashboardIcon,
     permission: "dashboard",
+  },
+];
+
+const MASTER_NAV: NavItem[] = [
+  {
+    label: "Area Management",
+    href: "/master-data/areas",
+    icon: MapPinIcon,
+    permission: "areas",
   },
 ];
 
@@ -132,6 +142,9 @@ function SidebarContent({
   const primary = PRIMARY_NAV.filter((item) =>
     permissions.includes(item.permission),
   );
+  const master = MASTER_NAV.filter((item) =>
+    permissions.includes(item.permission),
+  );
   const settings = SETTINGS_NAV.filter((item) =>
     permissions.includes(item.permission),
   );
@@ -143,6 +156,15 @@ function SidebarContent({
       <div className="flex-1 space-y-6">
         {primary.length > 0 ? (
           <NavLinks items={primary} onNavigate={onNavigate} />
+        ) : null}
+
+        {master.length > 0 ? (
+          <div className="space-y-1">
+            <p className="text-muted-foreground px-2.5 text-xs font-medium">
+              Master Data
+            </p>
+            <NavLinks items={master} onNavigate={onNavigate} />
+          </div>
         ) : null}
 
         {settings.length > 0 ? (
