@@ -349,7 +349,10 @@ src/proxy.ts                   optimistic auth guard
   in `useTransition` instead (see the forgot-password form).
 - **UI `render` prop**: base-ui components (e.g. `Button`) take
   `render={<Element />}` with the visible children on the **outer** component,
-  not inside the render element (see `dialog.tsx`).
+  not inside the render element (see `dialog.tsx`). If the rendered element is
+  **not** a native `<button>` (e.g. a `Link`), also pass
+  `nativeButton={false}` or Base UI logs a console error about lost button
+  semantics.
 - **Member mutations** go through `account.ts` and always:
   1. `requireManager()` (needs `team` permission),
   2. validate role belongs to org (Admin handled virtually),

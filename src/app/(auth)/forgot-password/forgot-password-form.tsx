@@ -64,6 +64,7 @@ export function ForgotPasswordForm() {
           <Button
             size="lg"
             className="w-full"
+            nativeButton={false}
             render={<Link href="/login" />}
           >
             Back to sign in
