@@ -69,13 +69,13 @@ export default async function DashboardPage() {
   const granted = user.permissions.length;
 
   return (
-    <div className="mx-auto w-full max-w-5xl">
+    <div className="w-full">
       <PageHeader
         title={`Welcome back, ${user.name.split(" ")[0]}`}
         description={`Here is a quick overview of ${organization.name}.`}
       />
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           icon={UsersIcon}
           label="Team members"
@@ -94,15 +94,15 @@ export default async function DashboardPage() {
           value={`${granted}/${PERMISSION_KEYS.length}`}
           hint={
             user.isOrganizationOwner
-              ? "Organization owner — full access"
-              : (user.role?.name ?? "No role assigned")
+              ? "Full access (Organization Owner)"
+              : `Role: ${user.role?.name ?? "No role assigned"}`
           }
         />
         <StatCard
           icon={BuildingIcon}
           label="Organization"
-          value={organization.currency}
-          hint={`Timezone ${organization.timezone}`}
+          value={organization.name}
+          hint={`Currency: ${organization.currency} · Timezone: ${organization.timezone}`}
         />
       </div>
     </div>

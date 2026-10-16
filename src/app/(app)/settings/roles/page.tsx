@@ -48,7 +48,7 @@ export default async function RolesPage() {
   }));
 
   return (
-    <div className="mx-auto w-full max-w-5xl">
+    <div className="w-full">
       <PageHeader
         title="Roles"
         description="Permission presets that decide which modules a member can access."

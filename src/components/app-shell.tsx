@@ -18,6 +18,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -190,12 +191,14 @@ function UserMenu({ user }: { user: ShellUser }) {
       </DropdownMenuTrigger>
 
       <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuLabel>
-          <span className="block truncate">{user.name}</span>
-          <span className="text-muted-foreground block truncate font-normal">
-            {user.email}
-          </span>
-        </DropdownMenuLabel>
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>
+            <span className="block truncate">{user.name}</span>
+            <span className="text-muted-foreground block truncate font-normal">
+              {user.email}
+            </span>
+          </DropdownMenuLabel>
+        </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem
           variant="destructive"
@@ -228,7 +231,7 @@ export function AppShell({
       </aside>
 
       <div className="flex min-h-svh flex-col">
-        <header className="bg-background/80 sticky top-0 z-30 flex h-14 items-center gap-2 border-b px-3 backdrop-blur lg:px-5">
+        <header className="bg-background/80 sticky top-0 z-30 flex h-12 items-center gap-2 border-b px-3 backdrop-blur lg:px-4">
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger className="hover:bg-muted inline-flex size-8 items-center justify-center rounded-lg transition-colors lg:hidden">
               <MenuIcon className="size-4" />
@@ -251,7 +254,7 @@ export function AppShell({
           </div>
         </header>
 
-        <main className="flex-1 px-3 py-4 lg:px-5 lg:py-6">{children}</main>
+        <main className="flex-1 px-3 py-3 lg:px-4 lg:py-4">{children}</main>
       </div>
     </div>
   );

@@ -50,7 +50,7 @@ export default async function TeamPage() {
   }));
 
   return (
-    <div className="mx-auto w-full max-w-5xl">
+    <div className="w-full">
       <PageHeader
         title="Team"
         description="Manage the people who can access this organization."

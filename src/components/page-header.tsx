@@ -8,7 +8,7 @@ export function PageHeader({
   children?: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-wrap items-end justify-between gap-3 pb-5">
+    <div className="flex flex-wrap items-end justify-between gap-3 pb-3">
       <div className="space-y-1">
         <h1 className="font-heading text-xl font-semibold tracking-tight">
           {title}

@@ -35,7 +35,7 @@ export function RolesClient({ roles }: { roles: RoleDetail[] }) {
   );
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-muted-foreground text-sm">
           {roles.length} role{roles.length === 1 ? "" : "s"} in this organization
