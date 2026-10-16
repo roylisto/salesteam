@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import { asc, count, eq } from "drizzle-orm";
+import { and, asc, count, eq } from "drizzle-orm";
 
 import { PageHeader } from "@/components/page-header";
 import { db } from "@/db";
-import { roles, users } from "@/db/schema";
+import { notDeleted, roles, users } from "@/db/schema";
 import { requirePermission } from "@/lib/auth";
 
 import { RolesClient } from "./roles-client";
@@ -26,12 +26,12 @@ export default async function RolesPage() {
         createdAt: roles.createdAt,
       })
       .from(roles)
-      .where(eq(roles.organizationId, organization.id))
+      .where(and(eq(roles.organizationId, organization.id), notDeleted(roles)))
       .orderBy(asc(roles.id)),
     db
       .select({ roleId: users.roleId, value: count() })
       .from(users)
-      .where(eq(users.organizationId, organization.id))
+      .where(and(eq(users.organizationId, organization.id), notDeleted(users)))
       .groupBy(users.roleId),
   ]);
 

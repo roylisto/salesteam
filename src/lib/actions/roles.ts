@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { db } from "@/db";
-import { roles, users } from "@/db/schema";
+import { notDeleted, roles, users } from "@/db/schema";
 import { can, getCurrentUser } from "@/lib/auth";
 import {
   ADMIN_ONLY_PERMISSIONS,
@@ -88,6 +88,7 @@ export async function createRole(
       and(
         eq(roles.organizationId, manager.organization.id),
         eq(roles.slug, slug),
+        notDeleted(roles),
       ),
     )
     .limit(1);
@@ -128,7 +129,13 @@ export async function updateRole(
   const [role] = await db
     .select()
     .from(roles)
-    .where(and(eq(roles.id, id), eq(roles.organizationId, manager.organization.id)))
+    .where(
+      and(
+        eq(roles.id, id),
+        eq(roles.organizationId, manager.organization.id),
+        notDeleted(roles),
+      ),
+    )
     .limit(1);
 
   if (!role) return { error: "Role not found." };
@@ -151,6 +158,7 @@ export async function updateRole(
         eq(roles.organizationId, manager.organization.id),
         eq(roles.slug, slug),
         ne(roles.id, id),
+        notDeleted(roles),
       ),
     )
     .limit(1);
@@ -184,7 +192,13 @@ export async function deleteRole(formData: FormData): Promise<RoleFormState> {
   const [role] = await db
     .select()
     .from(roles)
-    .where(and(eq(roles.id, id), eq(roles.organizationId, manager.organization.id)))
+    .where(
+      and(
+        eq(roles.id, id),
+        eq(roles.organizationId, manager.organization.id),
+        notDeleted(roles),
+      ),
+    )
     .limit(1);
 
   if (!role) return { error: "Role not found." };
@@ -192,14 +206,14 @@ export async function deleteRole(formData: FormData): Promise<RoleFormState> {
   const [assigned] = await db
     .select({ id: users.id })
     .from(users)
-    .where(eq(users.roleId, id))
+    .where(and(eq(users.roleId, id), notDeleted(users)))
     .limit(1);
 
   if (assigned) {
     return { error: "Reassign the team members using this role first." };
   }
 
-  await db.delete(roles).where(eq(roles.id, id));
+  await db.update(roles).set({ deletedAt: new Date() }).where(eq(roles.id, id));
   revalidatePath(ROLES_PATH);
   return { ok: true };
 }

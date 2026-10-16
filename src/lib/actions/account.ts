@@ -5,7 +5,13 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { db } from "@/db";
-import { areaOffices, roles, userAreaAssignments, users } from "@/db/schema";
+import {
+  areaOffices,
+  notDeleted,
+  roles,
+  userAreaAssignments,
+  users,
+} from "@/db/schema";
 import { can, getCurrentUser, isAdmin } from "@/lib/auth";
 import { hashPassword } from "@/lib/password";
 import { SYSTEM_ADMIN_ROLE_VALUE } from "@/lib/permissions";
@@ -89,7 +95,13 @@ async function assertRoleInOrganization(roleId: number, organizationId: number) 
   const [role] = await db
     .select({ id: roles.id })
     .from(roles)
-    .where(and(eq(roles.id, roleId), eq(roles.organizationId, organizationId)))
+    .where(
+      and(
+        eq(roles.id, roleId),
+        eq(roles.organizationId, organizationId),
+        notDeleted(roles),
+      ),
+    )
     .limit(1);
   return Boolean(role);
 }
@@ -104,6 +116,7 @@ async function assertCodeAvailable(
   const conditions = [
     eq(users.organizationId, organizationId),
     eq(users.code, code),
+    notDeleted(users),
   ];
   if (excludeUserId) conditions.push(ne(users.id, excludeUserId));
 
@@ -132,7 +145,7 @@ async function loadHierarchy(organizationId: number): Promise<HierarchyRow[]> {
       isAdmin: users.isAdmin,
     })
     .from(users)
-    .where(eq(users.organizationId, organizationId));
+    .where(and(eq(users.organizationId, organizationId), notDeleted(users)));
 }
 
 function collectSubtreeIds(rows: HierarchyRow[], rootId: number): Set<number> {
@@ -179,7 +192,12 @@ async function getAssignedAreaIds(userId: number): Promise<number[]> {
   const rows = await db
     .select({ areaOfficeId: userAreaAssignments.areaOfficeId })
     .from(userAreaAssignments)
-    .where(eq(userAreaAssignments.userId, userId));
+    .where(
+      and(
+        eq(userAreaAssignments.userId, userId),
+        notDeleted(userAreaAssignments),
+      ),
+    );
   return rows.map((row) => row.areaOfficeId);
 }
 
@@ -187,7 +205,12 @@ async function getOrgAreaIds(organizationId: number): Promise<Set<number>> {
   const rows = await db
     .select({ id: areaOffices.id })
     .from(areaOffices)
-    .where(eq(areaOffices.organizationId, organizationId));
+    .where(
+      and(
+        eq(areaOffices.organizationId, organizationId),
+        notDeleted(areaOffices),
+      ),
+    );
   return new Set(rows.map((row) => row.id));
 }
 
@@ -198,8 +221,14 @@ async function replaceAreaAssignments(
   areaIds: number[],
 ) {
   await tx
-    .delete(userAreaAssignments)
-    .where(eq(userAreaAssignments.userId, userId));
+    .update(userAreaAssignments)
+    .set({ deletedAt: new Date() })
+    .where(
+      and(
+        eq(userAreaAssignments.userId, userId),
+        notDeleted(userAreaAssignments),
+      ),
+    );
   if (areaIds.length === 0) return;
   await tx.insert(userAreaAssignments).values(
     areaIds.map((areaOfficeId) => ({
@@ -313,7 +342,7 @@ export async function createMember(
   const [taken] = await db
     .select({ id: users.id })
     .from(users)
-    .where(eq(users.email, email))
+    .where(and(eq(users.email, email), notDeleted(users)))
     .limit(1);
   if (taken) return { fieldErrors: { email: "This email is already in use." } };
 
@@ -388,7 +417,9 @@ export async function updateMember(
   const [target] = await db
     .select()
     .from(users)
-    .where(and(eq(users.id, id), eq(users.organizationId, orgId)))
+    .where(
+      and(eq(users.id, id), eq(users.organizationId, orgId), notDeleted(users)),
+    )
     .limit(1);
   if (!target) return { error: "Member not found." };
 
@@ -461,7 +492,7 @@ export async function updateMember(
   const [emailTaken] = await db
     .select({ id: users.id })
     .from(users)
-    .where(and(eq(users.email, email), ne(users.id, id)))
+    .where(and(eq(users.email, email), ne(users.id, id), notDeleted(users)))
     .limit(1);
   if (emailTaken) return { fieldErrors: { email: "This email is already in use." } };
 
@@ -498,7 +529,13 @@ async function assertManageableTarget(manager: Manager, targetId: number) {
   const [target] = await db
     .select()
     .from(users)
-    .where(and(eq(users.id, targetId), eq(users.organizationId, orgId)))
+    .where(
+      and(
+        eq(users.id, targetId),
+        eq(users.organizationId, orgId),
+        notDeleted(users),
+      ),
+    )
     .limit(1);
   if (!target) return null;
   if (!isAdmin(manager)) {
@@ -548,7 +585,34 @@ export async function deleteMember(
     return { error: "The organization owner cannot be removed." };
   }
 
-  await db.delete(users).where(eq(users.id, id));
+  // Soft delete: keep the row for history, detach area assignments and
+  // reattach direct reports to this member's reporting line so the tree
+  // does not dangle.
+  await db.transaction(async (tx) => {
+    await tx
+      .update(users)
+      .set({ deletedAt: new Date(), isActive: false })
+      .where(eq(users.id, id));
+    await tx
+      .update(users)
+      .set({ reportsTo: target.reportsTo })
+      .where(
+        and(
+          eq(users.reportsTo, id),
+          eq(users.organizationId, manager.organization.id),
+          notDeleted(users),
+        ),
+      );
+    await tx
+      .update(userAreaAssignments)
+      .set({ deletedAt: new Date() })
+      .where(
+        and(
+          eq(userAreaAssignments.userId, id),
+          notDeleted(userAreaAssignments),
+        ),
+      );
+  });
   revalidatePath(TEAM_PATH);
   return { ok: true };
 }

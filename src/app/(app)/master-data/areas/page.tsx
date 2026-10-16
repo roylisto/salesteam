@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 
 import { PageHeader } from "@/components/page-header";
 import { db } from "@/db";
-import { areaOffices } from "@/db/schema";
+import { areaOffices, notDeleted } from "@/db/schema";
 import { requirePermission } from "@/lib/auth";
 
 import { AreasClient } from "./areas-client";
@@ -23,7 +23,9 @@ export default async function AreasPage() {
       updatedAt: areaOffices.updatedAt,
     })
     .from(areaOffices)
-    .where(eq(areaOffices.organizationId, organization.id))
+    .where(
+      and(eq(areaOffices.organizationId, organization.id), notDeleted(areaOffices)),
+    )
     .orderBy(asc(areaOffices.name));
 
   const areas: AreaRow[] = areaRows.map((area) => ({

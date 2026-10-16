@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 import { PageHeader } from "@/components/page-header";
 import { db } from "@/db";
-import { organizations } from "@/db/schema";
+import { notDeleted, organizations } from "@/db/schema";
 import { requirePermission } from "@/lib/auth";
 
 import { OrganizationForm } from "./organization-form";
@@ -26,7 +26,9 @@ export default async function OrganizationPage() {
       timezone: organizations.timezone,
     })
     .from(organizations)
-    .where(eq(organizations.id, user.organization.id))
+    .where(
+      and(eq(organizations.id, user.organization.id), notDeleted(organizations)),
+    )
     .limit(1);
 
   if (!row) {

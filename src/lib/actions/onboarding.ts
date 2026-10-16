@@ -1,12 +1,12 @@
 "use server";
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { db } from "@/db";
-import { organizations, users } from "@/db/schema";
+import { notDeleted, organizations, users } from "@/db/schema";
 import { hashPassword } from "@/lib/password";
 import { createSession } from "@/lib/session";
 import { toFieldErrors } from "@/lib/validation";
@@ -41,7 +41,7 @@ async function resolveUniqueSlug(base: string): Promise<string> {
     const [existing] = await db
       .select({ id: organizations.id })
       .from(organizations)
-      .where(eq(organizations.slug, candidate))
+      .where(and(eq(organizations.slug, candidate), notDeleted(organizations)))
       .limit(1);
 
     if (!existing) return candidate;
@@ -75,7 +75,7 @@ export async function createOrganization(
   const [taken] = await db
     .select({ id: users.id })
     .from(users)
-    .where(eq(users.email, email))
+    .where(and(eq(users.email, email), notDeleted(users)))
     .limit(1);
 
   if (taken) {

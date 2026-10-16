@@ -1,10 +1,10 @@
 import "server-only";
 
-import { and, eq, gt, lt } from "drizzle-orm";
+import { and, eq, gt, isNull, lt } from "drizzle-orm";
 import { cookies } from "next/headers";
 
 import { db } from "@/db";
-import { organizations, roles, sessions, users } from "@/db/schema";
+import { notDeleted, organizations, roles, sessions, users } from "@/db/schema";
 
 export const SESSION_COOKIE_NAME =
   process.env.SESSION_COOKIE_NAME ?? "salesteam_session";
@@ -79,9 +79,17 @@ export async function loadSessionContext() {
     })
     .from(sessions)
     .innerJoin(users, eq(sessions.userId, users.id))
-    .leftJoin(roles, eq(users.roleId, roles.id))
+    .leftJoin(roles, and(eq(users.roleId, roles.id), notDeleted(roles)))
     .innerJoin(organizations, eq(users.organizationId, organizations.id))
-    .where(and(eq(sessions.id, token), gt(sessions.expiresAt, new Date())))
+    .where(
+      and(
+        eq(sessions.id, token),
+        gt(sessions.expiresAt, new Date()),
+        notDeleted(sessions),
+        notDeleted(users),
+        notDeleted(organizations),
+      ),
+    )
     .limit(1);
 
   const row = rows[0];
@@ -90,19 +98,25 @@ export async function loadSessionContext() {
   return row;
 }
 
-/** Deletes the DB session row and clears the cookie. */
+/** Soft-deletes the DB session row and clears the cookie. */
 export async function deleteSession(): Promise<void> {
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
 
   if (token) {
-    await db.delete(sessions).where(eq(sessions.id, token));
+    await db
+      .update(sessions)
+      .set({ deletedAt: new Date() })
+      .where(eq(sessions.id, token));
   }
 
   cookieStore.delete(SESSION_COOKIE_NAME);
 }
 
-/** Removes expired rows. Safe to call opportunistically on login. */
+/** Marks expired rows deleted. Safe to call opportunistically on login. */
 export async function pruneExpiredSessions(): Promise<void> {
-  await db.delete(sessions).where(lt(sessions.expiresAt, new Date()));
+  await db
+    .update(sessions)
+    .set({ deletedAt: new Date() })
+    .where(and(lt(sessions.expiresAt, new Date()), isNull(sessions.deletedAt)));
 }

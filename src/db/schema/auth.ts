@@ -1,3 +1,4 @@
+import { isNull } from "drizzle-orm";
 import {
   type AnyPgColumn,
   bigint,
@@ -33,10 +34,9 @@ export const roles = pgTable(
     ...timestamps,
   },
   (table) => [
-    uniqueIndex("roles_organization_slug_unique").on(
-      table.organizationId,
-      table.slug,
-    ),
+    uniqueIndex("roles_organization_slug_unique")
+      .on(table.organizationId, table.slug)
+      .where(isNull(table.deletedAt)),
     index("roles_organization_idx").on(table.organizationId),
   ],
 );
@@ -71,11 +71,12 @@ export const users = pgTable(
     ...timestamps,
   },
   (table) => [
-    uniqueIndex("users_email_unique").on(table.email),
-    uniqueIndex("users_organization_code_unique").on(
-      table.organizationId,
-      table.code,
-    ),
+    uniqueIndex("users_email_unique")
+      .on(table.email)
+      .where(isNull(table.deletedAt)),
+    uniqueIndex("users_organization_code_unique")
+      .on(table.organizationId, table.code)
+      .where(isNull(table.deletedAt)),
     index("users_organization_idx").on(table.organizationId),
     index("users_role_idx").on(table.roleId),
     index("users_reports_to_idx").on(table.reportsTo),
@@ -96,6 +97,7 @@ export const sessions = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
   (table) => [
     index("sessions_user_idx").on(table.userId),

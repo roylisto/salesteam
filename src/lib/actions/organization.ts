@@ -1,11 +1,11 @@
 "use server";
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { db } from "@/db";
-import { organizations } from "@/db/schema";
+import { notDeleted, organizations } from "@/db/schema";
 import { can, getCurrentUser } from "@/lib/auth";
 import { deleteFromS3, uploadToS3 } from "@/lib/storage";
 import { toFieldErrors } from "@/lib/validation";
@@ -103,7 +103,7 @@ export async function updateOrganization(
   const [existing] = await db
     .select({ logoUrl: organizations.logoUrl })
     .from(organizations)
-    .where(eq(organizations.id, user.organization.id))
+    .where(and(eq(organizations.id, user.organization.id), notDeleted(organizations)))
     .limit(1);
 
   let logoUrl = existing?.logoUrl ?? null;

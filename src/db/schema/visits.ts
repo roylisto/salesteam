@@ -1,3 +1,4 @@
+import { isNull } from "drizzle-orm";
 import {
   bigint,
   boolean,
@@ -124,11 +125,9 @@ export const visits = pgTable(
     ...timestamps,
   },
   (table) => [
-    uniqueIndex("visits_sales_outlet_date_unique").on(
-      table.salesId,
-      table.outletId,
-      table.visitDate,
-    ),
+    uniqueIndex("visits_sales_outlet_date_unique")
+      .on(table.salesId, table.outletId, table.visitDate)
+      .where(isNull(table.deletedAt)),
     index("visits_organization_date_idx").on(
       table.organizationId,
       table.visitDate,
@@ -196,11 +195,8 @@ export const outletAssignmentRequests = pgTable(
     index("outlet_assignment_requests_requested_by_idx").on(
       table.requestedById,
     ),
-    uniqueIndex("outlet_assignment_requests_pending_unique").on(
-      table.routeId,
-      table.outletId,
-      table.dayOfWeek,
-      table.status,
-    ),
+    uniqueIndex("outlet_assignment_requests_pending_unique")
+      .on(table.routeId, table.outletId, table.dayOfWeek, table.status)
+      .where(isNull(table.deletedAt)),
   ],
 );

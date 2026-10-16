@@ -1,12 +1,12 @@
 "use server";
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { db } from "@/db";
-import { users } from "@/db/schema";
+import { notDeleted, users } from "@/db/schema";
 import { verifyPassword } from "@/lib/password";
 import { createSession, deleteSession } from "@/lib/session";
 
@@ -42,7 +42,7 @@ export async function login(
   const [user] = await db
     .select()
     .from(users)
-    .where(eq(users.email, email))
+    .where(and(eq(users.email, email), notDeleted(users)))
     .limit(1);
 
   if (!user || !user.isActive) {

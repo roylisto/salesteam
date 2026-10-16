@@ -1,9 +1,15 @@
 import type { Metadata } from "next";
-import { asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq } from "drizzle-orm";
 
 import { PageHeader } from "@/components/page-header";
 import { db } from "@/db";
-import { areaOffices, roles, userAreaAssignments, users } from "@/db/schema";
+import {
+  areaOffices,
+  notDeleted,
+  roles,
+  userAreaAssignments,
+  users,
+} from "@/db/schema";
 import { isAdmin, requirePermission } from "@/lib/auth";
 
 import { TeamClient } from "./team-client";
@@ -45,7 +51,7 @@ export default async function TeamPage() {
     db
       .select({ id: roles.id, name: roles.name })
       .from(roles)
-      .where(eq(roles.organizationId, organization.id))
+      .where(and(eq(roles.organizationId, organization.id), notDeleted(roles)))
       .orderBy(asc(roles.name)),
     db
       .select({
@@ -64,13 +70,15 @@ export default async function TeamPage() {
         createdAt: users.createdAt,
       })
       .from(users)
-      .leftJoin(roles, eq(users.roleId, roles.id))
-      .where(eq(users.organizationId, organization.id))
+      .leftJoin(roles, and(eq(users.roleId, roles.id), notDeleted(roles)))
+      .where(and(eq(users.organizationId, organization.id), notDeleted(users)))
       .orderBy(desc(users.isOrganizationOwner), asc(users.name)),
     db
       .select({ id: areaOffices.id, name: areaOffices.name })
       .from(areaOffices)
-      .where(eq(areaOffices.organizationId, organization.id))
+      .where(
+        and(eq(areaOffices.organizationId, organization.id), notDeleted(areaOffices)),
+      )
       .orderBy(asc(areaOffices.name)),
     db
       .select({
@@ -79,8 +87,19 @@ export default async function TeamPage() {
         areaName: areaOffices.name,
       })
       .from(userAreaAssignments)
-      .innerJoin(areaOffices, eq(userAreaAssignments.areaOfficeId, areaOffices.id))
-      .where(eq(userAreaAssignments.organizationId, organization.id)),
+      .innerJoin(
+        areaOffices,
+        and(
+          eq(userAreaAssignments.areaOfficeId, areaOffices.id),
+          notDeleted(areaOffices),
+        ),
+      )
+      .where(
+        and(
+          eq(userAreaAssignments.organizationId, organization.id),
+          notDeleted(userAreaAssignments),
+        ),
+      ),
   ]);
 
   const roleOptions: RoleOption[] = roleRows;

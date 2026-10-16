@@ -1,3 +1,4 @@
+import { type Column, isNull } from "drizzle-orm";
 import { bigint, timestamp } from "drizzle-orm/pg-core";
 
 /**
@@ -12,6 +13,9 @@ export const primaryId = () =>
 
 /**
  * Standard created/updated bookkeeping columns, stored with timezone.
+ *
+ * `deletedAt` powers soft delete for every table: rows are never removed,
+ * deletes set this timestamp and all reads filter it out.
  */
 export const timestamps = {
   createdAt: timestamp("created_at", { withTimezone: true })
@@ -21,4 +25,9 @@ export const timestamps = {
     .defaultNow()
     .notNull()
     .$onUpdate(() => new Date()),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
 };
+
+/** Condition matching rows that have not been soft-deleted. */
+export const notDeleted = (table: { deletedAt: Column }) =>
+  isNull(table.deletedAt);

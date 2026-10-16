@@ -1,3 +1,4 @@
+import { isNull } from "drizzle-orm";
 import {
   bigint,
   boolean,
@@ -51,10 +52,9 @@ export const userAreaAssignments = pgTable(
     ...timestamps,
   },
   (table) => [
-    uniqueIndex("user_area_assignments_user_area_unique").on(
-      table.userId,
-      table.areaOfficeId,
-    ),
+    uniqueIndex("user_area_assignments_user_area_unique")
+      .on(table.userId, table.areaOfficeId)
+      .where(isNull(table.deletedAt)),
     index("user_area_assignments_organization_idx").on(table.organizationId),
     index("user_area_assignments_user_idx").on(table.userId),
     index("user_area_assignments_area_idx").on(table.areaOfficeId),
@@ -79,10 +79,9 @@ export const warehouses = pgTable(
     ...timestamps,
   },
   (table) => [
-    uniqueIndex("warehouses_organization_name_unique").on(
-      table.organizationId,
-      table.name,
-    ),
+    uniqueIndex("warehouses_organization_name_unique")
+      .on(table.organizationId, table.name)
+      .where(isNull(table.deletedAt)),
     index("warehouses_area_office_idx").on(table.areaOfficeId),
   ],
 );
@@ -116,10 +115,9 @@ export const products = pgTable(
     ...timestamps,
   },
   (table) => [
-    uniqueIndex("products_organization_code_unique").on(
-      table.organizationId,
-      table.code,
-    ),
+    uniqueIndex("products_organization_code_unique")
+      .on(table.organizationId, table.code)
+      .where(isNull(table.deletedAt)),
     index("products_organization_idx").on(table.organizationId),
     index("products_name_idx").on(table.name),
   ],
@@ -167,10 +165,9 @@ export const outlets = pgTable(
     ...timestamps,
   },
   (table) => [
-    uniqueIndex("outlets_organization_code_unique").on(
-      table.organizationId,
-      table.code,
-    ),
+    uniqueIndex("outlets_organization_code_unique")
+      .on(table.organizationId, table.code)
+      .where(isNull(table.deletedAt)),
     index("outlets_organization_idx").on(table.organizationId),
     index("outlets_warehouse_idx").on(table.warehouseId),
     index("outlets_sales_idx").on(table.salesId),
@@ -196,10 +193,9 @@ export const warehouseStocks = pgTable(
     ...timestamps,
   },
   (table) => [
-    uniqueIndex("warehouse_stocks_warehouse_product_unique").on(
-      table.warehouseId,
-      table.productId,
-    ),
+    uniqueIndex("warehouse_stocks_warehouse_product_unique")
+      .on(table.warehouseId, table.productId)
+      .where(isNull(table.deletedAt)),
     index("warehouse_stocks_organization_idx").on(table.organizationId),
   ],
 );

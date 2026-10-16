@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { count, eq } from "drizzle-orm";
+import { count, and, eq } from "drizzle-orm";
 import {
   BuildingIcon,
   ShieldCheckIcon,
@@ -16,7 +16,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { db } from "@/db";
-import { roles, users } from "@/db/schema";
+import { notDeleted, roles, users } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
 import { PERMISSION_KEYS } from "@/lib/permissions";
 
@@ -59,11 +59,21 @@ export default async function DashboardPage() {
     db
       .select({ value: count() })
       .from(users)
-      .where(eq(users.organizationId, organization.id)),
+      .where(
+        and(
+          eq(users.organizationId, organization.id),
+          notDeleted(users),
+        ),
+      ),
     db
       .select({ value: count() })
       .from(roles)
-      .where(eq(roles.organizationId, organization.id)),
+      .where(
+        and(
+          eq(roles.organizationId, organization.id),
+          notDeleted(roles),
+        ),
+      ),
   ]);
 
   const granted = user.permissions.length;

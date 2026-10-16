@@ -1,3 +1,4 @@
+import { isNull } from "drizzle-orm";
 import {
   bigint,
   date,
@@ -128,7 +129,9 @@ export const invoices = pgTable(
     ...timestamps,
   },
   (table) => [
-    uniqueIndex("invoices_order_unique").on(table.orderId),
+    uniqueIndex("invoices_order_unique")
+      .on(table.orderId)
+      .where(isNull(table.deletedAt)),
     index("invoices_organization_status_idx").on(
       table.organizationId,
       table.status,

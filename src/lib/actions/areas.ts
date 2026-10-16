@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { db } from "@/db";
-import { areaOffices } from "@/db/schema";
+import { areaOffices, notDeleted } from "@/db/schema";
 import { can, getCurrentUser } from "@/lib/auth";
 import { toFieldErrors } from "@/lib/validation";
 
@@ -46,6 +46,7 @@ export async function createArea(
       and(
         eq(areaOffices.organizationId, manager.organization.id),
         eq(areaOffices.name, parsed.data.name),
+        notDeleted(areaOffices),
       ),
     )
     .limit(1);
@@ -82,7 +83,11 @@ export async function updateArea(
     .select()
     .from(areaOffices)
     .where(
-      and(eq(areaOffices.id, id), eq(areaOffices.organizationId, manager.organization.id)),
+      and(
+        eq(areaOffices.id, id),
+        eq(areaOffices.organizationId, manager.organization.id),
+        notDeleted(areaOffices),
+      ),
     )
     .limit(1);
 
@@ -96,6 +101,7 @@ export async function updateArea(
         eq(areaOffices.organizationId, manager.organization.id),
         eq(areaOffices.name, parsed.data.name),
         ne(areaOffices.id, id),
+        notDeleted(areaOffices),
       ),
     )
     .limit(1);
@@ -128,14 +134,20 @@ export async function deleteArea(formData: FormData): Promise<AreaFormState> {
     .select()
     .from(areaOffices)
     .where(
-      and(eq(areaOffices.id, id), eq(areaOffices.organizationId, manager.organization.id)),
+      and(
+        eq(areaOffices.id, id),
+        eq(areaOffices.organizationId, manager.organization.id),
+        notDeleted(areaOffices),
+      ),
     )
     .limit(1);
 
   if (!area) return { error: "Area not found." };
 
+  // Soft delete: an area may be referenced by assignments and warehouses.
   await db
-    .delete(areaOffices)
+    .update(areaOffices)
+    .set({ deletedAt: new Date() })
     .where(
       and(eq(areaOffices.id, id), eq(areaOffices.organizationId, manager.organization.id)),
     );
