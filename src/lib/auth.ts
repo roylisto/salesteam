@@ -3,7 +3,7 @@ import "server-only";
 import { cache } from "react";
 import { redirect } from "next/navigation";
 
-import { isPermissionKey, PERMISSION_KEYS, type PermissionKey } from "./permissions";
+import { ADMIN_ONLY_PERMISSIONS, isPermissionKey, OWNER_ROLE_SLUG, PERMISSION_KEYS, type PermissionKey } from "./permissions";
 import { loadSessionContext } from "./session";
 
 export type CurrentUser = {
@@ -29,6 +29,15 @@ export type CurrentUser = {
   permissions: PermissionKey[];
 };
 
+/** True when the member is an organization admin (owner or Admin role). */
+export function isAdmin(
+  user: Pick<CurrentUser, "isOrganizationOwner" | "role">,
+): boolean {
+  return (
+    user.isOrganizationOwner || user.role?.slug === OWNER_ROLE_SLUG
+  );
+}
+
 /**
  * Data Access Layer entry point. Memoized per render pass, so calling it from
  * several components costs a single query.
@@ -38,9 +47,19 @@ export const getCurrentUser = cache(
     const context = await loadSessionContext();
     if (!context) return null;
 
-    const granted = context.user.isOrganizationOwner
+    // Admins always get every permission, even as new modules are added.
+    // Admin-only modules (organization settings, roles) are stripped from
+    // everyone else, even if an old role row still lists them.
+    const isOwnerOrAdmin =
+      context.user.isOrganizationOwner ||
+      context.role?.slug === OWNER_ROLE_SLUG;
+    const granted = isOwnerOrAdmin
       ? PERMISSION_KEYS
-      : ((context.role?.permissions ?? []) as string[]).filter(isPermissionKey);
+      : ((context.role?.permissions ?? []) as string[])
+          .filter(isPermissionKey)
+          .filter(
+            (key) => !ADMIN_ONLY_PERMISSIONS.includes(key),
+          );
 
     return {
       id: context.user.id,
@@ -88,6 +107,13 @@ export function canAny(
   permissions: PermissionKey[],
 ): boolean {
   return permissions.some((permission) => user.permissions.includes(permission));
+}
+
+/** Returns the signed-in admin or redirects to the dashboard when forbidden. */
+export async function requireAdmin(): Promise<CurrentUser> {
+  const user = await requireUser();
+  if (!isAdmin(user)) redirect("/dashboard");
+  return user;
 }
 
 /** Returns the signed-in member or redirects to the dashboard when forbidden. */

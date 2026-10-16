@@ -35,6 +35,21 @@ export function permissionLabel(key: string): string {
   return PERMISSIONS.find((permission) => permission.key === key)?.label ?? key;
 }
 
+/**
+ * Permissions that are reserved for the Admin role and never assignable to
+ * other roles. Organization settings and roles management are admin-only
+ * by default, so they never appear in the role checklist.
+ */
+export const ADMIN_ONLY_PERMISSIONS: readonly string[] = [
+  "organization",
+  "roles",
+];
+
+/** Permissions shown as checkboxes when creating or editing a non-admin role. */
+export const ASSIGNABLE_PERMISSIONS = PERMISSIONS.filter(
+  (permission) => !ADMIN_ONLY_PERMISSIONS.includes(permission.key),
+);
+
 /** Roles created for every new organization. `admin` is the default owner role. */
 export const DEFAULT_ROLE_PRESETS = [
   {
