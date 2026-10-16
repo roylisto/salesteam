@@ -1,0 +1,110 @@
+import type { Metadata } from "next";
+import { count, eq } from "drizzle-orm";
+import {
+  BuildingIcon,
+  ShieldCheckIcon,
+  UsersIcon,
+  type LucideIcon,
+} from "lucide-react";
+
+import { PageHeader } from "@/components/page-header";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { db } from "@/db";
+import { roles, users } from "@/db/schema";
+import { requireUser } from "@/lib/auth";
+import { PERMISSION_KEYS } from "@/lib/permissions";
+
+export const metadata: Metadata = { title: "Dashboard" };
+
+function StatCard({
+  icon: Icon,
+  label,
+  value,
+  hint,
+}: {
+  icon: LucideIcon;
+  label: string;
+  value: string | number;
+  hint?: string;
+}) {
+  return (
+    <Card size="sm">
+      <CardHeader>
+        <CardDescription className="flex items-center gap-1.5">
+          <Icon className="size-3.5" />
+          {label}
+        </CardDescription>
+        <CardTitle className="text-2xl tabular-nums">{value}</CardTitle>
+      </CardHeader>
+      {hint ? (
+        <CardContent>
+          <p className="text-muted-foreground text-xs">{hint}</p>
+        </CardContent>
+      ) : null}
+    </Card>
+  );
+}
+
+export default async function DashboardPage() {
+  const user = await requireUser();
+  const { organization } = user;
+
+  const [[memberCount], [roleCount]] = await Promise.all([
+    db
+      .select({ value: count() })
+      .from(users)
+      .where(eq(users.organizationId, organization.id)),
+    db
+      .select({ value: count() })
+      .from(roles)
+      .where(eq(roles.organizationId, organization.id)),
+  ]);
+
+  const granted = user.permissions.length;
+
+  return (
+    <div className="mx-auto w-full max-w-5xl">
+      <PageHeader
+        title={`Welcome back, ${user.name.split(" ")[0]}`}
+        description={`Here is a quick overview of ${organization.name}.`}
+      />
+
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          icon={UsersIcon}
+          label="Team members"
+          value={memberCount?.value ?? 0}
+          hint="People with access to this organization"
+        />
+        <StatCard
+          icon={ShieldCheckIcon}
+          label="Roles"
+          value={roleCount?.value ?? 0}
+          hint="Permission presets available"
+        />
+        <StatCard
+          icon={ShieldCheckIcon}
+          label="Your access"
+          value={`${granted}/${PERMISSION_KEYS.length}`}
+          hint={
+            user.isOrganizationOwner
+              ? "Organization owner — full access"
+              : (user.role?.name ?? "No role assigned")
+          }
+        />
+        <StatCard
+          icon={BuildingIcon}
+          label="Organization"
+          value={organization.currency}
+          hint={`Timezone ${organization.timezone}`}
+        />
+      </div>
+    </div>
+  );
+}

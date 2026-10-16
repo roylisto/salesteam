@@ -1,0 +1,97 @@
+import {
+  bigint,
+  boolean,
+  index,
+  jsonb,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+  varchar,
+} from "drizzle-orm/pg-core";
+
+import { primaryId, timestamps } from "./_shared";
+import { organizations } from "./organizations";
+
+/**
+ * A role is scoped to one organization. `permissions` holds the list of granted
+ * module keys (see `src/lib/permissions.ts`). System roles cannot be deleted.
+ */
+export const roles = pgTable(
+  "roles",
+  {
+    id: primaryId(),
+    organizationId: bigint("organization_id", { mode: "number" })
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 100 }).notNull(),
+    slug: varchar("slug", { length: 100 }).notNull(),
+    description: text("description"),
+    permissions: jsonb("permissions").$type<string[]>().default([]).notNull(),
+    isSystem: boolean("is_system").default(false).notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex("roles_organization_slug_unique").on(
+      table.organizationId,
+      table.slug,
+    ),
+    index("roles_organization_idx").on(table.organizationId),
+  ],
+);
+
+/** A member of an organization. Login is by globally unique email. */
+export const users = pgTable(
+  "users",
+  {
+    id: primaryId(),
+    organizationId: bigint("organization_id", { mode: "number" })
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    roleId: bigint("role_id", { mode: "number" }).references(() => roles.id, {
+      onDelete: "set null",
+    }),
+    code: varchar("code", { length: 50 }),
+    name: varchar("name", { length: 150 }).notNull(),
+    email: varchar("email", { length: 150 }).notNull(),
+    passwordHash: varchar("password_hash", { length: 255 }).notNull(),
+    phone: varchar("phone", { length: 30 }),
+    avatarUrl: text("avatar_url"),
+    isActive: boolean("is_active").default(true).notNull(),
+    isOrganizationOwner: boolean("is_organization_owner")
+      .default(false)
+      .notNull(),
+    lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex("users_email_unique").on(table.email),
+    uniqueIndex("users_organization_code_unique").on(
+      table.organizationId,
+      table.code,
+    ),
+    index("users_organization_idx").on(table.organizationId),
+    index("users_role_idx").on(table.roleId),
+  ],
+);
+
+/** Server-side sessions backing the httpOnly session cookie. */
+export const sessions = pgTable(
+  "sessions",
+  {
+    id: varchar("id", { length: 64 }).primaryKey(),
+    userId: bigint("user_id", { mode: "number" })
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    ipAddress: varchar("ip_address", { length: 45 }),
+    userAgent: text("user_agent"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("sessions_user_idx").on(table.userId),
+    index("sessions_expires_at_idx").on(table.expiresAt),
+  ],
+);
