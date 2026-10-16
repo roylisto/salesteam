@@ -7,7 +7,11 @@ import { z } from "zod";
 import { db } from "@/db";
 import { roles, users } from "@/db/schema";
 import { can, getCurrentUser } from "@/lib/auth";
-import { isPermissionKey } from "@/lib/permissions";
+import {
+  ADMIN_ONLY_PERMISSIONS,
+  isPermissionKey,
+  OWNER_ROLE_SLUG,
+} from "@/lib/permissions";
 import { toFieldErrors } from "@/lib/validation";
 
 export type RoleFormState = {
@@ -37,7 +41,8 @@ function readPermissions(formData: FormData): string[] {
   return formData
     .getAll("permissions")
     .filter((value): value is string => typeof value === "string")
-    .filter(isPermissionKey);
+    .filter(isPermissionKey)
+    .filter((key) => !ADMIN_ONLY_PERMISSIONS.includes(key));
 }
 
 const RoleSchema = z.object({
@@ -71,6 +76,9 @@ export async function createRole(
   const slug = slugify(parsed.data.name);
   if (slug.length === 0) {
     return { fieldErrors: { name: "Enter a name with letters or numbers." } };
+  }
+  if (slug === OWNER_ROLE_SLUG) {
+    return { fieldErrors: { name: "This name is reserved for the system Admin." } };
   }
 
   const [existing] = await db
@@ -130,7 +138,10 @@ export async function updateRole(
     return { fieldErrors: { permissions: "Select at least one module." } };
   }
 
-  const slug = role.isSystem ? role.slug : slugify(parsed.data.name);
+  const slug = slugify(parsed.data.name);
+  if (slug === OWNER_ROLE_SLUG) {
+    return { fieldErrors: { name: "This name is reserved for the system Admin." } };
+  }
 
   const [duplicate] = await db
     .select({ id: roles.id })
@@ -177,7 +188,6 @@ export async function deleteRole(formData: FormData): Promise<RoleFormState> {
     .limit(1);
 
   if (!role) return { error: "Role not found." };
-  if (role.isSystem) return { error: "Default roles cannot be deleted." };
 
   const [assigned] = await db
     .select({ id: users.id })

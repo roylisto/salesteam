@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -32,34 +33,204 @@ import {
   resetMemberPassword,
   updateMember,
 } from "@/lib/actions/account";
+import { SYSTEM_ADMIN_ROLE_VALUE } from "@/lib/permissions";
 
-import type { MemberRow, RoleOption } from "./types";
+import type { AreaOption, MemberRow, RoleOption } from "./types";
 
 function FieldError({ message }: { message?: string }) {
   if (!message) return null;
   return <p className="text-destructive text-xs">{message}</p>;
 }
 
+type DialogProps = {
+  roles: RoleOption[];
+  areas: AreaOption[];
+  assignableAreas: AreaOption[];
+  members: MemberRow[];
+  currentUserId: number;
+  isAdmin: boolean;
+};
+
+function useAllowedAreas(
+  areas: AreaOption[],
+  assignableAreas: AreaOption[],
+  members: MemberRow[],
+  reportsTo: string,
+  actorIsAdmin: boolean,
+) {
+  return useMemo(() => {
+    const reporter =
+      reportsTo === "" ? null : members.find((m) => String(m.id) === reportsTo) ?? null;
+    if (!reporter) {
+      return actorIsAdmin ? areas : assignableAreas;
+    }
+    if (reporter.isOrganizationOwner || reporter.isAdmin) {
+      return actorIsAdmin ? areas : assignableAreas;
+    }
+    const reporterSet = new Set(reporter.areaIds);
+    const base = areas.filter((area) => reporterSet.has(area.id));
+    if (actorIsAdmin) return base;
+    const allowedSet = new Set(assignableAreas.map((area) => area.id));
+    return base.filter((area) => allowedSet.has(area.id));
+  }, [areas, assignableAreas, members, reportsTo, actorIsAdmin]);
+}
+
+function RoleSelect({
+  value,
+  onChange,
+  roles,
+  actorIsAdmin,
+  disabled,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  roles: RoleOption[];
+  actorIsAdmin: boolean;
+  disabled?: boolean;
+}) {
+  const selectedName =
+    value === SYSTEM_ADMIN_ROLE_VALUE
+      ? "Admin (system)"
+      : (roles.find((r) => String(r.id) === value)?.name ?? undefined);
+  return (
+    <Select value={value} onValueChange={(v) => onChange(v ?? "")} disabled={disabled}>
+      <SelectTrigger className="w-full">
+        <SelectValue placeholder="Select a role">{selectedName}</SelectValue>
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value={SYSTEM_ADMIN_ROLE_VALUE}>
+          Admin (system)
+        </SelectItem>
+        {roles.map((role) => (
+          <SelectItem key={role.id} value={String(role.id)}>
+            {role.name}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
+function ReportingSelect({
+  value,
+  onChange,
+  members,
+  excludeId,
+  idPrefix,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  members: MemberRow[];
+  excludeId?: number;
+  idPrefix: string;
+}) {
+  const options = members.filter((m) => m.id !== excludeId);
+  const selectedName =
+    value === ""
+      ? "No reporting line"
+      : (options.find((m) => String(m.id) === value)?.name ?? undefined);
+  return (
+    <Select value={value} onValueChange={(v) => onChange(v ?? "")}>
+      <SelectTrigger id={idPrefix} className="w-full">
+        <SelectValue placeholder="Select who they report to">
+          {selectedName}
+        </SelectValue>
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="">No reporting line</SelectItem>
+        {options.map((member) => (
+          <SelectItem key={member.id} value={String(member.id)}>
+            {member.name} · {member.roleName ?? "Unassigned"}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
+function AreaChecklist({
+  options,
+  selected,
+  onToggle,
+}: {
+  options: AreaOption[];
+  selected: number[];
+  onToggle: (id: number) => void;
+}) {
+  if (options.length === 0) {
+    return (
+      <p className="text-muted-foreground text-xs">
+        No areas available for this reporting line yet.
+      </p>
+    );
+  }
+  return (
+    <div className="grid gap-1.5 sm:grid-cols-2">
+      {options.map((area) => {
+        const checked = selected.includes(area.id);
+        return (
+          <label
+            key={area.id}
+            className="hover:bg-muted/60 flex cursor-pointer items-center gap-2 rounded-lg border p-2 text-sm"
+          >
+            <Checkbox
+              checked={checked}
+              onCheckedChange={() => onToggle(area.id)}
+            />
+            {area.name}
+          </label>
+        );
+      })}
+    </div>
+  );
+}
+
 export function CreateMemberDialog({
   open,
   onOpenChange,
   roles,
+  areas,
+  assignableAreas,
+  members,
+  currentUserId,
+  isAdmin: actorIsAdmin,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  roles: RoleOption[];
-}) {
+} & DialogProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [roleId, setRoleId] = useState(roles[0] ? String(roles[0].id) : "");
+  // Admin is a virtual system role and is shown by default.
+  const [roleId, setRoleId] = useState<string>(SYSTEM_ADMIN_ROLE_VALUE);
+  const [reportsTo, setReportsTo] = useState<string>("");
+  const [areaIds, setAreaIds] = useState<number[]>([]);
 
-  const selectedRoleName = useMemo(() => {
-    return roles.find((r) => String(r.id) === roleId)?.name;
-  }, [roles, roleId]);
+  const allowedAreas = useAllowedAreas(areas, assignableAreas, members, reportsTo, actorIsAdmin);
+
+  function toggleArea(id: number) {
+    setAreaIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
+    );
+  }
+
+  function handleReportsChange(value: string) {
+    setReportsTo(value);
+    // Drop areas that are no longer handed down by the new reporting line.
+    setAreaIds((prev) => {
+      if (value === "") return actorIsAdmin ? prev : [];
+      const reporter = members.find((m) => String(m.id) === value);
+      if (!reporter || reporter.isOrganizationOwner || reporter.isAdmin) return prev;
+      const allowed = new Set(reporter.areaIds);
+      return prev.filter((id) => allowed.has(id));
+    });
+  }
 
   function handleSubmit(formData: FormData) {
     formData.set("roleId", roleId);
+    formData.set("reportsTo", reportsTo);
+    formData.delete("areaIds");
+    for (const id of areaIds) formData.append("areaIds", String(id));
 
     startTransition(async () => {
       const result = await createMember(undefined, formData);
@@ -79,11 +250,12 @@ export function CreateMemberDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="max-h-[90svh] overflow-y-auto sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Add team member</DialogTitle>
           <DialogDescription>
-            They can sign in immediately with the password you set here.
+            Assign their role, reporting line, and areas. Areas must be handed
+            down from who they report to.
           </DialogDescription>
         </DialogHeader>
 
@@ -121,21 +293,34 @@ export function CreateMemberDialog({
 
             <div className="space-y-1.5 sm:col-span-2">
               <Label>Role</Label>
-              <Select value={roleId} onValueChange={(value) => setRoleId(value ?? "")}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select a role">
-                    {selectedRoleName}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {roles.map((role) => (
-                    <SelectItem key={role.id} value={String(role.id)}>
-                      {role.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <RoleSelect
+                value={roleId}
+                onChange={setRoleId}
+                roles={roles}
+                actorIsAdmin={actorIsAdmin}
+              />
               <FieldError message={errors.roleId} />
+            </div>
+
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label htmlFor="member-reports">Reports to</Label>
+              <ReportingSelect
+                value={reportsTo}
+                onChange={handleReportsChange}
+                members={members}
+                idPrefix="member-reports"
+              />
+              <FieldError message={errors.reportsTo} />
+            </div>
+
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label>Areas</Label>
+              <AreaChecklist
+                options={allowedAreas}
+                selected={areaIds}
+                onToggle={toggleArea}
+              />
+              <FieldError message={errors.areaIds} />
             </div>
 
             <div className="space-y-1.5 sm:col-span-2">
@@ -167,34 +352,52 @@ export function CreateMemberDialog({
 export function MemberDetailDialog({
   member,
   roles,
+  areas,
+  assignableAreas,
+  members,
   currentUserId,
+  isAdmin: actorIsAdmin,
   open,
   onOpenChange,
 }: {
   member: MemberRow;
-  roles: RoleOption[];
-  currentUserId: number;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-}) {
+} & DialogProps) {
   const router = useRouter();
   const passwordForm = useRef<HTMLFormElement>(null);
   const [pending, startTransition] = useTransition();
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [roleId, setRoleId] = useState(
-    member.roleId ? String(member.roleId) : "",
+    member.isOrganizationOwner || member.isAdmin
+      ? SYSTEM_ADMIN_ROLE_VALUE
+      : member.roleId
+        ? String(member.roleId)
+        : "",
   );
-  const selectedRoleName = useMemo(() => {
-    return roles.find((r) => String(r.id) === roleId)?.name;
-  }, [roles, roleId]);
+  const [reportsTo, setReportsTo] = useState(
+    member.reportsTo ? String(member.reportsTo) : "",
+  );
+  const [areaIds, setAreaIds] = useState<number[]>(member.areaIds);
   const [active, setActive] = useState(member.isActive);
   const [confirming, setConfirming] = useState(false);
 
+  const allowedAreas = useAllowedAreas(areas, assignableAreas, members, reportsTo, actorIsAdmin);
+
   const isProtected = member.isOrganizationOwner || member.id === currentUserId;
+
+  function toggleArea(id: number) {
+    setAreaIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
+    );
+  }
 
   function handleProfile(formData: FormData) {
     formData.set("id", String(member.id));
     formData.set("roleId", roleId);
+    formData.set("reportsTo", reportsTo);
+    formData.delete("areaIds");
+    for (const id of areaIds) formData.append("areaIds", String(id));
     formData.set("isActive", active ? "true" : "false");
 
     startTransition(async () => {
@@ -311,25 +514,36 @@ export function MemberDetailDialog({
 
             <div className="space-y-1.5 sm:col-span-2">
               <Label>Role</Label>
-              <Select
+              <RoleSelect
                 value={roleId}
-                onValueChange={(value) => setRoleId(value ?? "")}
+                onChange={setRoleId}
+                roles={roles}
+                actorIsAdmin={actorIsAdmin}
                 disabled={isProtected}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select a role">
-                    {selectedRoleName}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {roles.map((role) => (
-                    <SelectItem key={role.id} value={String(role.id)}>
-                      {role.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              />
               <FieldError message={errors.roleId} />
+            </div>
+
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label htmlFor="edit-reports">Reports to</Label>
+              <ReportingSelect
+                value={reportsTo}
+                onChange={setReportsTo}
+                members={members}
+                excludeId={member.id}
+                idPrefix="edit-reports"
+              />
+              <FieldError message={errors.reportsTo} />
+            </div>
+
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label>Areas</Label>
+              <AreaChecklist
+                options={allowedAreas}
+                selected={areaIds}
+                onToggle={toggleArea}
+              />
+              <FieldError message={errors.areaIds} />
             </div>
 
             <div className="flex items-center justify-between gap-4 rounded-lg border p-3 sm:col-span-2">

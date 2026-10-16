@@ -53,9 +53,6 @@ export function RolesClient({ roles }: { roles: RoleDetail[] }) {
               <CardTitle className="flex items-center gap-2">
                 <ShieldCheckIcon className="text-muted-foreground size-4" />
                 {role.name}
-                {role.isSystem ? (
-                  <Badge variant="outline">Default</Badge>
-                ) : null}
               </CardTitle>
               <CardDescription className="line-clamp-2">
                 {role.description ?? "No description"}

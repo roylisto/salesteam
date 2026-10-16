@@ -5,9 +5,10 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { db } from "@/db";
-import { roles, users } from "@/db/schema";
-import { can, getCurrentUser } from "@/lib/auth";
+import { areaOffices, roles, userAreaAssignments, users } from "@/db/schema";
+import { can, getCurrentUser, isAdmin } from "@/lib/auth";
 import { hashPassword } from "@/lib/password";
+import { SYSTEM_ADMIN_ROLE_VALUE } from "@/lib/permissions";
 import { toFieldErrors } from "@/lib/validation";
 
 export type AccountFormState = {
@@ -24,6 +25,8 @@ async function requireManager() {
   return user;
 }
 
+type Manager = NonNullable<Awaited<ReturnType<typeof getCurrentUser>>>;
+
 const optionalText = z
   .string()
   .trim()
@@ -35,7 +38,6 @@ const CreateMemberSchema = z.object({
   name: z.string().trim().min(2).max(150),
   email: z.string().trim().toLowerCase().pipe(z.email()),
   password: z.string().min(8),
-  roleId: z.coerce.number().int().positive(),
   phone: z.string().trim().max(30).optional().transform((v) => (v && v.length > 0 ? v : null)),
   code: optionalText,
 });
@@ -44,7 +46,6 @@ const UpdateMemberSchema = z.object({
   id: z.coerce.number().int().positive(),
   name: z.string().trim().min(2).max(150),
   email: z.string().trim().toLowerCase().pipe(z.email()),
-  roleId: z.coerce.number().int().positive(),
   phone: z.string().trim().max(30).optional().transform((v) => (v && v.length > 0 ? v : null)),
   code: optionalText,
   isActive: z.enum(["true", "false"]).transform((value) => value === "true"),
@@ -54,6 +55,35 @@ const ResetPasswordSchema = z.object({
   id: z.coerce.number().int().positive(),
   password: z.string().min(8),
 });
+
+function parseRoleInput(raw: FormDataEntryValue | null):
+  | { isAdmin: true; roleId: null }
+  | { isAdmin: false; roleId: number }
+  | null {
+  if (raw === SYSTEM_ADMIN_ROLE_VALUE) return { isAdmin: true, roleId: null };
+  const id = Number(raw);
+  if (!Number.isInteger(id) || id <= 0) return null;
+  return { isAdmin: false, roleId: id };
+}
+
+function parseReportsTo(raw: FormDataEntryValue | null): number | null | undefined {
+  if (raw === null || raw === "") return null;
+  const id = Number(raw);
+  if (!Number.isInteger(id) || id <= 0) return undefined;
+  return id;
+}
+
+function parseAreaIds(formData: FormData): number[] | undefined {
+  const raw = formData.getAll("areaIds");
+  const ids: number[] = [];
+  for (const value of raw) {
+    if (typeof value !== "string" || value === "") continue;
+    const id = Number(value);
+    if (!Number.isInteger(id) || id <= 0) return undefined;
+    if (!ids.includes(id)) ids.push(id);
+  }
+  return ids;
+}
 
 async function assertRoleInOrganization(roleId: number, organizationId: number) {
   const [role] = await db
@@ -86,29 +116,199 @@ async function assertCodeAvailable(
   return !existing;
 }
 
+type HierarchyRow = {
+  id: number;
+  reportsTo: number | null;
+  isOrganizationOwner: boolean;
+  isAdmin: boolean;
+};
+
+async function loadHierarchy(organizationId: number): Promise<HierarchyRow[]> {
+  return db
+    .select({
+      id: users.id,
+      reportsTo: users.reportsTo,
+      isOrganizationOwner: users.isOrganizationOwner,
+      isAdmin: users.isAdmin,
+    })
+    .from(users)
+    .where(eq(users.organizationId, organizationId));
+}
+
+function collectSubtreeIds(rows: HierarchyRow[], rootId: number): Set<number> {
+  const byParent = new Map<number, number[]>();
+  for (const row of rows) {
+    if (row.reportsTo === null) continue;
+    const list = byParent.get(row.reportsTo) ?? [];
+    list.push(row.id);
+    byParent.set(row.reportsTo, list);
+  }
+  const seen = new Set<number>([rootId]);
+  const queue = [rootId];
+  while (queue.length > 0) {
+    const current = queue.pop() as number;
+    for (const child of byParent.get(current) ?? []) {
+      if (!seen.has(child)) {
+        seen.add(child);
+        queue.push(child);
+      }
+    }
+  }
+  return seen;
+}
+
+function wouldCreateCycle(
+  rows: HierarchyRow[],
+  targetId: number,
+  newReportsTo: number | null,
+): boolean {
+  if (newReportsTo === null) return false;
+  if (newReportsTo === targetId) return true;
+  const parentById = new Map(rows.map((row) => [row.id, row.reportsTo]));
+  let current: number | null | undefined = newReportsTo;
+  let depth = 0;
+  while (current !== null && current !== undefined && depth < 500) {
+    if (current === targetId) return true;
+    current = parentById.get(current) ?? null;
+    depth += 1;
+  }
+  return false;
+}
+
+async function getAssignedAreaIds(userId: number): Promise<number[]> {
+  const rows = await db
+    .select({ areaOfficeId: userAreaAssignments.areaOfficeId })
+    .from(userAreaAssignments)
+    .where(eq(userAreaAssignments.userId, userId));
+  return rows.map((row) => row.areaOfficeId);
+}
+
+async function getOrgAreaIds(organizationId: number): Promise<Set<number>> {
+  const rows = await db
+    .select({ id: areaOffices.id })
+    .from(areaOffices)
+    .where(eq(areaOffices.organizationId, organizationId));
+  return new Set(rows.map((row) => row.id));
+}
+
+async function replaceAreaAssignments(
+  tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
+  organizationId: number,
+  userId: number,
+  areaIds: number[],
+) {
+  await tx
+    .delete(userAreaAssignments)
+    .where(eq(userAreaAssignments.userId, userId));
+  if (areaIds.length === 0) return;
+  await tx.insert(userAreaAssignments).values(
+    areaIds.map((areaOfficeId) => ({
+      organizationId,
+      userId,
+      areaOfficeId,
+    })),
+  );
+}
+
 export async function createMember(
   _state: AccountFormState,
   formData: FormData,
 ): Promise<AccountFormState> {
   const manager = await requireManager();
   if (!manager) return { error: "You do not have permission to manage the team." };
+  const actorIsAdmin = isAdmin(manager);
 
   const parsed = CreateMemberSchema.safeParse({
     name: formData.get("name"),
     email: formData.get("email"),
     password: formData.get("password"),
-    roleId: formData.get("roleId"),
     phone: formData.get("phone") ?? undefined,
     code: formData.get("code") ?? undefined,
   });
-
   if (!parsed.success) return { fieldErrors: toFieldErrors(parsed.error) };
 
-  const { name, email, password, roleId, phone, code } = parsed.data;
-
-  if (!(await assertRoleInOrganization(roleId, manager.organization.id))) {
+  const roleInput = parseRoleInput(formData.get("roleId"));
+  if (!roleInput) {
     return { fieldErrors: { roleId: "Select a role from your organization." } };
   }
+  if (roleInput.isAdmin && !actorIsAdmin) {
+    return { fieldErrors: { roleId: "Only an Admin can grant the Admin role." } };
+  }
+  if (!roleInput.isAdmin && !(await assertRoleInOrganization(roleInput.roleId, manager.organization.id))) {
+    return { fieldErrors: { roleId: "Select a role from your organization." } };
+  }
+
+  const reportsTo = parseReportsTo(formData.get("reportsTo"));
+  if (reportsTo === undefined) {
+    return { fieldErrors: { reportsTo: "Select a valid reporting line." } };
+  }
+
+  const areaIds = parseAreaIds(formData);
+  if (areaIds === undefined) {
+    return { fieldErrors: { areaIds: "Select valid areas." } };
+  }
+
+  const orgId = manager.organization.id;
+  const [hierarchy, orgAreaSet] = await Promise.all([
+    loadHierarchy(orgId),
+    getOrgAreaIds(orgId),
+  ]);
+  const memberById = new Map(hierarchy.map((row) => [row.id, row]));
+
+  if (reportsTo !== null && !memberById.has(reportsTo)) {
+    return { fieldErrors: { reportsTo: "Select a valid reporting line." } };
+  }
+
+  // Non-admins can only add members under their own subtree.
+  if (!actorIsAdmin) {
+    const subtree = collectSubtreeIds(hierarchy, manager.id);
+    if (reportsTo === null || !subtree.has(reportsTo)) {
+      return {
+        fieldErrors: { reportsTo: "Assign a reporting line within your team." },
+      };
+    }
+  }
+
+  for (const areaId of areaIds) {
+    if (!orgAreaSet.has(areaId)) {
+      return { fieldErrors: { areaIds: "Select valid areas." } };
+    }
+  }
+
+  // Areas must be handed down the reporting line.
+  let allowedAreas: Set<number> | null = null;
+  if (reportsTo !== null) {
+    const reporter = memberById.get(reportsTo);
+    const reporterIsAdmin =
+      reporter?.isOrganizationOwner || reporter?.isAdmin;
+    if (!reporterIsAdmin) {
+      allowedAreas = new Set(await getAssignedAreaIds(reportsTo));
+    } else if (!actorIsAdmin) {
+      allowedAreas = new Set(await getAssignedAreaIds(manager.id));
+    }
+  } else if (!actorIsAdmin) {
+    return {
+      fieldErrors: { reportsTo: "Assign a reporting line within your team." },
+    };
+  }
+  if (!actorIsAdmin && allowedAreas) {
+    const actorAreas = new Set(await getAssignedAreaIds(manager.id));
+    for (const areaId of [...allowedAreas]) {
+      if (!actorAreas.has(areaId)) allowedAreas.delete(areaId);
+    }
+  }
+  if (allowedAreas) {
+    const outside = areaIds.filter((id) => !allowedAreas.has(id));
+    if (outside.length > 0) {
+      return {
+        fieldErrors: {
+          areaIds: "Areas must be a subset of the reporting line's areas.",
+        },
+      };
+    }
+  }
+
+  const { name, email, password, phone, code } = parsed.data;
 
   const [taken] = await db
     .select({ id: users.id })
@@ -117,18 +317,26 @@ export async function createMember(
     .limit(1);
   if (taken) return { fieldErrors: { email: "This email is already in use." } };
 
-  if (!(await assertCodeAvailable(manager.organization.id, code))) {
+  if (!(await assertCodeAvailable(orgId, code))) {
     return { fieldErrors: { code: "This staff code is already in use." } };
   }
 
-  await db.insert(users).values({
-    organizationId: manager.organization.id,
-    roleId,
-    name,
-    email,
-    code,
-    phone,
-    passwordHash: await hashPassword(password),
+  await db.transaction(async (tx) => {
+    const [created] = await tx
+      .insert(users)
+      .values({
+        organizationId: orgId,
+        roleId: roleInput.roleId,
+        reportsTo,
+        name,
+        email,
+        code,
+        phone,
+        passwordHash: await hashPassword(password),
+        isAdmin: roleInput.isAdmin,
+      })
+      .returning({ id: users.id });
+    await replaceAreaAssignments(tx, orgId, created.id, areaIds);
   });
 
   revalidatePath(TEAM_PATH);
@@ -141,31 +349,113 @@ export async function updateMember(
 ): Promise<AccountFormState> {
   const manager = await requireManager();
   if (!manager) return { error: "You do not have permission to manage the team." };
+  const actorIsAdmin = isAdmin(manager);
 
   const parsed = UpdateMemberSchema.safeParse({
     id: formData.get("id"),
     name: formData.get("name"),
     email: formData.get("email"),
-    roleId: formData.get("roleId"),
     phone: formData.get("phone") ?? undefined,
     code: formData.get("code") ?? undefined,
     isActive: formData.get("isActive"),
   });
-
   if (!parsed.success) return { fieldErrors: toFieldErrors(parsed.error) };
 
+  const roleInput = parseRoleInput(formData.get("roleId"));
+  if (!roleInput) {
+    return { fieldErrors: { roleId: "Select a role from your organization." } };
+  }
+  if (roleInput.isAdmin && !actorIsAdmin) {
+    return { fieldErrors: { roleId: "Only an Admin can grant the Admin role." } };
+  }
+  if (!roleInput.isAdmin && !(await assertRoleInOrganization(roleInput.roleId, manager.organization.id))) {
+    return { fieldErrors: { roleId: "Select a role from your organization." } };
+  }
+
+  const reportsTo = parseReportsTo(formData.get("reportsTo"));
+  if (reportsTo === undefined) {
+    return { fieldErrors: { reportsTo: "Select a valid reporting line." } };
+  }
+
+  const areaIds = parseAreaIds(formData);
+  if (areaIds === undefined) {
+    return { fieldErrors: { areaIds: "Select valid areas." } };
+  }
+
   const { id, name, email, phone, code } = parsed.data;
+  const orgId = manager.organization.id;
 
   const [target] = await db
     .select()
     .from(users)
-    .where(and(eq(users.id, id), eq(users.organizationId, manager.organization.id)))
+    .where(and(eq(users.id, id), eq(users.organizationId, orgId)))
     .limit(1);
-
   if (!target) return { error: "Member not found." };
 
-  if (!(await assertRoleInOrganization(parsed.data.roleId, manager.organization.id))) {
-    return { fieldErrors: { roleId: "Select a role from your organization." } };
+  const hierarchy = await loadHierarchy(orgId);
+  const memberById = new Map(hierarchy.map((row) => [row.id, row]));
+  if (reportsTo !== null && !memberById.has(reportsTo)) {
+    return { fieldErrors: { reportsTo: "Select a valid reporting line." } };
+  }
+  if (reportsTo === id || wouldCreateCycle(hierarchy, id, reportsTo)) {
+    return { fieldErrors: { reportsTo: "Reporting line cannot be circular." } };
+  }
+
+  if (!actorIsAdmin) {
+    const subtree = collectSubtreeIds(hierarchy, manager.id);
+    if (!subtree.has(id)) return { error: "Member not found." };
+    if (id === manager.id && reportsTo !== target.reportsTo) {
+      return { fieldErrors: { reportsTo: "You cannot change your own reporting line." } };
+    }
+    if (id !== manager.id) {
+      if (reportsTo === null || !subtree.has(reportsTo)) {
+        return {
+          fieldErrors: { reportsTo: "Assign a reporting line within your team." },
+        };
+      }
+      const targetSubtree = collectSubtreeIds(hierarchy, id);
+      if (reportsTo !== null && targetSubtree.has(reportsTo)) {
+        return { fieldErrors: { reportsTo: "Reporting line cannot be circular." } };
+      }
+    }
+  }
+
+  const orgAreaSet = await getOrgAreaIds(orgId);
+  for (const areaId of areaIds) {
+    if (!orgAreaSet.has(areaId)) {
+      return { fieldErrors: { areaIds: "Select valid areas." } };
+    }
+  }
+
+  let allowedAreas: Set<number> | null = null;
+  if (reportsTo !== null) {
+    const reporter = memberById.get(reportsTo);
+    const reporterIsAdmin = reporter?.isOrganizationOwner || reporter?.isAdmin;
+    if (!reporterIsAdmin) {
+      allowedAreas = new Set(await getAssignedAreaIds(reportsTo));
+    } else if (!actorIsAdmin) {
+      allowedAreas = new Set(await getAssignedAreaIds(manager.id));
+    }
+  } else if (!actorIsAdmin && id !== manager.id) {
+    return {
+      fieldErrors: { reportsTo: "Assign a reporting line within your team." },
+    };
+  }
+  if (!actorIsAdmin && allowedAreas) {
+    const actorAreas = new Set(await getAssignedAreaIds(manager.id));
+    for (const areaId of [...allowedAreas]) {
+      if (!actorAreas.has(areaId)) allowedAreas.delete(areaId);
+    }
+  }
+  if (allowedAreas) {
+    const outside = areaIds.filter((areaId) => !allowedAreas.has(areaId));
+    if (outside.length > 0) {
+      return {
+        fieldErrors: {
+          areaIds: "Areas must be a subset of the reporting line's areas.",
+        },
+      };
+    }
   }
 
   const [emailTaken] = await db
@@ -175,27 +465,48 @@ export async function updateMember(
     .limit(1);
   if (emailTaken) return { fieldErrors: { email: "This email is already in use." } };
 
-  if (!(await assertCodeAvailable(manager.organization.id, code, id))) {
+  if (!(await assertCodeAvailable(orgId, code, id))) {
     return { fieldErrors: { code: "This staff code is already in use." } };
   }
 
   // The organization owner keeps full access and cannot be demoted or disabled.
-  const protectedMember = target.isOrganizationOwner || target.id === manager.id;
+  const protectedMember: boolean = target.isOrganizationOwner || target.id === manager.id;
 
-  await db
-    .update(users)
-    .set({
-      name,
-      email,
-      phone,
-      code,
-      roleId: protectedMember ? target.roleId : parsed.data.roleId,
-      isActive: protectedMember ? true : parsed.data.isActive,
-    })
-    .where(eq(users.id, id));
+  await db.transaction(async (tx) => {
+    await tx
+      .update(users)
+      .set({
+        name,
+        email,
+        phone,
+        code,
+        reportsTo: protectedMember && target.isOrganizationOwner ? target.reportsTo : reportsTo,
+        roleId: protectedMember ? target.roleId : roleInput.roleId,
+        isAdmin: protectedMember ? target.isAdmin : roleInput.isAdmin,
+        isActive: protectedMember ? true : parsed.data.isActive,
+      })
+      .where(eq(users.id, id));
+    await replaceAreaAssignments(tx, orgId, id, areaIds);
+  });
 
   revalidatePath(TEAM_PATH);
   return { ok: true };
+}
+
+async function assertManageableTarget(manager: Manager, targetId: number) {
+  const orgId = manager.organization.id;
+  const [target] = await db
+    .select()
+    .from(users)
+    .where(and(eq(users.id, targetId), eq(users.organizationId, orgId)))
+    .limit(1);
+  if (!target) return null;
+  if (!isAdmin(manager)) {
+    const hierarchy = await loadHierarchy(orgId);
+    const subtree = collectSubtreeIds(hierarchy, manager.id);
+    if (targetId === manager.id || !subtree.has(targetId)) return null;
+  }
+  return target;
 }
 
 export async function resetMemberPassword(
@@ -209,20 +520,9 @@ export async function resetMemberPassword(
     id: formData.get("id"),
     password: formData.get("password"),
   });
-
   if (!parsed.success) return { fieldErrors: toFieldErrors(parsed.error) };
 
-  const [target] = await db
-    .select({ id: users.id })
-    .from(users)
-    .where(
-      and(
-        eq(users.id, parsed.data.id),
-        eq(users.organizationId, manager.organization.id),
-      ),
-    )
-    .limit(1);
-
+  const target = await assertManageableTarget(manager, parsed.data.id);
   if (!target) return { error: "Member not found." };
 
   await db
@@ -242,12 +542,7 @@ export async function deleteMember(
   const id = Number(formData.get("id"));
   if (!Number.isInteger(id) || id <= 0) return { error: "Member not found." };
 
-  const [target] = await db
-    .select()
-    .from(users)
-    .where(and(eq(users.id, id), eq(users.organizationId, manager.organization.id)))
-    .limit(1);
-
+  const target = await assertManageableTarget(manager, id);
   if (!target) return { error: "Member not found." };
   if (target.isOrganizationOwner || target.id === manager.id) {
     return { error: "The organization owner cannot be removed." };

@@ -23,7 +23,6 @@ export default async function RolesPage() {
         slug: roles.slug,
         description: roles.description,
         permissions: roles.permissions,
-        isSystem: roles.isSystem,
         createdAt: roles.createdAt,
       })
       .from(roles)

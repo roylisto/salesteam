@@ -1,4 +1,5 @@
 import {
+  type AnyPgColumn,
   bigint,
   boolean,
   index,
@@ -15,7 +16,8 @@ import { organizations } from "./organizations";
 
 /**
  * A role is scoped to one organization. `permissions` holds the list of granted
- * module keys (see `src/lib/permissions.ts`). System roles cannot be deleted.
+ * module keys (see `src/lib/permissions.ts`). Roles are user-defined; the
+ * `admin` slug is reserved for the virtual system Admin (never stored).
  */
 export const roles = pgTable(
   "roles",
@@ -28,7 +30,6 @@ export const roles = pgTable(
     slug: varchar("slug", { length: 100 }).notNull(),
     description: text("description"),
     permissions: jsonb("permissions").$type<string[]>().default([]).notNull(),
-    isSystem: boolean("is_system").default(false).notNull(),
     ...timestamps,
   },
   (table) => [
@@ -51,6 +52,10 @@ export const users = pgTable(
     roleId: bigint("role_id", { mode: "number" }).references(() => roles.id, {
       onDelete: "set null",
     }),
+    reportsTo: bigint("reports_to", { mode: "number" }).references(
+      (): AnyPgColumn => users.id,
+      { onDelete: "set null" },
+    ),
     code: varchar("code", { length: 50 }),
     name: varchar("name", { length: 150 }).notNull(),
     email: varchar("email", { length: 150 }).notNull(),
@@ -58,6 +63,7 @@ export const users = pgTable(
     phone: varchar("phone", { length: 30 }),
     avatarUrl: text("avatar_url"),
     isActive: boolean("is_active").default(true).notNull(),
+    isAdmin: boolean("is_admin").default(false).notNull(),
     isOrganizationOwner: boolean("is_organization_owner")
       .default(false)
       .notNull(),
@@ -72,6 +78,7 @@ export const users = pgTable(
     ),
     index("users_organization_idx").on(table.organizationId),
     index("users_role_idx").on(table.roleId),
+    index("users_reports_to_idx").on(table.reportsTo),
   ],
 );
 

@@ -19,7 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { createRole, deleteRole, updateRole } from "@/lib/actions/roles";
-import { PERMISSIONS } from "@/lib/permissions";
+import { ASSIGNABLE_PERMISSIONS } from "@/lib/permissions";
 
 import type { RoleDetail } from "./types";
 
@@ -103,9 +103,8 @@ export function RoleDialog({
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit role" : "New role"}</DialogTitle>
           <DialogDescription>
-            {isEdit && role?.isSystem
-              ? "Default roles can be renamed but not deleted."
-              : "Choose which modules this role can access."}
+            Choose which modules this role can access. Admin-only modules stay
+            with the system Admin.
           </DialogDescription>
         </DialogHeader>
 
@@ -136,7 +135,7 @@ export function RoleDialog({
           <div className="space-y-2">
             <Label>Permissions</Label>
             <div className="grid gap-1.5 sm:grid-cols-2">
-              {PERMISSIONS.map((permission) => {
+              {ASSIGNABLE_PERMISSIONS.map((permission) => {
                 const checked = selected.includes(permission.key);
                 return (
                   <label
@@ -163,7 +162,7 @@ export function RoleDialog({
           </DialogFooter>
         </form>
 
-        {isEdit && role && !role.isSystem ? (
+        {isEdit && role ? (
           <>
             <Separator />
             <div className="flex flex-wrap items-center justify-between gap-2">

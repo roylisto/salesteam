@@ -30,6 +30,37 @@ export const areaOffices = pgTable(
   ],
 );
 
+/**
+ * Areas assigned to a member. A member can cover multiple areas, always a
+ * subset of their reporting line's areas (e.g. a manager under a regional
+ * manager only sees the areas handed down to them).
+ */
+export const userAreaAssignments = pgTable(
+  "user_area_assignments",
+  {
+    id: primaryId(),
+    organizationId: bigint("organization_id", { mode: "number" })
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    userId: bigint("user_id", { mode: "number" })
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    areaOfficeId: bigint("area_office_id", { mode: "number" })
+      .notNull()
+      .references(() => areaOffices.id, { onDelete: "cascade" }),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex("user_area_assignments_user_area_unique").on(
+      table.userId,
+      table.areaOfficeId,
+    ),
+    index("user_area_assignments_organization_idx").on(table.organizationId),
+    index("user_area_assignments_user_idx").on(table.userId),
+    index("user_area_assignments_area_idx").on(table.areaOfficeId),
+  ],
+);
+
 /** Warehouse / depot that holds product stock. */
 export const warehouses = pgTable(
   "warehouses",

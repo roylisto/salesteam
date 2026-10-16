@@ -1,6 +1,9 @@
 /**
- * Catalogue of assignable module permissions and the role presets that are
- * seeded when a new organization is created.
+ * Catalogue of assignable module permissions.
+ *
+ * Roles are user-defined per organization. `admin` is a system role that is
+ * never stored in the database: it grants every permission and is always
+ * offered in the role dropdown when adding a member.
  *
  * Ported from the legacy Laravel `config/permissions.php`, renamed to English.
  */
@@ -50,32 +53,8 @@ export const ASSIGNABLE_PERMISSIONS = PERMISSIONS.filter(
   (permission) => !ADMIN_ONLY_PERMISSIONS.includes(permission.key),
 );
 
-/** Roles created for every new organization. `admin` is the default owner role. */
-export const DEFAULT_ROLE_PRESETS = [
-  {
-    name: "Admin",
-    slug: "admin",
-    description: "Full access to every module in the organization.",
-    permissions: PERMISSION_KEYS,
-  },
-  {
-    name: "Manager",
-    slug: "manager",
-    description: "Oversees outlets, orders and call visits.",
-    permissions: ["dashboard", "outlets", "orders", "visits"],
-  },
-  {
-    name: "Sales",
-    slug: "sales",
-    description: "Field sales rep with call visit and order access.",
-    permissions: ["dashboard", "orders", "visits"],
-  },
-  {
-    name: "Finance",
-    slug: "finance",
-    description: "Handles invoices and payment methods.",
-    permissions: ["dashboard", "finance", "payments"],
-  },
-] as const;
+/** Virtual role value used in dropdowns for the system Admin (never in the DB). */
+export const SYSTEM_ADMIN_ROLE_VALUE = "admin";
 
+/** Slug reserved for the system Admin. Never stored in `roles`. */
 export const OWNER_ROLE_SLUG = "admin";

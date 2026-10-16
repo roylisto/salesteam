@@ -13,6 +13,7 @@ export type CurrentUser = {
   code: string | null;
   avatarUrl: string | null;
   isOrganizationOwner: boolean;
+  isAdmin: boolean;
   organization: {
     id: number;
     name: string;
@@ -29,12 +30,14 @@ export type CurrentUser = {
   permissions: PermissionKey[];
 };
 
-/** True when the member is an organization admin (owner or Admin role). */
+/** True when the member is an organization admin (owner, admin flag, or Admin role). */
 export function isAdmin(
-  user: Pick<CurrentUser, "isOrganizationOwner" | "role">,
+  user: Pick<CurrentUser, "isOrganizationOwner" | "isAdmin" | "role">,
 ): boolean {
   return (
-    user.isOrganizationOwner || user.role?.slug === OWNER_ROLE_SLUG
+    user.isOrganizationOwner ||
+    user.isAdmin ||
+    user.role?.slug === OWNER_ROLE_SLUG
   );
 }
 
@@ -52,6 +55,7 @@ export const getCurrentUser = cache(
     // everyone else, even if an old role row still lists them.
     const isOwnerOrAdmin =
       context.user.isOrganizationOwner ||
+      context.user.isAdmin ||
       context.role?.slug === OWNER_ROLE_SLUG;
     const granted = isOwnerOrAdmin
       ? PERMISSION_KEYS
@@ -68,6 +72,7 @@ export const getCurrentUser = cache(
       code: context.user.code,
       avatarUrl: context.user.avatarUrl,
       isOrganizationOwner: context.user.isOrganizationOwner,
+      isAdmin: context.user.isAdmin,
       organization: {
         id: context.organization.id,
         name: context.organization.name,

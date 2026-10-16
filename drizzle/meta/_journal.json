@@ -8,6 +8,13 @@
       "when": 1792120058618,
       "tag": "0000_natural_tarot",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792146013096,
+      "tag": "0001_team-hierarchy-admin-virtual",
+      "breakpoints": true
     }
   ]
 }

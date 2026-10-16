@@ -6,9 +6,8 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { db } from "@/db";
-import { organizations, roles, users } from "@/db/schema";
+import { organizations, users } from "@/db/schema";
 import { hashPassword } from "@/lib/password";
-import { DEFAULT_ROLE_PRESETS, OWNER_ROLE_SLUG } from "@/lib/permissions";
 import { createSession } from "@/lib/session";
 import { toFieldErrors } from "@/lib/validation";
 
@@ -53,8 +52,8 @@ async function resolveUniqueSlug(base: string): Promise<string> {
 }
 
 /**
- * Creates a brand-new tenant: the organization, its default roles and the
- * owner account (default role `admin`), then signs the owner in.
+ * Creates a brand-new tenant: the organization and the owner account
+ * (system Admin, no role row), then signs the owner in.
  */
 export async function createOrganization(
   _state: OnboardingFormState,
@@ -92,29 +91,11 @@ export async function createOrganization(
       .values({ name: organizationName, slug, email })
       .returning();
 
-    const createdRoles = await tx
-      .insert(roles)
-      .values(
-        DEFAULT_ROLE_PRESETS.map((preset) => ({
-          organizationId: organization.id,
-          name: preset.name,
-          slug: preset.slug,
-          description: preset.description,
-          permissions: [...preset.permissions],
-          isSystem: true,
-        })),
-      )
-      .returning();
-
-    const ownerRole =
-      createdRoles.find((role) => role.slug === OWNER_ROLE_SLUG) ??
-      createdRoles[0];
-
     const [owner] = await tx
       .insert(users)
       .values({
         organizationId: organization.id,
-        roleId: ownerRole.id,
+        roleId: null,
         name,
         email,
         passwordHash,
