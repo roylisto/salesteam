@@ -4,6 +4,12 @@
 > Read this first; it captures the project context, conventions, and what has
 > already been built so you can continue without re-discovering everything.
 > Last updated: 2026-10-16.
+>
+> **⚠️ RULE: always update this file after making any change.** Whenever you add
+> a table, page, action, env var, dependency, migration, or change a convention,
+> append/refresh the relevant section here (feature status, schema, migration
+> history, file map, gotchas) and bump the `Last updated` date. This file is the
+> single handoff source so the next agent (or model) can pick up seamlessly.
 
 ---
 
@@ -36,6 +42,7 @@ scoped by organization in application code (there is no row-level security).
 | DB           | PostgreSQL                                                                |
 | Validation   | Zod 4                                                                     |
 | Auth         | Custom DB sessions (no NextAuth) — bcryptjs + httpOnly cookie             |
+| Mail         | **nodemailer** over SMTP (password-reset emails)                          |
 | File storage | S3-compatible object storage (Cloudeka, AWS SDK v3)                       |
 | Misc         | `nuqs` (URL state), `sonner` (toasts), `lucide-react` (icons), `date-fns` |
 
@@ -62,15 +69,19 @@ npm run lint              # eslint
 
 ### Environment variables (`.env`)
 
-| Var                                         | Purpose                                           |
-| ------------------------------------------- | ------------------------------------------------- |
-| `DATABASE_URL`                              | Postgres connection string (required)             |
-| `DB_POOL_SIZE`                              | Connection pool size (default 10)                 |
-| `NEXT_PUBLIC_APP_NAME`                      | Brand name (default "Salesteam")                  |
-| `SESSION_COOKIE_NAME`                       | Session cookie name (default `salesteam_session`) |
-| `SESSION_TTL_DAYS`                          | Session lifetime (default 30)                     |
-| `S3_ENDPOINT` / `S3_REGION` / `S3_BUCKET`   | Object storage                                    |
-| `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` | Object storage creds                              |
+| Var                                         | Purpose                                              |
+| ------------------------------------------- | ---------------------------------------------------- |
+| `DATABASE_URL`                              | Postgres connection string (required)                |
+| `DB_POOL_SIZE`                              | Connection pool size (default 10)                    |
+| `NEXT_PUBLIC_APP_NAME`                      | Brand name (default "Salesteam")                     |
+| `SESSION_COOKIE_NAME`                       | Session cookie name (default `salesteam_session`)    |
+| `SESSION_TTL_DAYS`                          | Session lifetime (default 30)                        |
+| `S3_ENDPOINT` / `S3_REGION` / `S3_BUCKET`   | Object storage                                       |
+| `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` | Object storage creds                                 |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_SECURE`   | SMTP server (outgoing email)                         |
+| `SMTP_USERNAME` / `SMTP_PASSWORD`           | SMTP credentials                                     |
+| `SMTP_FROM`                                 | From address for outgoing email                      |
+| `PASSWORD_RESET_MONTHLY_LIMIT`              | Max password resets per member per month (default 2) |
 
 ### DB scripts
 
@@ -91,6 +102,7 @@ Migrations live in `drizzle/` and are tracked in `drizzle/meta/_journal.json`.
 src/app/
   page.tsx                     → landing
   (auth)/login, (auth)/register → public auth pages
+  (auth)/forgot-password        → public password reset (2-step)
   (app)/layout.tsx              → requires user, renders <AppShell>
   (app)/dashboard               → dashboard
   (app)/master-data/areas       → area management
@@ -102,8 +114,8 @@ src/app/
 
 - **`src/proxy.ts`** is the optimistic edge guard. It only checks that the
   session cookie exists; the authoritative check is in the DAL. Public routes:
-  `/`, `/login`, `/register`. Unauthenticated → redirect to `/login?next=...`;
-  authenticated hitting a public route → redirect to `/dashboard`.
+  `/`, `/login`, `/register`, `/forgot-password`. Unauthenticated → redirect to
+  `/login?next=...`; authenticated hitting a public route → redirect to `/dashboard`.
 - **`src/components/app-shell.tsx`** renders the sidebar/header and filters nav
   items by the user's permission keys.
 
@@ -173,6 +185,35 @@ src/app/
 - The organization owner is protected: cannot be demoted, disabled, or deleted;
   can only be edited by themselves for profile fields.
 
+### 4.6 Password reset (email temporary password)
+
+Flow is a 2-step wizard on the public `/forgot-password` page:
+
+1. **Request** — user enters their email. If no active account matches, we return
+   an explicit error ("No account found with this email." / inactive message).
+   Otherwise we check the per-month limit, generate a random temporary password,
+   store only its **hash** in `password_reset_requests`, email the plaintext to
+   the member, and move to step 2.
+2. **Complete** — user enters the emailed temporary password + a new password.
+   We verify the temp password against the stored hash (must be unused and not
+   expired, 60 min TTL), set the new password hash, mark the request `usedAt`,
+   and **soft-delete all of that user's sessions** (forced re-login).
+
+- Limit: `PASSWORD_RESET_MONTHLY_LIMIT` (default 2; `.env` in dev is raised to
+  100 for testing). Counted as requests created since the start of the current
+  calendar month.
+- Actions live in
+  [password-reset.ts](file:///Users/roy/Projects/salesteam/src/lib/actions/password-reset.ts):
+  `requestPasswordReset`, `completePasswordReset`.
+- Email is sent via [mailer.ts](file:///Users/roy/Projects/salesteam/src/lib/mailer.ts)
+  (`sendTemporaryPasswordEmail`). If `SMTP_HOST` is unset the message is logged
+  to the server console instead of failing.
+- The reset form calls the server actions directly with `useTransition` (not
+  `useActionState`) so it can drive the step transitions explicitly.
+- If SMTP delivery fails, the action rolls back the reset request (so a failed
+  send does not consume one of the monthly attempts) and returns a friendly
+  error instead of throwing — an SMTP error must never crash the page.
+
 ---
 
 ## 5. Database schema (tables)
@@ -184,7 +225,8 @@ Defined in `src/db/schema/*` and re-exported from `index.ts`.
 - **auth.ts** — `roles` (per-org, `permissions` jsonb), `users` (roleId,
   reportsTo, code, name, email, passwordHash, phone, avatarUrl, isActive,
   isAdmin, isOrganizationOwner, lastLoginAt), `sessions` (id, userId, expiresAt,
-  ip, userAgent, deletedAt).
+  ip, userAgent, deletedAt), `password_reset_requests` (userId, tokenHash,
+  expiresAt, usedAt, timestamps — backing the forgot-password flow + monthly limit).
 - **master-data.ts** — `area_offices`, `user_area_assignments`, `warehouses`,
   `products`, `outlets`, `warehouse_stocks`.
 - **inventory.ts** — `stock_movements`, `stock_movement_items`, `sales_stocks`,
@@ -214,6 +256,7 @@ Defined in `src/db/schema/*` and re-exported from `index.ts`.
   `user_area_assignments`.
 - `0002_soft-delete-all-tables.sql` — adds `deleted_at` to all 25 tables and
   converts all 13 unique indexes to partial. **Applied.**
+- `0003_password-reset-requests.sql` — adds `password_reset_requests`. **Applied.**
 
 ---
 
@@ -223,6 +266,8 @@ Defined in `src/db/schema/*` and re-exported from `index.ts`.
 
 - **Auth**: register (creates org + owner as system Admin), login, logout,
   DB sessions, session cookie, route guard.
+- **Forgot password** (`/forgot-password`): 2-step email-temporary-password
+  reset, SMTP delivery, per-member monthly limit, session invalidation.
 - **Multi-tenancy** scoping on all current queries.
 - **Roles & Permissions** (`/settings/roles`): user-defined roles, CRUD,
   permission checklist (assignable modules only), reserved `admin` slug guard,
@@ -271,6 +316,7 @@ src/lib/
   validation.ts                toFieldErrors (Zod → field errors)
   storage.ts                   S3 client, upload/delete/signed URL helpers
   files.ts                     normalizeFileKey / toFileSrc (private file URLs)
+  mailer.ts                    nodemailer SMTP transport + email templates
   utils.ts                     cn()
   actions/
     auth.ts                    login, logout
@@ -279,6 +325,7 @@ src/lib/
     roles.ts                   create/update/delete role
     areas.ts                   create/update/delete area
     account.ts                 create/update/delete member, reset password (hierarchy)
+    password-reset.ts          requestPasswordReset, completePasswordReset
 
 src/components/
   app-shell.tsx                sidebar/header, permission-filtered nav
@@ -297,7 +344,12 @@ src/proxy.ts                   optimistic auth guard
   re-check auth (`getCurrentUser` + `can(...)`) at the top and call
   `revalidatePath(...)` after writes.
 - **Form state**: React 19 `useActionState` in client dialogs; field errors are
-  produced by `toFieldErrors(zodError)`.
+  produced by `toFieldErrors(zodError)`. For multi-step flows that need to
+  branch on the result, call the server action directly from a handler wrapped
+  in `useTransition` instead (see the forgot-password form).
+- **UI `render` prop**: base-ui components (e.g. `Button`) take
+  `render={<Element />}` with the visible children on the **outer** component,
+  not inside the render element (see `dialog.tsx`).
 - **Member mutations** go through `account.ts` and always:
   1. `requireManager()` (needs `team` permission),
   2. validate role belongs to org (Admin handled virtually),
@@ -327,6 +379,13 @@ src/proxy.ts                   optimistic auth guard
   entry first, then re-run `db:generate`.
 - `AGENTS.md` (nextjs-agent-rules block) is auto-managed by `next dev`; leave it
   intact in commits.
+- **`SMTP_FROM` must use a sender domain authorized for the SMTP account.** The
+  relay rejects an unlinked custom domain with
+  `450 Relay failed: Custom sender domain missing auth credentials` — it is a
+  config problem, not code. Currently `dev-no-reply@mail.hisea.id`.
+- **Never let an unhandled promise rejection reach the page.** Wrap outbound
+  email sends in the action and return an error state; a throwing server action
+  surfaces as a Next.js runtime error on the page.
 - Git history so far: `64ff094 first commit` → setup, area mgmt, S3, org,
   admin lockdown, reporting line, soft delete.
 

@@ -104,3 +104,26 @@ export const sessions = pgTable(
     index("sessions_expires_at_idx").on(table.expiresAt),
   ],
 );
+
+/**
+ * A temporary-password reset request. Step 1 issues a temporary password (stored
+ * hashed here) and emails it to the member; step 2 consumes it to set a new
+ * password. Rows are retained so the per-month reset limit can be enforced.
+ */
+export const passwordResetRequests = pgTable(
+  "password_reset_requests",
+  {
+    id: primaryId(),
+    userId: bigint("user_id", { mode: "number" })
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    tokenHash: varchar("token_hash", { length: 255 }).notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    usedAt: timestamp("used_at", { withTimezone: true }),
+    ...timestamps,
+  },
+  (table) => [
+    index("password_reset_requests_user_idx").on(table.userId),
+    index("password_reset_requests_created_at_idx").on(table.createdAt),
+  ],
+);

@@ -4,7 +4,7 @@ const SESSION_COOKIE_NAME =
   process.env.SESSION_COOKIE_NAME ?? "salesteam_session";
 
 /** Routes that do not require a session. */
-const PUBLIC_ROUTES = ["/", "/login", "/register"];
+const PUBLIC_ROUTES = ["/", "/login", "/register", "/forgot-password"];
 
 const LOGIN_ROUTE = "/login";
 const HOME_ROUTE = "/dashboard";
