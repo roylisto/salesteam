@@ -11,6 +11,7 @@ import {
   MapPinIcon,
   MenuIcon,
   ShieldCheckIcon,
+  UserIcon,
   UsersIcon,
   type LucideIcon,
 } from "lucide-react";
@@ -226,6 +227,14 @@ function UserMenu({ user }: { user: ShellUser }) {
             </span>
           </DropdownMenuLabel>
         </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          render={<Link href="/profile" />}
+          nativeButton={false}
+        >
+          <UserIcon />
+          Profile
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
           variant="destructive"

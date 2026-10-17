@@ -465,6 +465,9 @@ export function MemberDetailDialog({
   const allowedAreas = useAllowedAreas(areas, assignableAreas, members, reportsTo, actorIsAdmin);
 
   const isProtected = member.isOrganizationOwner || member.id === currentUserId;
+  // Only an Admin can set someone else's password; members change their own
+  // from the profile page.
+  const canResetPassword = actorIsAdmin && member.id !== currentUserId;
 
   function toggleArea(id: number) {
     setAreaIds((prev) =>
@@ -547,7 +550,7 @@ export function MemberDetailDialog({
           <DialogDescription>{member.email}</DialogDescription>
         </DialogHeader>
 
-        <form ref={passwordForm} action={handleProfile} className="space-y-4">
+        <form action={handleProfile} className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5 sm:col-span-2">
               <Label htmlFor="edit-name">Full name</Label>
@@ -652,29 +655,33 @@ export function MemberDetailDialog({
           </DialogFooter>
         </form>
 
-        <Separator />
+        {canResetPassword ? (
+          <>
+            <Separator />
 
-        <form action={handlePassword} className="space-y-4">
-          <div className="space-y-1.5">
-            <Label htmlFor="edit-password">Reset password</Label>
-            <Input
-              id="edit-password"
-              name="password"
-              type="password"
-              autoComplete="new-password"
-              minLength={8}
-              placeholder="New password"
-              required
-            />
-            <FieldError message={errors.password} />
-          </div>
-          <DialogFooter>
-            <Button type="submit" variant="outline" disabled={pending}>
-              {pending ? <Loader2Icon className="animate-spin" /> : null}
-              Update password
-            </Button>
-          </DialogFooter>
-        </form>
+            <form ref={passwordForm} action={handlePassword} className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-password">Reset password</Label>
+                <Input
+                  id="edit-password"
+                  name="password"
+                  type="password"
+                  autoComplete="new-password"
+                  minLength={8}
+                  placeholder="New password"
+                  required
+                />
+                <FieldError message={errors.password} />
+              </div>
+              <DialogFooter>
+                <Button type="submit" variant="outline" disabled={pending}>
+                  {pending ? <Loader2Icon className="animate-spin" /> : null}
+                  Update password
+                </Button>
+              </DialogFooter>
+            </form>
+          </>
+        ) : null}
 
         {isProtected ? null : (
           <>

@@ -3,7 +3,7 @@
 > Handoff notes for AI agents doing "vibe coding" on this repo.
 > Read this first; it captures the project context, conventions, and what has
 > already been built so you can continue without re-discovering everything.
-> Last updated: 2026-10-16 (updated: forced password change on first login for system-generated member passwords).
+> Last updated: 2026-10-17 (updated: self-service Profile page + admin-only password reset in team management).
 >
 > **⚠️ RULE: always update this file after making any change.** Whenever you add
 > a table, page, action, env var, dependency, migration, or change a convention,
@@ -111,6 +111,7 @@ src/app/
   (app)/settings/organization   → org settings (logo upload, currency, tz)
   (app)/settings/team           → team hierarchy + members
   (app)/settings/roles          → user-defined roles & permissions
+  (app)/profile                 → own account details + change own password
   api/files/[...key]/route.ts   → authenticated S3 object streaming
 ```
 
@@ -256,6 +257,23 @@ When adding a team member the admin **never types a password**:
   bounce them off `/login` back to the dashboard. After signing out they can
   use the forgot-password flow (flag gets cleared there too).
 
+### 4.9 Profile page & who may change a password
+
+- **`/profile`** (in the `(app)` group, link lives in the header **user menu** —
+  not the permission-gated sidebar) shows the signed-in user's read-only
+  account details (name, email, role, staff code, organization) plus a
+  **Change password** card. It reuses the same `changePassword` action as the
+  forced first-login page (`actions/auth.ts`) → verifies current password,
+  min 8 chars, confirm match, then clears `mustChangePassword`.
+- **Changing your own password** is always allowed (profile page).
+- **Changing someone else's password is Admin-only.** The "Reset password"
+  block in the team member detail dialog is rendered only when
+  `canResetPassword = actorIsAdmin && member.id !== currentUserId`, and
+  `resetMemberPassword` (`account.ts`) re-checks `isAdmin(manager)` server-side
+  and returns `"Only an Admin can reset another member's password."` otherwise.
+  Non-admin managers get the (empty) UI hidden and a rejection if they call the
+  action directly.
+
 ---
 
 ## 5. Database schema (tables)
@@ -313,6 +331,9 @@ Defined in `src/db/schema/*` and re-exported from `index.ts`.
 - **Forced first-login password change**: members added by an admin are bounced
   to `/change-password` on every app page until they replace the
   system-generated password.
+- **Profile** (`/profile`, linked from the header user menu): own account
+  details + **change own password**. Resetting _another_ member's password is
+  Admin-only (see §4.9).
 - **Forgot password** (`/forgot-password`): 2-step email-temporary-password
   reset, SMTP delivery, per-member monthly limit, session invalidation.
 - **Multi-tenancy** scoping on all current queries.
@@ -333,6 +354,8 @@ Defined in `src/db/schema/*` and re-exported from `index.ts`.
   - **Add member**: no manual password field — the system generates the
     password, emails it once to the new member (non-expiring), and shows it on
     a credentials screen with a copy button (fallback if the email fails).
+  - **Reset password**: Admin-only — non-admin managers never see the control
+    (server action also rejects them). Members change their own from `/profile`.
   - Subtree visibility + area-subset enforcement for non-admins.
 - **Soft delete** across all tables (schema + migration + actions + reads).
 - **Dashboard** (`/dashboard`): member + role counts (soft-delete aware).
@@ -371,14 +394,20 @@ src/lib/
                                (new member login details, no expiry)
   utils.ts                     cn()
   actions/
-    auth.ts                    login, logout, changePassword (forced first login)
+    auth.ts                    login, logout, changePassword (forced first login
+                               + profile page)
     onboarding.ts              createOrganization (register)
     organization.ts            updateOrganization (+ logo upload)
     roles.ts                   create/update/delete role
     areas.ts                   create/update/delete area
     account.ts                 create/update/delete member (system-generated pw
-                               + one credentials email), reset password (hierarchy)
+                               + one credentials email), reset password
+                               (Admin-only for other members)
     password-reset.ts          requestPasswordReset, completePasswordReset
+
+src/app/(app)/profile/
+  page.tsx                     own account details (server component)
+  profile-form.tsx             read-only details + change-own-password form
 
 src/components/
   app-shell.tsx                sidebar/header, permission-filtered nav

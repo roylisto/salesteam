@@ -571,6 +571,11 @@ export async function resetMemberPassword(
 ): Promise<AccountFormState> {
   const manager = await requireManager();
   if (!manager) return { error: "You do not have permission to manage the team." };
+  // Only an Admin can set another member's password. Everyone else changes
+  // their own password from the profile page.
+  if (!isAdmin(manager)) {
+    return { error: "Only an Admin can reset another member's password." };
+  }
 
   const parsed = ResetPasswordSchema.safeParse({
     id: formData.get("id"),
