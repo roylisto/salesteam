@@ -13,6 +13,7 @@ import {
   ShieldCheckIcon,
   UserIcon,
   UsersIcon,
+  WarehouseIcon,
   type LucideIcon,
 } from "lucide-react";
 
@@ -68,6 +69,12 @@ const MASTER_NAV: NavItem[] = [
     href: "/master-data/areas",
     icon: MapPinIcon,
     permission: "areas",
+  },
+  {
+    label: "Warehouses",
+    href: "/master-data/warehouses",
+    icon: WarehouseIcon,
+    permission: "warehouses",
   },
 ];
 

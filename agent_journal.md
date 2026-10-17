@@ -3,7 +3,7 @@
 > Handoff notes for AI agents doing "vibe coding" on this repo.
 > Read this first; it captures the project context, conventions, and what has
 > already been built so you can continue without re-discovering everything.
-> Last updated: 2026-10-17 (updated: self-service Profile page + admin-only password reset in team management).
+> Last updated: 2026-10-17 (updated: warehouse management under Master Data — areas can hold many warehouses; earlier same day: Profile page + admin-only password reset).
 >
 > **⚠️ RULE: always update this file after making any change.** Whenever you add
 > a table, page, action, env var, dependency, migration, or change a convention,
@@ -108,6 +108,7 @@ src/app/
   (app)/layout.tsx              → requires user, renders <AppShell>
   (app)/dashboard               → dashboard
   (app)/master-data/areas       → area management
+  (app)/master-data/warehouses  → warehouse management (per-area depots)
   (app)/settings/organization   → org settings (logo upload, currency, tz)
   (app)/settings/team           → team hierarchy + members
   (app)/settings/roles          → user-defined roles & permissions
@@ -344,6 +345,9 @@ Defined in `src/db/schema/*` and re-exported from `index.ts`.
   timezone, logo upload to S3 (with old-logo cleanup), private-file serving via
   `/api/files`.
 - **Area management** (`/master-data/areas`): CRUD (soft delete).
+- **Warehouse management** (`/master-data/warehouses`): CRUD (soft delete),
+  each warehouse belongs to an area (an area can hold many), optional depot
+  type, active flag, search + area filter. Gated by the `warehouses` permission.
 - **Team** (`/settings/team`):
   - Tabs: **All**, **Hierarchy**, **Admin**, one tab per role, **Unassigned**.
   - **Hierarchy** tab: recursive indented diagram (member cards → direct reports).
@@ -362,14 +366,14 @@ Defined in `src/db/schema/*` and re-exported from `index.ts`.
 
 ### Not built yet (domain tables exist, no UI/actions)
 
-- Products, Outlets, Warehouses, Warehouse stock/movements.
+- Products, Outlets, Warehouse stock/movements.
 - Sales inventory/stock transactions.
 - Orders, Invoices/Finance, Payment methods.
 - Routes, Visits (GPS check-in/out), Outlet assignment requests.
 - Scheduled tasks runner.
 
-The nav in `app-shell.tsx` only wires Dashboard, Area Management, Organization,
-Team, Roles & permissions today.
+The nav in `app-shell.tsx` only wires Dashboard, Area Management, Warehouses,
+Organization, Team, Roles & permissions today.
 
 ---
 
@@ -400,6 +404,7 @@ src/lib/
     organization.ts            updateOrganization (+ logo upload)
     roles.ts                   create/update/delete role
     areas.ts                   create/update/delete area
+    warehouses.ts              create/update/delete warehouse (area-scoped)
     account.ts                 create/update/delete member (system-generated pw
                                + one credentials email), reset password
                                (Admin-only for other members)
@@ -408,6 +413,11 @@ src/lib/
 src/app/(app)/profile/
   page.tsx                     own account details (server component)
   profile-form.tsx             read-only details + change-own-password form
+
+src/app/(app)/master-data/warehouses/
+  page.tsx                     warehouse list (joins area name)
+  warehouses-client.tsx        search + area filter + paginated table
+  warehouse-dialog.tsx         create/edit/delete dialog (area select)
 
 src/components/
   app-shell.tsx                sidebar/header, permission-filtered nav
