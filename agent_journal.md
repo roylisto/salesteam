@@ -3,7 +3,7 @@
 > Handoff notes for AI agents doing "vibe coding" on this repo.
 > Read this first; it captures the project context, conventions, and what has
 > already been built so you can continue without re-discovering everything.
-> Last updated: 2026-10-17 (updated: warehouse management under Master Data — areas can hold many warehouses; earlier same day: Profile page + admin-only password reset).
+> Last updated: 2026-10-17 (updated: Admin role option hidden for non-admin actors in the team role dropdown; earlier same day: warehouse management, Profile page + admin-only password reset).
 >
 > **⚠️ RULE: always update this file after making any change.** Whenever you add
 > a table, page, action, env var, dependency, migration, or change a convention,
@@ -355,6 +355,11 @@ Defined in `src/db/schema/*` and re-exported from `index.ts`.
   - Search (name/email/code), status filter, pagination, member detail dialog.
   - Create/edit member: role dropdown (Admin shown by default option +
     org roles), reporting line dropdown, multi-area select.
+  - **Admin (system) role option is Admin-only**: `RoleSelect` renders it only
+    when the actor is an Admin (or the member already holds it), and the create
+    dialog only pre-selects it for an Admin actor. Server-side
+    `createMember`/`updateMember` also reject a non-admin trying to grant it
+    ("Only an Admin can grant the Admin role.").
   - **Add member**: no manual password field — the system generates the
     password, emails it once to the new member (non-expiring), and shows it on
     a credentials screen with a copy button (fallback if the email fails).
