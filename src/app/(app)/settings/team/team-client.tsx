@@ -55,8 +55,8 @@ const PAGE_SIZE = 10;
 type TabValue = string;
 const ALL_TAB = "all";
 const HIERARCHY_TAB = "hierarchy";
-const ADMIN_TAB = "admin";
-const UNASSIGNED_TAB = "unassigned";
+const BACK_OFFICE_TAB = "back_office";
+const SALES_TAB = "sales";
 
 function StatusBadge({ member }: { member: MemberRow }) {
   if (member.isOrganizationOwner) {
@@ -79,10 +79,8 @@ function UserTypeBadge({ userType }: { userType: MemberRow["userType"] }) {
   return <Badge variant="secondary">Back Office</Badge>;
 }
 
-function roleTabOf(member: MemberRow): string {
-  if (member.isOrganizationOwner || member.isAdmin) return ADMIN_TAB;
-  if (member.roleId === null) return UNASSIGNED_TAB;
-  return `role-${member.roleId}`;
+function typeTabOf(member: MemberRow): string {
+  return member.userType === "sales" ? SALES_TAB : BACK_OFFICE_TAB;
 }
 
 function HierarchyNode({
@@ -175,15 +173,15 @@ function MemberTable({
   return (
     <div className="overflow-hidden rounded-xl ring-1 ring-foreground/10">
       <div className="overflow-x-auto">
-        <Table>
+        <Table className="table-fixed w-full">
           <TableHeader>
             <TableRow>
-              <TableHead>Anggota</TableHead>
-              <TableHead className="hidden md:table-cell">Tipe</TableHead>
-              <TableHead className="hidden lg:table-cell">Peran</TableHead>
-              <TableHead className="hidden xl:table-cell">Atasan</TableHead>
-              <TableHead className="hidden 2xl:table-cell">Area</TableHead>
-              <TableHead>Status</TableHead>
+              <TableHead className="w-[28%] min-w-[220px]">Anggota</TableHead>
+              <TableHead className="hidden w-[12%] md:table-cell">Tipe</TableHead>
+              <TableHead className="hidden w-[16%] lg:table-cell">Peran</TableHead>
+              <TableHead className="hidden w-[14%] xl:table-cell">Atasan</TableHead>
+              <TableHead className="hidden w-[18%] 2xl:table-cell">Area</TableHead>
+              <TableHead className="w-[12%] whitespace-nowrap">Status</TableHead>
               <TableHead className="w-10" />
             </TableRow>
           </TableHeader>
@@ -196,8 +194,8 @@ function MemberTable({
                     onClick={() => onSelect(member.id)}
                     className="text-left"
                   >
-                    <span className="block text-sm font-medium">{member.name}</span>
-                    <span className="text-muted-foreground block text-xs">
+                    <span className="block truncate text-sm font-medium">{member.name}</span>
+                    <span className="text-muted-foreground block truncate text-xs">
                       {member.email}
                     </span>
                   </button>
@@ -206,16 +204,20 @@ function MemberTable({
                   <UserTypeBadge userType={member.userType} />
                 </TableCell>
                 <TableCell className="hidden lg:table-cell">
-                  {member.roleName ?? (
-                    <span className="text-muted-foreground">Belum ditugaskan</span>
-                  )}
+                  <span className="block truncate">
+                    {member.roleName ?? (
+                      <span className="text-muted-foreground">Belum ditugaskan</span>
+                    )}
+                  </span>
                 </TableCell>
                 <TableCell className="hidden xl:table-cell">
-                  {member.reportsToName ?? (
-                    <span className="text-muted-foreground">—</span>
-                  )}
+                  <span className="block truncate">
+                    {member.reportsToName ?? (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </span>
                 </TableCell>
-                <TableCell className="hidden max-w-56 2xl:table-cell">
+                <TableCell className="hidden 2xl:table-cell">
                   {member.areaNames.length > 0 ? (
                     <span className="flex flex-wrap gap-1">
                       {member.areaNames.slice(0, 3).map((area) => (
@@ -294,26 +296,18 @@ export function TeamClient({
       { value: ALL_TAB, label: "Semua", count: members.length },
       { value: HIERARCHY_TAB, label: "Hierarki", count: members.length },
       {
-        value: ADMIN_TAB,
-        label: "Admin",
-        count: members.filter((m) => roleTabOf(m) === ADMIN_TAB).length,
+        value: BACK_OFFICE_TAB,
+        label: "Back Office",
+        count: members.filter((m) => (m.userType ?? "back_office") === "back_office").length,
       },
-      ...roles.map((role) => ({
-        value: `role-${role.id}`,
-        label: role.name,
-        count: members.filter((m) => m.roleId === role.id && !m.isAdmin && !m.isOrganizationOwner)
-          .length,
-      })),
+      {
+        value: SALES_TAB,
+        label: "Sales",
+        count: members.filter((m) => m.userType === "sales").length,
+      },
     ];
-    if (members.some((m) => roleTabOf(m) === UNASSIGNED_TAB)) {
-      list.push({
-        value: UNASSIGNED_TAB,
-        label: "Belum ditugaskan",
-        count: members.filter((m) => roleTabOf(m) === UNASSIGNED_TAB).length,
-      });
-    }
     return list;
-  }, [members, roles]);
+  }, [members]);
 
   const activeTab: TabValue = tabs.some((t) => t.value === tab) ? tab : ALL_TAB;
 
@@ -325,7 +319,7 @@ export function TeamClient({
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase();
     return members.filter((member) => {
-      if (activeTab !== ALL_TAB && activeTab !== HIERARCHY_TAB && roleTabOf(member) !== activeTab) {
+      if (activeTab !== ALL_TAB && activeTab !== HIERARCHY_TAB && typeTabOf(member) !== activeTab) {
         return false;
       }
       if (status === "active" && !member.isActive) return false;
@@ -345,20 +339,12 @@ export function TeamClient({
   const grouped = useMemo(() => {
     if (activeTab !== ALL_TAB) return null;
     const groups: { key: string; label: string; rows: MemberRow[] }[] = [];
-    const adminRows = visible.filter((m) => roleTabOf(m) === ADMIN_TAB);
-    if (adminRows.length > 0) groups.push({ key: ADMIN_TAB, label: "Admin", rows: adminRows });
-    for (const role of roles) {
-      const rows = visible.filter(
-        (m) => m.roleId === role.id && !m.isAdmin && !m.isOrganizationOwner,
-      );
-      if (rows.length > 0) groups.push({ key: `role-${role.id}`, label: role.name, rows });
-    }
-    const unassigned = visible.filter((m) => roleTabOf(m) === UNASSIGNED_TAB);
-    if (unassigned.length > 0) {
-      groups.push({ key: UNASSIGNED_TAB, label: "Belum ditugaskan", rows: unassigned });
-    }
+    const backOfficeRows = visible.filter((m) => (m.userType ?? "back_office") === "back_office");
+    if (backOfficeRows.length > 0) groups.push({ key: BACK_OFFICE_TAB, label: "Back Office", rows: backOfficeRows });
+    const salesRows = visible.filter((m) => m.userType === "sales");
+    if (salesRows.length > 0) groups.push({ key: SALES_TAB, label: "Sales", rows: salesRows });
     return groups;
-  }, [visible, roles, activeTab]);
+  }, [visible, activeTab]);
 
   const roots = useMemo(() => {
     const ids = new Set(members.map((m) => m.id));
@@ -390,9 +376,16 @@ export function TeamClient({
       >
         <TabsList className="max-w-full flex-wrap">
           {tabs.map((item) => (
-            <TabsTrigger key={item.value} value={item.value}>
+            <TabsTrigger
+              key={item.value}
+              value={item.value}
+              className="data-[active]:bg-primary data-[active]:text-primary-foreground data-[active]:shadow-sm"
+            >
               {item.label}
-              <span className="text-muted-foreground text-xs tabular-nums">
+              <span
+                className="ml-1 text-xs tabular-nums"
+                style={{ color: activeTab === item.value ? "#fff" : undefined }}
+              >
                 {item.count}
               </span>
             </TabsTrigger>
