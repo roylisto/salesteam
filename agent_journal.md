@@ -145,7 +145,11 @@ src/app/
   `/`, `/login`, `/register`, `/forgot-password`. Unauthenticated → redirect to
   `/login?next=...`; authenticated hitting a public route → redirect to `/dashboard`.
 - **`src/components/app-shell.tsx`** renders the sidebar/header and filters nav
-  items by the user's permission keys.
+  items by the user's permission keys. The sidebar uses the `--sidebar-*` theme
+  tokens (see §4.10), giving it a solid deep-indigo surface with light content;
+  nav links use `text-sidebar-foreground`, `hover:bg-sidebar-accent` and
+  `bg-sidebar-primary` for the active item. The mobile sheet reuses the same
+  tokens so it matches the desktop rail.
 
 ### 4.2 Auth & sessions
 
@@ -294,7 +298,7 @@ When adding a team member the admin **never types a password**:
 
 - **`/profile`** (in the `(app)` group, link lives in the header **user menu** —
   not the permission-gated sidebar) shows the signed-in user's read-only
-  account details (name, email, role, staff code, organization) plus a
+  account details (name, email, username, role, staff code, organization) plus a
   **Change password** card. It reuses the same `changePassword` action as the
   forced first-login page (`actions/auth.ts`) → verifies current password,
   min 8 chars, confirm match, then clears `mustChangePassword`.
@@ -306,6 +310,20 @@ When adding a team member the admin **never types a password**:
   and returns `"Only an Admin can reset another member's password."` otherwise.
   Non-admin managers get the (empty) UI hidden and a rejection if they call the
   action directly.
+
+### 4.10 Theme & the coloured sidebar
+
+- Theme tokens live in `src/app/globals.css` (`:root` light, `.dark` dark); the
+  rest of the app is a neutral, all-white surface.
+- The **sidebar is coloured** (flat, no gradient) via the `--sidebar-*` tokens:
+  a solid **deep indigo** surface (`--sidebar`), light foreground
+  (`--sidebar-foreground`), a translucent-white hover/active wash
+  (`--sidebar-accent`), and a vivid indigo active pill (`--sidebar-primary`).
+- `app-shell.tsx` therefore uses the sidebar tokens (not the global
+  `accent`/`muted`) inside the rail — desktop `aside`, `SidebarContent` and the
+  mobile `SheetContent` — so text/icons stay legible against the dark surface.
+- The **header** stays on the light `background` tokens, which keeps the top bar
+  contrasting with the coloured rail.
 
 ---
 
