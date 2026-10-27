@@ -51,7 +51,7 @@ export function AreaDialog({
         : await createArea(undefined, formData);
 
       if (result?.ok) {
-        toast.success(area ? "Area updated." : "Area created.");
+        toast.success(area ? "Area diperbarui." : "Area dibuat.");
         setErrors({});
         onOpenChange(false);
         router.refresh();
@@ -73,13 +73,13 @@ export function AreaDialog({
       const result = await deleteArea(formData);
 
       if (result?.ok) {
-        toast.success("Area deleted.");
+        toast.success("Area dihapus.");
         onOpenChange(false);
         router.refresh();
         return;
       }
 
-      toast.error(result?.error ?? "Unable to delete this area.");
+      toast.error(result?.error ?? "Tidak dapat menghapus area ini.");
     });
   }
 
@@ -87,15 +87,15 @@ export function AreaDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{isEdit ? "Edit area" : "New area"}</DialogTitle>
+          <DialogTitle>{isEdit ? "Ubah area" : "Area baru"}</DialogTitle>
           <DialogDescription>
-            Areas group warehouses and outlets by region.
+            Area mengelompokkan gudang dan outlet berdasarkan wilayah.
           </DialogDescription>
         </DialogHeader>
 
         <form action={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="area-name">Name</Label>
+            <Label htmlFor="area-name">Nama</Label>
             <Input
               id="area-name"
               name="name"
@@ -109,7 +109,7 @@ export function AreaDialog({
           <DialogFooter>
             <Button type="submit" disabled={pending}>
               {pending ? <Loader2Icon className="animate-spin" /> : null}
-              {isEdit ? "Save area" : "Create area"}
+              {isEdit ? "Simpan area" : "Buat area"}
             </Button>
           </DialogFooter>
         </form>
@@ -119,7 +119,7 @@ export function AreaDialog({
             <Separator />
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="text-muted-foreground text-xs">
-                Warehouses in this area will become unassigned.
+                Gudang di area ini akan menjadi belum ditugaskan.
               </p>
               {confirming ? (
                 <div className="flex items-center gap-2">
@@ -129,7 +129,7 @@ export function AreaDialog({
                     onClick={() => setConfirming(false)}
                     disabled={pending}
                   >
-                    Cancel
+                    Batal
                   </Button>
                   <Button
                     variant="destructive"
@@ -138,7 +138,7 @@ export function AreaDialog({
                     disabled={pending}
                   >
                     {pending ? <Loader2Icon className="animate-spin" /> : null}
-                    Confirm delete
+                    Konfirmasi hapus
                   </Button>
                 </div>
               ) : (
@@ -147,7 +147,7 @@ export function AreaDialog({
                   size="sm"
                   onClick={() => setConfirming(true)}
                 >
-                  Delete area
+                  Hapus area
                 </Button>
               )}
             </div>

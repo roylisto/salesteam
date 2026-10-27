@@ -58,7 +58,7 @@ type NavItem = {
 
 const PRIMARY_NAV: NavItem[] = [
   {
-    label: "Dashboard",
+    label: "Dasbor",
     href: "/dashboard",
     icon: LayoutDashboardIcon,
     permission: "dashboard",
@@ -67,25 +67,25 @@ const PRIMARY_NAV: NavItem[] = [
 
 const MASTER_NAV: NavItem[] = [
   {
-    label: "Area Management",
+    label: "Manajemen Area",
     href: "/master-data/areas",
     icon: MapPinIcon,
     permission: "areas",
   },
   {
-    label: "Warehouses",
+    label: "Gudang",
     href: "/master-data/warehouses",
     icon: WarehouseIcon,
     permission: "warehouses",
   },
   {
-    label: "Outlets",
+    label: "Outlet",
     href: "/master-data/outlets",
     icon: StoreIcon,
     permission: "outlets",
   },
   {
-    label: "Outlet Types",
+    label: "Tipe Outlet",
     href: "/master-data/outlet-types",
     icon: TagsIcon,
     permission: "outlet_types",
@@ -94,19 +94,19 @@ const MASTER_NAV: NavItem[] = [
 
 const SETTINGS_NAV: NavItem[] = [
   {
-    label: "Organization",
+    label: "Organisasi",
     href: "/settings/organization",
     icon: Building2Icon,
     permission: "organization",
   },
   {
-    label: "Team",
+    label: "Tim",
     href: "/settings/team",
     icon: UsersIcon,
     permission: "team",
   },
   {
-    label: "Roles & permissions",
+    label: "Peran & Izin",
     href: "/settings/roles",
     icon: ShieldCheckIcon,
     permission: "roles",
@@ -195,7 +195,7 @@ function SidebarContent({
         {master.length > 0 ? (
           <div className="space-y-1">
             <p className="text-muted-foreground px-2.5 text-xs font-medium">
-              Master Data
+              Data Induk
             </p>
             <NavLinks items={master} onNavigate={onNavigate} />
           </div>
@@ -204,7 +204,7 @@ function SidebarContent({
         {settings.length > 0 ? (
           <div className="space-y-1">
             <p className="text-muted-foreground px-2.5 text-xs font-medium">
-              Settings
+              Pengaturan
             </p>
             <NavLinks items={settings} onNavigate={onNavigate} />
           </div>
@@ -254,7 +254,7 @@ function UserMenu({ user }: { user: ShellUser }) {
           nativeButton={false}
         >
           <UserIcon />
-          Profile
+          Profil
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
@@ -263,7 +263,7 @@ function UserMenu({ user }: { user: ShellUser }) {
           onClick={() => startTransition(() => logout())}
         >
           <LogOutIcon />
-          Sign out
+          Keluar
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -292,11 +292,11 @@ export function AppShell({
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger className="hover:bg-muted inline-flex size-8 items-center justify-center rounded-lg transition-colors lg:hidden">
               <MenuIcon className="size-4" />
-              <span className="sr-only">Open navigation</span>
+              <span className="sr-only">Buka navigasi</span>
             </SheetTrigger>
             <SheetContent side="left" className="w-72 gap-0 p-0">
               <SheetHeader className="sr-only">
-                <SheetTitle>Navigation</SheetTitle>
+                <SheetTitle>Navigasi</SheetTitle>
               </SheetHeader>
               <SidebarContent
                 user={user}

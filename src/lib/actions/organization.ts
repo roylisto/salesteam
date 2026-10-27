@@ -50,7 +50,7 @@ const OrganizationSchema = z.object({
   currency: z
     .string()
     .trim()
-    .length(3, "Currency must be a 3-letter code.")
+    .length(3, "Mata uang harus berupa kode 3 huruf.")
     .transform((value) => value.toUpperCase()),
   timezone: z.string().trim().min(1).max(64),
 });
@@ -79,7 +79,7 @@ export async function updateOrganization(
 ): Promise<OrganizationFormState> {
   const user = await getCurrentUser();
   if (!user || !can(user, "organization")) {
-    return { error: "You do not have permission to manage organization settings." };
+    return { error: "Anda tidak memiliki izin untuk mengelola pengaturan organisasi." };
   }
 
   const parsed = OrganizationSchema.safeParse({
@@ -96,7 +96,7 @@ export async function updateOrganization(
   if (parsed.data.email !== undefined && parsed.data.email !== null) {
     const emailCheck = z.email().safeParse(parsed.data.email);
     if (!emailCheck.success) {
-      return { fieldErrors: { email: "Enter a valid email address." } };
+      return { fieldErrors: { email: "Masukkan alamat email yang valid." } };
     }
   }
 
@@ -113,10 +113,10 @@ export async function updateOrganization(
 
   if (logo instanceof File && logo.size > 0) {
     if (!ALLOWED_LOGO_TYPES.includes(logo.type)) {
-      return { fieldErrors: { logo: "Logo must be PNG, JPG, WEBP or SVG." } };
+      return { fieldErrors: { logo: "Logo harus berformat PNG, JPG, WEBP, atau SVG." } };
     }
     if (logo.size > MAX_LOGO_BYTES) {
-      return { fieldErrors: { logo: "Logo must be smaller than 2 MB." } };
+      return { fieldErrors: { logo: "Ukuran logo maksimal 2 MB." } };
     }
 
     const bytes = Buffer.from(await logo.arrayBuffer());

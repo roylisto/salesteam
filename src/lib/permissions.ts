@@ -9,22 +9,22 @@
  */
 
 export const PERMISSIONS = [
-  { key: "dashboard", label: "Dashboard" },
-  { key: "products", label: "Products" },
-  { key: "outlets", label: "Outlets" },
-  { key: "outlet_types", label: "Outlet Types" },
-  { key: "warehouses", label: "Warehouses" },
-  { key: "warehouse_movements", label: "Warehouse Movements" },
-  { key: "sales_inventory", label: "Sales Inventory" },
-  { key: "sales_stock", label: "Sales Stock Transactions" },
-  { key: "orders", label: "Sales Orders" },
-  { key: "visits", label: "Call Visits" },
-  { key: "finance", label: "Finance" },
-  { key: "payments", label: "Payment Methods" },
-  { key: "areas", label: "Area Management" },
-  { key: "organization", label: "Organization Settings" },
-  { key: "team", label: "Team & Accounts" },
-  { key: "roles", label: "Roles & Permissions" },
+  { key: "dashboard", label: "Dasbor" },
+  { key: "products", label: "Produk" },
+  { key: "outlets", label: "Outlet" },
+  { key: "outlet_types", label: "Tipe Outlet" },
+  { key: "warehouses", label: "Gudang" },
+  { key: "warehouse_movements", label: "Mutasi Gudang" },
+  { key: "sales_inventory", label: "Stok Sales" },
+  { key: "sales_stock", label: "Transaksi Stok Sales" },
+  { key: "orders", label: "Pesanan Penjualan" },
+  { key: "visits", label: "Kunjungan" },
+  { key: "finance", label: "Keuangan" },
+  { key: "payments", label: "Metode Pembayaran" },
+  { key: "areas", label: "Manajemen Area" },
+  { key: "organization", label: "Pengaturan Organisasi" },
+  { key: "team", label: "Tim & Akun" },
+  { key: "roles", label: "Peran & Izin" },
 ] as const;
 
 export type PermissionKey = (typeof PERMISSIONS)[number]["key"];

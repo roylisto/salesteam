@@ -24,7 +24,7 @@ async function requireOutletTypeManager() {
 }
 
 const OutletTypeSchema = z.object({
-  name: z.string().trim().min(2, "Use at least 2 characters.").max(150),
+  name: z.string().trim().min(2, "Gunakan minimal 2 karakter.").max(150),
   isActive: z.boolean(),
 });
 
@@ -41,7 +41,7 @@ export async function createOutletType(
 ): Promise<OutletTypeFormState> {
   const manager = await requireOutletTypeManager();
   if (!manager) {
-    return { error: "You do not have permission to manage outlet types." };
+    return { error: "Anda tidak memiliki izin untuk mengelola tipe outlet." };
   }
 
   const parsed = readForm(formData);
@@ -60,7 +60,7 @@ export async function createOutletType(
     .limit(1);
 
   if (existing) {
-    return { fieldErrors: { name: "An outlet type with this name already exists." } };
+    return { fieldErrors: { name: "Tipe outlet dengan nama ini sudah ada." } };
   }
 
   await db.insert(outletTypes).values({
@@ -79,11 +79,11 @@ export async function updateOutletType(
 ): Promise<OutletTypeFormState> {
   const manager = await requireOutletTypeManager();
   if (!manager) {
-    return { error: "You do not have permission to manage outlet types." };
+    return { error: "Anda tidak memiliki izin untuk mengelola tipe outlet." };
   }
 
   const id = Number(formData.get("id"));
-  if (!Number.isSafeInteger(id) || id <= 0) return { error: "Outlet type not found." };
+  if (!Number.isSafeInteger(id) || id <= 0) return { error: "Tipe outlet tidak ditemukan." };
 
   const parsed = readForm(formData);
   if (!parsed.success) return { fieldErrors: toFieldErrors(parsed.error) };
@@ -100,7 +100,7 @@ export async function updateOutletType(
     )
     .limit(1);
 
-  if (!existing) return { error: "Outlet type not found." };
+  if (!existing) return { error: "Tipe outlet tidak ditemukan." };
 
   const [duplicate] = await db
     .select({ id: outletTypes.id })
@@ -116,7 +116,7 @@ export async function updateOutletType(
     .limit(1);
 
   if (duplicate) {
-    return { fieldErrors: { name: "An outlet type with this name already exists." } };
+    return { fieldErrors: { name: "Tipe outlet dengan nama ini sudah ada." } };
   }
 
   await db
@@ -138,11 +138,11 @@ export async function deleteOutletType(
 ): Promise<OutletTypeFormState> {
   const manager = await requireOutletTypeManager();
   if (!manager) {
-    return { error: "You do not have permission to manage outlet types." };
+    return { error: "Anda tidak memiliki izin untuk mengelola tipe outlet." };
   }
 
   const id = Number(formData.get("id"));
-  if (!Number.isSafeInteger(id) || id <= 0) return { error: "Outlet type not found." };
+  if (!Number.isSafeInteger(id) || id <= 0) return { error: "Tipe outlet tidak ditemukan." };
 
   const [existing] = await db
     .select({ id: outletTypes.id })
@@ -156,7 +156,7 @@ export async function deleteOutletType(
     )
     .limit(1);
 
-  if (!existing) return { error: "Outlet type not found." };
+  if (!existing) return { error: "Tipe outlet tidak ditemukan." };
 
   // Soft delete. Outlets referencing it keep the row but fall back to no type.
   await db

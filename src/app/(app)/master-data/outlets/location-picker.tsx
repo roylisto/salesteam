@@ -125,12 +125,12 @@ export function LocationPicker({
       );
       const results = (await response.json()) as Array<{ lat: string; lon: string }>;
       if (results.length === 0) {
-        setMessage("No location found for that search.");
+        setMessage("Lokasi tidak ditemukan untuk pencarian itu.");
         return;
       }
       focusRef.current?.(Number(results[0].lat), Number(results[0].lon));
     } catch {
-      setMessage("Search failed. Check your connection and try again.");
+      setMessage("Pencarian gagal. Periksa koneksi Anda dan coba lagi.");
     } finally {
       setBusy(false);
     }
@@ -138,7 +138,7 @@ export function LocationPicker({
 
   function handleLocate() {
     if (!navigator.geolocation) {
-      setMessage("Geolocation is not supported by this browser.");
+      setMessage("Geolokasi tidak didukung oleh peramban ini.");
       return;
     }
     setMessage(null);
@@ -149,7 +149,7 @@ export function LocationPicker({
           position.coords.longitude,
         );
       },
-      () => setMessage("Unable to read your current location."),
+      () => setMessage("Tidak dapat membaca lokasi Anda saat ini."),
       { enableHighAccuracy: true, timeout: 10000 },
     );
   }
@@ -168,7 +168,7 @@ export function LocationPicker({
                 void handleSearch();
               }
             }}
-            placeholder="Search an address or place"
+            placeholder="Cari alamat atau tempat"
             className="pl-8"
           />
         </div>
@@ -179,11 +179,11 @@ export function LocationPicker({
           disabled={busy}
         >
           {busy ? <Loader2Icon className="animate-spin" /> : <SearchIcon />}
-          Search
+          Cari
         </Button>
         <Button type="button" variant="outline" onClick={handleLocate}>
           <LocateFixedIcon />
-          My location
+          Lokasi saya
         </Button>
       </div>
 
@@ -193,7 +193,7 @@ export function LocationPicker({
       />
 
       <p className="text-muted-foreground text-xs">
-        Click the map or drag the marker to set the point.
+        Klik peta atau seret penanda untuk menetapkan titik.
         {message ? <span className="text-destructive"> {message}</span> : null}
       </p>
     </div>

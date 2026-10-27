@@ -73,7 +73,7 @@ export function WarehouseDialog({
         : await createWarehouse(undefined, formData);
 
       if (result?.ok) {
-        toast.success(warehouse ? "Warehouse updated." : "Warehouse created.");
+        toast.success(warehouse ? "Gudang diperbarui." : "Gudang dibuat.");
         setErrors({});
         onOpenChange(false);
         router.refresh();
@@ -95,13 +95,13 @@ export function WarehouseDialog({
       const result = await deleteWarehouse(formData);
 
       if (result?.ok) {
-        toast.success("Warehouse deleted.");
+        toast.success("Gudang dihapus.");
         onOpenChange(false);
         router.refresh();
         return;
       }
 
-      toast.error(result?.error ?? "Unable to delete this warehouse.");
+      toast.error(result?.error ?? "Tidak dapat menghapus gudang ini.");
     });
   }
 
@@ -109,9 +109,9 @@ export function WarehouseDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90svh] overflow-y-auto sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{isEdit ? "Edit warehouse" : "New warehouse"}</DialogTitle>
+          <DialogTitle>{isEdit ? "Ubah gudang" : "Gudang baru"}</DialogTitle>
           <DialogDescription>
-            Every warehouse belongs to an area. An area can hold many warehouses.
+            Setiap gudang termasuk dalam satu area. Satu area dapat menampung banyak gudang.
           </DialogDescription>
         </DialogHeader>
 
@@ -123,7 +123,7 @@ export function WarehouseDialog({
               onValueChange={(value) => setAreaOfficeId(value ?? "")}
             >
               <SelectTrigger id="warehouse-area" className="w-full">
-                <SelectValue placeholder="Select an area">
+                <SelectValue placeholder="Pilih area">
                   {selectedAreaName}
                 </SelectValue>
               </SelectTrigger>
@@ -139,33 +139,33 @@ export function WarehouseDialog({
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="warehouse-name">Name</Label>
+            <Label htmlFor="warehouse-name">Nama</Label>
             <Input
               id="warehouse-name"
               name="name"
               defaultValue={warehouse?.name ?? ""}
-              placeholder="Central Warehouse"
+              placeholder="Gudang Utama"
               required
             />
             <FieldError message={errors.name} />
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="warehouse-type">Depot type</Label>
+            <Label htmlFor="warehouse-type">Tipe depo</Label>
             <Input
               id="warehouse-type"
               name="depotType"
               defaultValue={warehouse?.depotType ?? ""}
-              placeholder="Optional, e.g. Main / Transit"
+              placeholder="Opsional, mis. Utama / Transit"
             />
             <FieldError message={errors.depotType} />
           </div>
 
           <div className="flex items-center justify-between gap-4 rounded-lg border p-3">
             <div className="space-y-0.5">
-              <Label htmlFor="warehouse-active">Active</Label>
+              <Label htmlFor="warehouse-active">Aktif</Label>
               <p className="text-muted-foreground text-xs">
-                Inactive warehouses are hidden from new assignments.
+                Gudang tidak aktif disembunyikan dari penugasan baru.
               </p>
             </div>
             <Switch
@@ -178,7 +178,7 @@ export function WarehouseDialog({
           <DialogFooter>
             <Button type="submit" disabled={pending}>
               {pending ? <Loader2Icon className="animate-spin" /> : null}
-              {isEdit ? "Save warehouse" : "Create warehouse"}
+              {isEdit ? "Simpan gudang" : "Buat gudang"}
             </Button>
           </DialogFooter>
         </form>
@@ -188,7 +188,7 @@ export function WarehouseDialog({
             <Separator />
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="text-muted-foreground text-xs">
-                Outlets and stock tied to this warehouse will keep their history.
+                Outlet dan stok yang terkait dengan gudang ini akan menyimpan riwayatnya.
               </p>
               {confirming ? (
                 <div className="flex items-center gap-2">
@@ -198,7 +198,7 @@ export function WarehouseDialog({
                     onClick={() => setConfirming(false)}
                     disabled={pending}
                   >
-                    Cancel
+                    Batal
                   </Button>
                   <Button
                     variant="destructive"
@@ -207,7 +207,7 @@ export function WarehouseDialog({
                     disabled={pending}
                   >
                     {pending ? <Loader2Icon className="animate-spin" /> : null}
-                    Confirm delete
+                    Konfirmasi hapus
                   </Button>
                 </div>
               ) : (
@@ -216,7 +216,7 @@ export function WarehouseDialog({
                   size="sm"
                   onClick={() => setConfirming(true)}
                 >
-                  Delete warehouse
+                  Hapus gudang
                 </Button>
               )}
             </div>

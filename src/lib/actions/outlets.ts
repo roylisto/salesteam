@@ -55,7 +55,7 @@ const optionalCoordinate = (min: number, max: number, label: string) =>
     .transform((value) => (value ? Number(value) : null))
     .refine(
       (value) => value === null || (Number.isFinite(value) && value >= min && value <= max),
-      { message: `Enter a valid ${label} (${min} to ${max}).` },
+      { message: `Masukkan ${label} yang valid (${min} hingga ${max}).` },
     );
 
 const optionalEmail = z
@@ -64,11 +64,11 @@ const optionalEmail = z
   .max(150)
   .transform((value) => (value ? value : null))
   .refine((value) => value === null || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value), {
-    message: "Enter a valid email address.",
+    message: "Masukkan alamat email yang valid.",
   });
 
 const OutletSchema = z.object({
-  name: z.string().trim().min(2, "Use at least 2 characters.").max(200),
+  name: z.string().trim().min(2, "Gunakan minimal 2 karakter.").max(200),
   code: optionalText(80),
   status: z.enum(["active", "inactive"]),
   // Optional assignments; a rep / type / warehouse can be pinned later.
@@ -92,8 +92,8 @@ const OutletSchema = z.object({
   familyCardNumber: optionalText(50),
   businessId: optionalText(50),
   notes: optionalText(2000),
-  latitude: optionalCoordinate(-90, 90, "latitude"),
-  longitude: optionalCoordinate(-180, 180, "longitude"),
+  latitude: optionalCoordinate(-90, 90, "lintang"),
+  longitude: optionalCoordinate(-180, 180, "bujur"),
 });
 
 type OutletInput = z.infer<typeof OutletSchema>;
@@ -155,16 +155,16 @@ async function validateReferences(
     data.warehouseId &&
     !(await idBelongsToOrg(warehouses, data.warehouseId, organizationId))
   ) {
-    return { warehouseId: "Select a valid warehouse." };
+    return { warehouseId: "Pilih gudang yang valid." };
   }
   if (data.salesId && !(await idBelongsToOrg(users, data.salesId, organizationId))) {
-    return { salesId: "Select a valid sales rep." };
+    return { salesId: "Pilih sales yang valid." };
   }
   if (
     data.outletTypeId &&
     !(await idBelongsToOrg(outletTypes, data.outletTypeId, organizationId))
   ) {
-    return { outletTypeId: "Select a valid outlet type." };
+    return { outletTypeId: "Pilih tipe outlet yang valid." };
   }
   return null;
 }
@@ -220,10 +220,10 @@ async function resolveImage(
 
   if (image instanceof File && image.size > 0) {
     if (!ALLOWED_IMAGE_TYPES.includes(image.type)) {
-      return { error: "Photo must be PNG, JPG or WEBP." };
+      return { error: "Foto harus berformat PNG, JPG, atau WEBP." };
     }
     if (image.size > MAX_IMAGE_BYTES) {
-      return { error: "Photo must be smaller than 2 MB." };
+      return { error: "Ukuran foto maksimal 2 MB." };
     }
 
     const bytes = Buffer.from(await image.arrayBuffer());
@@ -245,7 +245,7 @@ export async function createOutlet(
   formData: FormData,
 ): Promise<OutletFormState> {
   const manager = await requireOutletManager();
-  if (!manager) return { error: "You do not have permission to manage outlets." };
+  if (!manager) return { error: "Anda tidak memiliki izin untuk mengelola outlet." };
 
   const parsed = readForm(formData);
   if (!parsed.success) return { fieldErrors: toFieldErrors(parsed.error) };
@@ -255,7 +255,7 @@ export async function createOutlet(
   const referenceError = await validateReferences(data, orgId);
   if (referenceError) return { fieldErrors: referenceError };
   if (data.code && (await codeTaken(orgId, data.code))) {
-    return { fieldErrors: { code: "This outlet code is already in use." } };
+    return { fieldErrors: { code: "Kode outlet ini sudah digunakan." } };
   }
 
   const image = await resolveImage(formData, orgId, null);
@@ -276,10 +276,10 @@ export async function updateOutlet(
   formData: FormData,
 ): Promise<OutletFormState> {
   const manager = await requireOutletManager();
-  if (!manager) return { error: "You do not have permission to manage outlets." };
+  if (!manager) return { error: "Anda tidak memiliki izin untuk mengelola outlet." };
 
   const id = Number(formData.get("id"));
-  if (!Number.isSafeInteger(id) || id <= 0) return { error: "Outlet not found." };
+  if (!Number.isSafeInteger(id) || id <= 0) return { error: "Outlet tidak ditemukan." };
 
   const parsed = readForm(formData);
   if (!parsed.success) return { fieldErrors: toFieldErrors(parsed.error) };
@@ -291,12 +291,12 @@ export async function updateOutlet(
     .from(outlets)
     .where(and(eq(outlets.id, id), eq(outlets.organizationId, orgId), notDeleted(outlets)))
     .limit(1);
-  if (!existing) return { error: "Outlet not found." };
+  if (!existing) return { error: "Outlet tidak ditemukan." };
 
   const referenceError = await validateReferences(data, orgId);
   if (referenceError) return { fieldErrors: referenceError };
   if (data.code && (await codeTaken(orgId, data.code, id))) {
-    return { fieldErrors: { code: "This outlet code is already in use." } };
+    return { fieldErrors: { code: "Kode outlet ini sudah digunakan." } };
   }
 
   const image = await resolveImage(formData, orgId, existing.imageUrl);
@@ -318,10 +318,10 @@ export async function updateOutlet(
 
 export async function deleteOutlet(formData: FormData): Promise<OutletFormState> {
   const manager = await requireOutletManager();
-  if (!manager) return { error: "You do not have permission to manage outlets." };
+  if (!manager) return { error: "Anda tidak memiliki izin untuk mengelola outlet." };
 
   const id = Number(formData.get("id"));
-  if (!Number.isSafeInteger(id) || id <= 0) return { error: "Outlet not found." };
+  if (!Number.isSafeInteger(id) || id <= 0) return { error: "Outlet tidak ditemukan." };
 
   const [existing] = await db
     .select({ id: outlets.id })
@@ -334,7 +334,7 @@ export async function deleteOutlet(formData: FormData): Promise<OutletFormState>
       ),
     )
     .limit(1);
-  if (!existing) return { error: "Outlet not found." };
+  if (!existing) return { error: "Outlet tidak ditemukan." };
 
   // Soft delete: visits and orders keep their historical references.
   await db

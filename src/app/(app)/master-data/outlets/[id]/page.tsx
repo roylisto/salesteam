@@ -9,7 +9,7 @@ import { requirePermission } from "@/lib/auth";
 import { loadFormOptions, loadOutletDetail } from "../data";
 import { OutletForm } from "../outlet-form";
 
-export const metadata: Metadata = { title: "Edit outlet" };
+export const metadata: Metadata = { title: "Ubah outlet" };
 
 export default async function EditOutletPage({
   params,
@@ -31,15 +31,15 @@ export default async function EditOutletPage({
   return (
     <div className="w-full">
       <PageHeader
-        title={outlet.name ?? "Edit outlet"}
-        description="Update the store profile, address, map location and owner details."
+        title={outlet.name ?? "Ubah outlet"}
+        description="Perbarui profil toko, alamat, lokasi peta, dan detail pemiliknya."
       >
         <Button
           render={<Link href="/master-data/outlets" />}
           nativeButton={false}
           variant="outline"
         >
-          Back to outlets
+          Kembali ke outlet
         </Button>
       </PageHeader>
       <OutletForm

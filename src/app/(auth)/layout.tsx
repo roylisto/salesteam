@@ -16,7 +16,7 @@ export default function AuthLayout({
         {children}
       </div>
       <p className="text-muted-foreground mt-8 text-xs">
-        Multitenant sales operations, made simple.
+        Operasi penjualan multitenan, disederhanakan.
       </p>
     </div>
   );

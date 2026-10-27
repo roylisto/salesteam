@@ -20,7 +20,7 @@ import { notDeleted, roles, users } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
 import { PERMISSION_KEYS } from "@/lib/permissions";
 
-export const metadata: Metadata = { title: "Dashboard" };
+export const metadata: Metadata = { title: "Dasbor" };
 
 function StatCard({
   icon: Icon,
@@ -81,38 +81,38 @@ export default async function DashboardPage() {
   return (
     <div className="w-full">
       <PageHeader
-        title={`Welcome back, ${user.name.split(" ")[0]}`}
-        description={`Here is a quick overview of ${organization.name}.`}
+        title={`Selamat datang kembali, ${user.name.split(" ")[0]}`}
+        description={`Berikut ringkasan singkat tentang ${organization.name}.`}
       />
 
       <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           icon={UsersIcon}
-          label="Team members"
+          label="Anggota tim"
           value={memberCount?.value ?? 0}
-          hint="People with access to this organization"
+          hint="Orang yang memiliki akses ke organisasi ini"
         />
         <StatCard
           icon={ShieldCheckIcon}
-          label="Roles"
+          label="Peran"
           value={roleCount?.value ?? 0}
-          hint="Permission presets available"
+          hint="Preset izin yang tersedia"
         />
         <StatCard
           icon={ShieldCheckIcon}
-          label="Your access"
+          label="Akses Anda"
           value={`${granted}/${PERMISSION_KEYS.length}`}
           hint={
             user.isOrganizationOwner
-              ? "Full access (Organization Owner)"
-              : `Role: ${user.role?.name ?? "No role assigned"}`
+              ? "Akses penuh (Pemilik Organisasi)"
+              : `Peran: ${user.role?.name ?? "Belum ada peran"}`
           }
         />
         <StatCard
           icon={BuildingIcon}
-          label="Organization"
+          label="Organisasi"
           value={organization.name}
-          hint={`Currency: ${organization.currency} · Timezone: ${organization.timezone}`}
+          hint={`Mata uang: ${organization.currency} · Zona waktu: ${organization.timezone}`}
         />
       </div>
     </div>

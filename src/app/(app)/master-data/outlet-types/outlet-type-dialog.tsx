@@ -58,7 +58,7 @@ export function OutletTypeDialog({
         : await createOutletType(undefined, formData);
 
       if (result?.ok) {
-        toast.success(outletType ? "Outlet type updated." : "Outlet type created.");
+        toast.success(outletType ? "Tipe outlet diperbarui." : "Tipe outlet dibuat.");
         setErrors({});
         onOpenChange(false);
         router.refresh();
@@ -80,13 +80,13 @@ export function OutletTypeDialog({
       const result = await deleteOutletType(formData);
 
       if (result?.ok) {
-        toast.success("Outlet type deleted.");
+        toast.success("Tipe outlet dihapus.");
         onOpenChange(false);
         router.refresh();
         return;
       }
 
-      toast.error(result?.error ?? "Unable to delete this outlet type.");
+      toast.error(result?.error ?? "Tidak dapat menghapus tipe outlet ini.");
     });
   }
 
@@ -95,16 +95,16 @@ export function OutletTypeDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>
-            {isEdit ? "Edit outlet type" : "New outlet type"}
+            {isEdit ? "Ubah tipe outlet" : "Tipe outlet baru"}
           </DialogTitle>
           <DialogDescription>
-            Outlet types classify stores by channel, e.g. Retail, Grosir, Horeca.
+            Tipe outlet mengklasifikasikan toko berdasarkan saluran, mis. Retail, Grosir, Horeca.
           </DialogDescription>
         </DialogHeader>
 
         <form action={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="outlet-type-name">Name</Label>
+            <Label htmlFor="outlet-type-name">Nama</Label>
             <Input
               id="outlet-type-name"
               name="name"
@@ -117,10 +117,10 @@ export function OutletTypeDialog({
 
           <div className="flex items-center justify-between gap-4 rounded-lg border p-3">
             <div className="space-y-0.5">
-              <Label htmlFor="outlet-type-active">Active</Label>
+              <Label htmlFor="outlet-type-active">Aktif</Label>
               <p className="text-muted-foreground text-xs">
-                Inactive types stay on existing outlets but cannot be picked for
-                new ones.
+                Tipe tidak aktif tetap ada pada outlet yang sudah ada, tetapi tidak
+                dapat dipilih untuk outlet baru.
               </p>
             </div>
             <Switch
@@ -133,7 +133,7 @@ export function OutletTypeDialog({
           <DialogFooter>
             <Button type="submit" disabled={pending}>
               {pending ? <Loader2Icon className="animate-spin" /> : null}
-              {isEdit ? "Save outlet type" : "Create outlet type"}
+              {isEdit ? "Simpan tipe outlet" : "Buat tipe outlet"}
             </Button>
           </DialogFooter>
         </form>
@@ -143,7 +143,8 @@ export function OutletTypeDialog({
             <Separator />
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="text-muted-foreground text-xs">
-                Outlets using this type will keep the label but be unset.
+                Outlet yang menggunakan tipe ini akan menyimpan labelnya tetapi menjadi
+                belum diatur.
               </p>
               {confirming ? (
                 <div className="flex items-center gap-2">
@@ -153,7 +154,7 @@ export function OutletTypeDialog({
                     onClick={() => setConfirming(false)}
                     disabled={pending}
                   >
-                    Cancel
+                    Batal
                   </Button>
                   <Button
                     variant="destructive"
@@ -162,7 +163,7 @@ export function OutletTypeDialog({
                     disabled={pending}
                   >
                     {pending ? <Loader2Icon className="animate-spin" /> : null}
-                    Confirm delete
+                    Konfirmasi hapus
                   </Button>
                 </div>
               ) : (
@@ -171,7 +172,7 @@ export function OutletTypeDialog({
                   size="sm"
                   onClick={() => setConfirming(true)}
                 >
-                  Delete outlet type
+                  Hapus tipe outlet
                 </Button>
               )}
             </div>

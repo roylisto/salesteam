@@ -9,7 +9,7 @@ import { requirePermission } from "@/lib/auth";
 import { AreasClient } from "./areas-client";
 import type { AreaRow } from "./types";
 
-export const metadata: Metadata = { title: "Area Management" };
+export const metadata: Metadata = { title: "Manajemen Area" };
 
 export default async function AreasPage() {
   const user = await requirePermission("areas");
@@ -37,8 +37,8 @@ export default async function AreasPage() {
   return (
     <div className="w-full">
       <PageHeader
-        title="Area Management"
-        description="Regional groupings for warehouses and outlets in this organization."
+        title="Manajemen Area"
+        description="Pengelompokan wilayah untuk gudang dan outlet di organisasi ini."
       />
       <AreasClient areas={areas} />
     </div>

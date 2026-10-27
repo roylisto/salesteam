@@ -36,32 +36,32 @@ export function RegisterForm() {
   return (
     <Card className="ring-foreground/5 shadow-sm">
       <CardHeader>
-        <CardTitle className="text-lg">Create your organization</CardTitle>
+        <CardTitle className="text-lg">Buat organisasi Anda</CardTitle>
         <CardDescription>
-          You become the first admin and can invite your team afterwards.
+          Anda menjadi admin pertama dan dapat mengundang tim Anda setelahnya.
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form action={formAction} className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="organizationName">Organization name</Label>
+            <Label htmlFor="organizationName">Nama organisasi</Label>
             <Input
               id="organizationName"
               name="organizationName"
-              placeholder="Northwind Distribution"
+              placeholder="PT Contoh Distribusi"
               required
             />
             <FieldError message={errors.organizationName} />
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="name">Your name</Label>
+            <Label htmlFor="name">Nama Anda</Label>
             <Input id="name" name="name" autoComplete="name" required />
             <FieldError message={errors.name} />
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="email">Work email</Label>
+            <Label htmlFor="email">Email kantor</Label>
             <Input
               id="email"
               name="email"
@@ -74,7 +74,7 @@ export function RegisterForm() {
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password">Kata sandi</Label>
             <Input
               id="password"
               name="password"
@@ -96,21 +96,21 @@ export function RegisterForm() {
             {pending ? (
               <>
                 <Loader2Icon className="animate-spin" />
-                Creating…
+                Membuat…
               </>
             ) : (
-              "Create organization"
+              "Buat organisasi"
             )}
           </Button>
         </form>
 
         <p className="text-muted-foreground mt-4 text-center text-sm">
-          Already have an account?{" "}
+          Sudah punya akun?{" "}
           <Link
             href="/login"
             className="text-foreground font-medium underline-offset-4 hover:underline"
           >
-            Sign in
+            Masuk
           </Link>
         </p>
       </CardContent>

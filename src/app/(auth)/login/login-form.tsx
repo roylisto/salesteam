@@ -26,9 +26,9 @@ export function LoginForm({ next }: { next?: string }) {
   return (
     <Card className="ring-foreground/5 shadow-sm">
       <CardHeader>
-        <CardTitle className="text-lg">Sign in</CardTitle>
+        <CardTitle className="text-lg">Masuk</CardTitle>
         <CardDescription>
-          Use the email and password of your Salesteam account.
+          Gunakan email dan kata sandi akun Salesteam Anda.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -49,12 +49,12 @@ export function LoginForm({ next }: { next?: string }) {
 
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">Kata sandi</Label>
               <Link
                 href="/forgot-password"
                 className="text-muted-foreground hover:text-foreground text-xs font-medium underline-offset-4 hover:underline"
               >
-                Forgot password?
+                Lupa kata sandi?
               </Link>
             </div>
             <Input
@@ -76,21 +76,21 @@ export function LoginForm({ next }: { next?: string }) {
             {pending ? (
               <>
                 <Loader2Icon className="animate-spin" />
-                Signing in…
+                Sedang masuk…
               </>
             ) : (
-              "Sign in"
+              "Masuk"
             )}
           </Button>
         </form>
 
         <p className="text-muted-foreground text-center text-sm">
-          No account yet?{" "}
+          Belum punya akun?{" "}
           <Link
             href="/register"
             className="text-foreground font-medium underline-offset-4 hover:underline"
           >
-            Create an organization
+            Buat organisasi
           </Link>
         </p>
       </CardContent>

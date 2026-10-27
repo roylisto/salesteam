@@ -8,7 +8,7 @@ import { requirePermission } from "@/lib/auth";
 import { loadFormOptions } from "../data";
 import { OutletForm } from "../outlet-form";
 
-export const metadata: Metadata = { title: "New outlet" };
+export const metadata: Metadata = { title: "Outlet baru" };
 
 export default async function NewOutletPage() {
   const user = await requirePermission("outlets");
@@ -17,15 +17,15 @@ export default async function NewOutletPage() {
   return (
     <div className="w-full">
       <PageHeader
-        title="New outlet"
-        description="Register a customer store with its address, map location and owner details."
+        title="Outlet baru"
+        description="Daftarkan toko pelanggan beserta alamat, lokasi peta, dan detail pemiliknya."
       >
         <Button
           render={<Link href="/master-data/outlets" />}
           nativeButton={false}
           variant="outline"
         >
-          Back to outlets
+          Kembali ke outlet
         </Button>
       </PageHeader>
       <OutletForm

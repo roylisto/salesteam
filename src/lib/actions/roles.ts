@@ -60,7 +60,7 @@ export async function createRole(
   formData: FormData,
 ): Promise<RoleFormState> {
   const manager = await requireRoleManager();
-  if (!manager) return { error: "You do not have permission to manage roles." };
+  if (!manager) return { error: "Anda tidak memiliki izin untuk mengelola peran." };
 
   const parsed = RoleSchema.safeParse({
     name: formData.get("name"),
@@ -70,15 +70,15 @@ export async function createRole(
 
   const permissions = readPermissions(formData);
   if (permissions.length === 0) {
-    return { fieldErrors: { permissions: "Select at least one module." } };
+    return { fieldErrors: { permissions: "Pilih minimal satu modul." } };
   }
 
   const slug = slugify(parsed.data.name);
   if (slug.length === 0) {
-    return { fieldErrors: { name: "Enter a name with letters or numbers." } };
+    return { fieldErrors: { name: "Masukkan nama dengan huruf atau angka." } };
   }
   if (slug === OWNER_ROLE_SLUG) {
-    return { fieldErrors: { name: "This name is reserved for the system Admin." } };
+    return { fieldErrors: { name: "Nama ini dicadangkan untuk Admin sistem." } };
   }
 
   const [existing] = await db
@@ -94,7 +94,7 @@ export async function createRole(
     .limit(1);
 
   if (existing) {
-    return { fieldErrors: { name: "A role with this name already exists." } };
+    return { fieldErrors: { name: "Peran dengan nama ini sudah ada." } };
   }
 
   await db.insert(roles).values({
@@ -115,10 +115,10 @@ export async function updateRole(
   formData: FormData,
 ): Promise<RoleFormState> {
   const manager = await requireRoleManager();
-  if (!manager) return { error: "You do not have permission to manage roles." };
+  if (!manager) return { error: "Anda tidak memiliki izin untuk mengelola peran." };
 
   const id = Number(formData.get("id"));
-  if (!Number.isInteger(id) || id <= 0) return { error: "Role not found." };
+  if (!Number.isInteger(id) || id <= 0) return { error: "Peran tidak ditemukan." };
 
   const parsed = RoleSchema.safeParse({
     name: formData.get("name"),
@@ -138,16 +138,16 @@ export async function updateRole(
     )
     .limit(1);
 
-  if (!role) return { error: "Role not found." };
+  if (!role) return { error: "Peran tidak ditemukan." };
 
   const permissions = readPermissions(formData);
   if (permissions.length === 0) {
-    return { fieldErrors: { permissions: "Select at least one module." } };
+    return { fieldErrors: { permissions: "Pilih minimal satu modul." } };
   }
 
   const slug = slugify(parsed.data.name);
   if (slug === OWNER_ROLE_SLUG) {
-    return { fieldErrors: { name: "This name is reserved for the system Admin." } };
+    return { fieldErrors: { name: "Nama ini dicadangkan untuk Admin sistem." } };
   }
 
   const [duplicate] = await db
@@ -164,7 +164,7 @@ export async function updateRole(
     .limit(1);
 
   if (duplicate) {
-    return { fieldErrors: { name: "A role with this name already exists." } };
+    return { fieldErrors: { name: "Peran dengan nama ini sudah ada." } };
   }
 
   await db
@@ -184,10 +184,10 @@ export async function updateRole(
 
 export async function deleteRole(formData: FormData): Promise<RoleFormState> {
   const manager = await requireRoleManager();
-  if (!manager) return { error: "You do not have permission to manage roles." };
+  if (!manager) return { error: "Anda tidak memiliki izin untuk mengelola peran." };
 
   const id = Number(formData.get("id"));
-  if (!Number.isInteger(id) || id <= 0) return { error: "Role not found." };
+  if (!Number.isInteger(id) || id <= 0) return { error: "Peran tidak ditemukan." };
 
   const [role] = await db
     .select()
@@ -201,7 +201,7 @@ export async function deleteRole(formData: FormData): Promise<RoleFormState> {
     )
     .limit(1);
 
-  if (!role) return { error: "Role not found." };
+  if (!role) return { error: "Peran tidak ditemukan." };
 
   const [assigned] = await db
     .select({ id: users.id })
@@ -210,7 +210,7 @@ export async function deleteRole(formData: FormData): Promise<RoleFormState> {
     .limit(1);
 
   if (assigned) {
-    return { error: "Reassign the team members using this role first." };
+    return { error: "Pindahkan terlebih dahulu anggota tim yang menggunakan peran ini." };
   }
 
   await db.update(roles).set({ deletedAt: new Date() }).where(eq(roles.id, id));

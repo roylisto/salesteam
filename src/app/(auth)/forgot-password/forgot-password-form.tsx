@@ -54,10 +54,10 @@ export function ForgotPasswordForm() {
     return (
       <Card className="ring-foreground/5 shadow-sm">
         <CardHeader>
-          <CardTitle className="text-lg">Password updated</CardTitle>
+          <CardTitle className="text-lg">Kata sandi diperbarui</CardTitle>
           <CardDescription>
-            Your password has been changed. You can now sign in with your new
-            password.
+            Kata sandi Anda telah diubah. Anda sekarang dapat masuk dengan kata
+            sandi baru Anda.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -67,7 +67,7 @@ export function ForgotPasswordForm() {
             nativeButton={false}
             render={<Link href="/login" />}
           >
-            Back to sign in
+            Kembali ke halaman masuk
           </Button>
         </CardContent>
       </Card>
@@ -81,12 +81,13 @@ export function ForgotPasswordForm() {
       <Card className="ring-foreground/5 shadow-sm">
         <CardHeader>
           <CardTitle className="text-lg">
-            Enter your temporary password
+            Masukkan kata sandi sementara Anda
           </CardTitle>
           <CardDescription>
-            We emailed a temporary password to{" "}
-            <span className="text-foreground font-medium">{email}</span>. Enter
-            it below together with your new password.
+            Kami mengirim kata sandi sementara ke{" "}
+            <span className="text-foreground font-medium">{email}</span>.
+            Masukkan kata sandi tersebut di bawah ini bersama kata sandi baru
+            Anda.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -94,19 +95,19 @@ export function ForgotPasswordForm() {
             <input type="hidden" name="email" value={email} />
 
             <div className="space-y-1.5">
-              <Label htmlFor="temporaryPassword">Temporary password</Label>
+              <Label htmlFor="temporaryPassword">Kata sandi sementara</Label>
               <Input
                 id="temporaryPassword"
                 name="temporaryPassword"
                 autoComplete="one-time-code"
-                placeholder="From the email we sent"
+                placeholder="Dari email yang kami kirim"
                 required
               />
               <FieldError message={errors.temporaryPassword} />
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="password">New password</Label>
+              <Label htmlFor="password">Kata sandi baru</Label>
               <Input
                 id="password"
                 name="password"
@@ -133,16 +134,16 @@ export function ForgotPasswordForm() {
               {resetPending ? (
                 <>
                   <Loader2Icon className="animate-spin" />
-                  Updating…
+                  Memperbarui…
                 </>
               ) : (
-                "Set new password"
+                "Simpan kata sandi baru"
               )}
             </Button>
           </form>
 
           <p className="text-muted-foreground mt-4 text-center text-sm">
-            Didn&apos;t receive the email?{" "}
+            Belum menerima email?{" "}
             <button
               type="button"
               onClick={() => {
@@ -151,7 +152,7 @@ export function ForgotPasswordForm() {
               }}
               className="text-foreground font-medium underline-offset-4 hover:underline"
             >
-              Request a new one
+              Minta yang baru
             </button>
           </p>
         </CardContent>
@@ -164,10 +165,10 @@ export function ForgotPasswordForm() {
   return (
     <Card className="ring-foreground/5 shadow-sm">
       <CardHeader>
-        <CardTitle className="text-lg">Reset your password</CardTitle>
+        <CardTitle className="text-lg">Atur ulang kata sandi Anda</CardTitle>
         <CardDescription>
-          Enter your account email and we&apos;ll send a temporary password to
-          reset it.
+          Masukkan email akun Anda dan kami akan mengirim kata sandi sementara
+          untuk mengatur ulangnya.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -202,21 +203,21 @@ export function ForgotPasswordForm() {
             {requestPending ? (
               <>
                 <Loader2Icon className="animate-spin" />
-                Sending…
+                Mengirim…
               </>
             ) : (
-              "Send temporary password"
+              "Kirim kata sandi sementara"
             )}
           </Button>
         </form>
 
         <p className="text-muted-foreground mt-4 text-center text-sm">
-          Remembered your password?{" "}
+          Sudah ingat kata sandi Anda?{" "}
           <Link
             href="/login"
             className="text-foreground font-medium underline-offset-4 hover:underline"
           >
-            Sign in
+            Masuk
           </Link>
         </p>
       </CardContent>

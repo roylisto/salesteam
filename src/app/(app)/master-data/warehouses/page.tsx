@@ -9,7 +9,7 @@ import { requirePermission } from "@/lib/auth";
 import { WarehousesClient } from "./warehouses-client";
 import type { AreaOption, WarehouseRow } from "./types";
 
-export const metadata: Metadata = { title: "Warehouses" };
+export const metadata: Metadata = { title: "Gudang" };
 
 export default async function WarehousesPage() {
   const user = await requirePermission("warehouses");
@@ -51,8 +51,8 @@ export default async function WarehousesPage() {
   return (
     <div className="w-full">
       <PageHeader
-        title="Warehouses"
-        description="Depots that hold stock, grouped under each area."
+        title="Gudang"
+        description="Depo yang menyimpan stok, dikelompokkan di bawah setiap area."
       />
       <WarehousesClient warehouses={warehousesList} areas={areas} />
     </div>

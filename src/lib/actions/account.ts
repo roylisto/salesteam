@@ -48,7 +48,11 @@ const optionalText = z
   .transform((value) => (value && value.length > 0 ? value : null));
 
 const CreateMemberSchema = z.object({
-  name: z.string().trim().min(2).max(150),
+  name: z
+    .string()
+    .trim()
+    .min(2, "Gunakan minimal 2 karakter.")
+    .max(150, "Maksimal 150 karakter."),
   email: z.string().trim().toLowerCase().pipe(z.email()),
   phone: z.string().trim().max(30).optional().transform((v) => (v && v.length > 0 ? v : null)),
   code: optionalText,
@@ -56,7 +60,11 @@ const CreateMemberSchema = z.object({
 
 const UpdateMemberSchema = z.object({
   id: z.coerce.number().int().positive(),
-  name: z.string().trim().min(2).max(150),
+  name: z
+    .string()
+    .trim()
+    .min(2, "Gunakan minimal 2 karakter.")
+    .max(150, "Maksimal 150 karakter."),
   email: z.string().trim().toLowerCase().pipe(z.email()),
   phone: z.string().trim().max(30).optional().transform((v) => (v && v.length > 0 ? v : null)),
   code: optionalText,
@@ -65,7 +73,7 @@ const UpdateMemberSchema = z.object({
 
 const ResetPasswordSchema = z.object({
   id: z.coerce.number().int().positive(),
-  password: z.string().min(8),
+  password: z.string().min(8, "Kata sandi minimal 8 karakter."),
 });
 
 function parseRoleInput(raw: FormDataEntryValue | null):
@@ -313,7 +321,7 @@ export async function createMember(
   formData: FormData,
 ): Promise<AccountFormState> {
   const manager = await requireManager();
-  if (!manager) return { error: "You do not have permission to manage the team." };
+  if (!manager) return { error: "Anda tidak memiliki izin untuk mengelola tim." };
   const actorIsAdmin = isAdmin(manager);
 
   const parsed = CreateMemberSchema.safeParse({
@@ -326,28 +334,28 @@ export async function createMember(
 
   const roleInput = parseRoleInput(formData.get("roleId"));
   if (!roleInput) {
-    return { fieldErrors: { roleId: "Select a role from your organization." } };
+    return { fieldErrors: { roleId: "Pilih peran dari organisasi Anda." } };
   }
   if (roleInput.isAdmin && !actorIsAdmin) {
-    return { fieldErrors: { roleId: "Only an Admin can grant the Admin role." } };
+    return { fieldErrors: { roleId: "Hanya Admin yang dapat memberikan peran Admin." } };
   }
   if (!roleInput.isAdmin && !(await assertRoleInOrganization(roleInput.roleId, manager.organization.id))) {
-    return { fieldErrors: { roleId: "Select a role from your organization." } };
+    return { fieldErrors: { roleId: "Pilih peran dari organisasi Anda." } };
   }
 
   const reportsTo = parseReportsTo(formData.get("reportsTo"));
   if (reportsTo === undefined) {
-    return { fieldErrors: { reportsTo: "Select a valid reporting line." } };
+    return { fieldErrors: { reportsTo: "Pilih jalur pelaporan yang valid." } };
   }
 
   const areaIds = parseAreaIds(formData);
   if (areaIds === undefined) {
-    return { fieldErrors: { areaIds: "Select valid areas." } };
+    return { fieldErrors: { areaIds: "Pilih area yang valid." } };
   }
 
   const warehouseIds = parseWarehouseIds(formData);
   if (warehouseIds === undefined) {
-    return { fieldErrors: { warehouseIds: "Select valid warehouses." } };
+    return { fieldErrors: { warehouseIds: "Pilih gudang yang valid." } };
   }
 
   const orgId = manager.organization.id;
@@ -359,7 +367,7 @@ export async function createMember(
   const memberById = new Map(hierarchy.map((row) => [row.id, row]));
 
   if (reportsTo !== null && !memberById.has(reportsTo)) {
-    return { fieldErrors: { reportsTo: "Select a valid reporting line." } };
+    return { fieldErrors: { reportsTo: "Pilih jalur pelaporan yang valid." } };
   }
 
   // Non-admins can only add members under their own subtree.
@@ -367,14 +375,14 @@ export async function createMember(
     const subtree = collectSubtreeIds(hierarchy, manager.id);
     if (reportsTo === null || !subtree.has(reportsTo)) {
       return {
-        fieldErrors: { reportsTo: "Assign a reporting line within your team." },
+        fieldErrors: { reportsTo: "Tetapkan jalur pelaporan di dalam tim Anda." },
       };
     }
   }
 
   for (const areaId of areaIds) {
     if (!orgAreaSet.has(areaId)) {
-      return { fieldErrors: { areaIds: "Select valid areas." } };
+      return { fieldErrors: { areaIds: "Pilih area yang valid." } };
     }
   }
 
@@ -391,7 +399,7 @@ export async function createMember(
     }
   } else if (!actorIsAdmin) {
     return {
-      fieldErrors: { reportsTo: "Assign a reporting line within your team." },
+      fieldErrors: { reportsTo: "Tetapkan jalur pelaporan di dalam tim Anda." },
     };
   }
   if (!actorIsAdmin && allowedAreas) {
@@ -405,7 +413,7 @@ export async function createMember(
     if (outside.length > 0) {
       return {
         fieldErrors: {
-          areaIds: "Areas must be a subset of the reporting line's areas.",
+          areaIds: "Area harus merupakan bagian dari area jalur pelaporan.",
         },
       };
     }
@@ -414,7 +422,7 @@ export async function createMember(
   if (!warehousesWithinAreas(warehouseIds, areaIds, warehouseAreas)) {
     return {
       fieldErrors: {
-        warehouseIds: "Warehouses must belong to the selected areas.",
+        warehouseIds: "Gudang harus termasuk dalam area yang dipilih.",
       },
     };
   }
@@ -426,10 +434,10 @@ export async function createMember(
     .from(users)
     .where(and(eq(users.email, email), notDeleted(users)))
     .limit(1);
-  if (taken) return { fieldErrors: { email: "This email is already in use." } };
+  if (taken) return { fieldErrors: { email: "Email ini sudah digunakan." } };
 
   if (!(await assertCodeAvailable(orgId, code))) {
-    return { fieldErrors: { code: "This staff code is already in use." } };
+    return { fieldErrors: { code: "Kode staf ini sudah digunakan." } };
   }
 
   // The password is generated by the system (never typed by the admin) and
@@ -476,7 +484,7 @@ export async function updateMember(
   formData: FormData,
 ): Promise<AccountFormState> {
   const manager = await requireManager();
-  if (!manager) return { error: "You do not have permission to manage the team." };
+  if (!manager) return { error: "Anda tidak memiliki izin untuk mengelola tim." };
   const actorIsAdmin = isAdmin(manager);
 
   const parsed = UpdateMemberSchema.safeParse({
@@ -491,28 +499,28 @@ export async function updateMember(
 
   const roleInput = parseRoleInput(formData.get("roleId"));
   if (!roleInput) {
-    return { fieldErrors: { roleId: "Select a role from your organization." } };
+    return { fieldErrors: { roleId: "Pilih peran dari organisasi Anda." } };
   }
   if (roleInput.isAdmin && !actorIsAdmin) {
-    return { fieldErrors: { roleId: "Only an Admin can grant the Admin role." } };
+    return { fieldErrors: { roleId: "Hanya Admin yang dapat memberikan peran Admin." } };
   }
   if (!roleInput.isAdmin && !(await assertRoleInOrganization(roleInput.roleId, manager.organization.id))) {
-    return { fieldErrors: { roleId: "Select a role from your organization." } };
+    return { fieldErrors: { roleId: "Pilih peran dari organisasi Anda." } };
   }
 
   const reportsTo = parseReportsTo(formData.get("reportsTo"));
   if (reportsTo === undefined) {
-    return { fieldErrors: { reportsTo: "Select a valid reporting line." } };
+    return { fieldErrors: { reportsTo: "Pilih jalur pelaporan yang valid." } };
   }
 
   const areaIds = parseAreaIds(formData);
   if (areaIds === undefined) {
-    return { fieldErrors: { areaIds: "Select valid areas." } };
+    return { fieldErrors: { areaIds: "Pilih area yang valid." } };
   }
 
   const warehouseIds = parseWarehouseIds(formData);
   if (warehouseIds === undefined) {
-    return { fieldErrors: { warehouseIds: "Select valid warehouses." } };
+    return { fieldErrors: { warehouseIds: "Pilih gudang yang valid." } };
   }
 
   const { id, name, email, phone, code } = parsed.data;
@@ -525,32 +533,32 @@ export async function updateMember(
       and(eq(users.id, id), eq(users.organizationId, orgId), notDeleted(users)),
     )
     .limit(1);
-  if (!target) return { error: "Member not found." };
+  if (!target) return { error: "Anggota tidak ditemukan." };
 
   const hierarchy = await loadHierarchy(orgId);
   const memberById = new Map(hierarchy.map((row) => [row.id, row]));
   if (reportsTo !== null && !memberById.has(reportsTo)) {
-    return { fieldErrors: { reportsTo: "Select a valid reporting line." } };
+    return { fieldErrors: { reportsTo: "Pilih jalur pelaporan yang valid." } };
   }
   if (reportsTo === id || wouldCreateCycle(hierarchy, id, reportsTo)) {
-    return { fieldErrors: { reportsTo: "Reporting line cannot be circular." } };
+    return { fieldErrors: { reportsTo: "Jalur pelaporan tidak boleh melingkar." } };
   }
 
   if (!actorIsAdmin) {
     const subtree = collectSubtreeIds(hierarchy, manager.id);
-    if (!subtree.has(id)) return { error: "Member not found." };
+    if (!subtree.has(id)) return { error: "Anggota tidak ditemukan." };
     if (id === manager.id && reportsTo !== target.reportsTo) {
-      return { fieldErrors: { reportsTo: "You cannot change your own reporting line." } };
+      return { fieldErrors: { reportsTo: "Anda tidak dapat mengubah jalur pelaporan Anda sendiri." } };
     }
     if (id !== manager.id) {
       if (reportsTo === null || !subtree.has(reportsTo)) {
         return {
-          fieldErrors: { reportsTo: "Assign a reporting line within your team." },
+          fieldErrors: { reportsTo: "Tetapkan jalur pelaporan di dalam tim Anda." },
         };
       }
       const targetSubtree = collectSubtreeIds(hierarchy, id);
       if (reportsTo !== null && targetSubtree.has(reportsTo)) {
-        return { fieldErrors: { reportsTo: "Reporting line cannot be circular." } };
+        return { fieldErrors: { reportsTo: "Jalur pelaporan tidak boleh melingkar." } };
       }
     }
   }
@@ -559,7 +567,7 @@ export async function updateMember(
   const warehouseAreas = await getOrgWarehouseAreas(orgId);
   for (const areaId of areaIds) {
     if (!orgAreaSet.has(areaId)) {
-      return { fieldErrors: { areaIds: "Select valid areas." } };
+      return { fieldErrors: { areaIds: "Pilih area yang valid." } };
     }
   }
 
@@ -574,7 +582,7 @@ export async function updateMember(
     }
   } else if (!actorIsAdmin && id !== manager.id) {
     return {
-      fieldErrors: { reportsTo: "Assign a reporting line within your team." },
+      fieldErrors: { reportsTo: "Tetapkan jalur pelaporan di dalam tim Anda." },
     };
   }
   if (!actorIsAdmin && allowedAreas) {
@@ -588,7 +596,7 @@ export async function updateMember(
     if (outside.length > 0) {
       return {
         fieldErrors: {
-          areaIds: "Areas must be a subset of the reporting line's areas.",
+          areaIds: "Area harus merupakan bagian dari area jalur pelaporan.",
         },
       };
     }
@@ -597,7 +605,7 @@ export async function updateMember(
   if (!warehousesWithinAreas(warehouseIds, areaIds, warehouseAreas)) {
     return {
       fieldErrors: {
-        warehouseIds: "Warehouses must belong to the selected areas.",
+        warehouseIds: "Gudang harus termasuk dalam area yang dipilih.",
       },
     };
   }
@@ -607,10 +615,10 @@ export async function updateMember(
     .from(users)
     .where(and(eq(users.email, email), ne(users.id, id), notDeleted(users)))
     .limit(1);
-  if (emailTaken) return { fieldErrors: { email: "This email is already in use." } };
+  if (emailTaken) return { fieldErrors: { email: "Email ini sudah digunakan." } };
 
   if (!(await assertCodeAvailable(orgId, code, id))) {
-    return { fieldErrors: { code: "This staff code is already in use." } };
+    return { fieldErrors: { code: "Kode staf ini sudah digunakan." } };
   }
 
   // The organization owner keeps full access and cannot be demoted or disabled.
@@ -665,11 +673,11 @@ export async function resetMemberPassword(
   formData: FormData,
 ): Promise<AccountFormState> {
   const manager = await requireManager();
-  if (!manager) return { error: "You do not have permission to manage the team." };
+  if (!manager) return { error: "Anda tidak memiliki izin untuk mengelola tim." };
   // Only an Admin can set another member's password. Everyone else changes
   // their own password from the profile page.
   if (!isAdmin(manager)) {
-    return { error: "Only an Admin can reset another member's password." };
+    return { error: "Hanya Admin yang dapat mereset kata sandi anggota lain." };
   }
 
   const parsed = ResetPasswordSchema.safeParse({
@@ -679,7 +687,7 @@ export async function resetMemberPassword(
   if (!parsed.success) return { fieldErrors: toFieldErrors(parsed.error) };
 
   const target = await assertManageableTarget(manager, parsed.data.id);
-  if (!target) return { error: "Member not found." };
+  if (!target) return { error: "Anggota tidak ditemukan." };
 
   await db
     .update(users)
@@ -693,15 +701,15 @@ export async function deleteMember(
   formData: FormData,
 ): Promise<AccountFormState> {
   const manager = await requireManager();
-  if (!manager) return { error: "You do not have permission to manage the team." };
+  if (!manager) return { error: "Anda tidak memiliki izin untuk mengelola tim." };
 
   const id = Number(formData.get("id"));
-  if (!Number.isInteger(id) || id <= 0) return { error: "Member not found." };
+  if (!Number.isInteger(id) || id <= 0) return { error: "Anggota tidak ditemukan." };
 
   const target = await assertManageableTarget(manager, id);
-  if (!target) return { error: "Member not found." };
+  if (!target) return { error: "Anggota tidak ditemukan." };
   if (target.isOrganizationOwner || target.id === manager.id) {
-    return { error: "The organization owner cannot be removed." };
+    return { error: "Pemilik organisasi tidak dapat dihapus." };
   }
 
   // Soft delete: keep the row for history, detach area assignments and

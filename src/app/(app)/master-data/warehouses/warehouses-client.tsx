@@ -101,7 +101,7 @@ export function WarehousesClient({
               void setQuery(event.target.value);
               void setPage(1);
             }}
-            placeholder="Search warehouses by name"
+            placeholder="Cari gudang berdasarkan nama"
             className="pl-8"
           />
         </div>
@@ -114,10 +114,10 @@ export function WarehousesClient({
           }}
         >
           <SelectTrigger className="w-44">
-            <SelectValue placeholder="All areas">{areaFilterName}</SelectValue>
+            <SelectValue placeholder="Semua area">{areaFilterName}</SelectValue>
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={ALL_AREAS}>All areas</SelectItem>
+            <SelectItem value={ALL_AREAS}>Semua area</SelectItem>
             {areas.map((area) => (
               <SelectItem key={area.id} value={String(area.id)}>
                 {area.name}
@@ -128,7 +128,7 @@ export function WarehousesClient({
 
         <Button onClick={() => void setAction("create")}>
           <PlusIcon />
-          New warehouse
+          Gudang baru
         </Button>
       </div>
 
@@ -137,9 +137,9 @@ export function WarehousesClient({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Warehouse</TableHead>
+                <TableHead>Gudang</TableHead>
                 <TableHead>Area</TableHead>
-                <TableHead className="hidden lg:table-cell">Type</TableHead>
+                <TableHead className="hidden lg:table-cell">Tipe</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="w-10" />
               </TableRow>
@@ -151,7 +151,7 @@ export function WarehousesClient({
                     colSpan={5}
                     className="text-muted-foreground h-24 text-center"
                   >
-                    No warehouses match these filters.
+                    Tidak ada gudang yang cocok dengan filter ini.
                   </TableCell>
                 </TableRow>
               ) : (
@@ -170,27 +170,27 @@ export function WarehousesClient({
                       </button>
                     </TableCell>
                     <TableCell className="text-muted-foreground text-sm">
-                      {warehouse.areaName ?? "Unassigned"}
+                      {warehouse.areaName ?? "Belum ditugaskan"}
                     </TableCell>
                     <TableCell className="text-muted-foreground hidden text-sm lg:table-cell">
                       {warehouse.depotType ?? "—"}
                     </TableCell>
                     <TableCell>
                       <Badge variant={warehouse.isActive ? "secondary" : "outline"}>
-                        {warehouse.isActive ? "Active" : "Inactive"}
+                        {warehouse.isActive ? "Aktif" : "Tidak aktif"}
                       </Badge>
                     </TableCell>
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger className="hover:bg-muted inline-flex size-7 items-center justify-center rounded-lg transition-colors">
                           <MoreHorizontalIcon className="size-4" />
-                          <span className="sr-only">Actions</span>
+                          <span className="sr-only">Aksi</span>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem
                             onClick={() => void setWarehouseId(warehouse.id)}
                           >
-                            View & edit
+                            Lihat &amp; ubah
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -206,8 +206,8 @@ export function WarehousesClient({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-muted-foreground text-xs">
           {filtered.length === 0
-            ? "No results"
-            : `Showing ${start + 1}–${Math.min(start + PAGE_SIZE, filtered.length)} of ${filtered.length}`}
+            ? "Tidak ada hasil"
+            : `Menampilkan ${start + 1}–${Math.min(start + PAGE_SIZE, filtered.length)} dari ${filtered.length}`}
         </p>
         <div className="flex items-center gap-2">
           <Button
@@ -217,7 +217,7 @@ export function WarehousesClient({
             onClick={() => void setPage(currentPage - 1)}
           >
             <ChevronLeftIcon />
-            Previous
+            Sebelumnya
           </Button>
           <span className="text-muted-foreground text-xs tabular-nums">
             {currentPage} / {totalPages}
@@ -228,7 +228,7 @@ export function WarehousesClient({
             disabled={currentPage >= totalPages}
             onClick={() => void setPage(currentPage + 1)}
           >
-            Next
+            Berikutnya
             <ChevronRightIcon />
           </Button>
         </div>

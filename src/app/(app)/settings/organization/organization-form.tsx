@@ -59,12 +59,12 @@ export function OrganizationForm({
     const file = event.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      toast.error("Please choose an image file.");
+      toast.error("Silakan pilih berkas gambar.");
       event.target.value = "";
       return;
     }
     if (file.size > 2 * 1024 * 1024) {
-      toast.error("Logo must be smaller than 2 MB.");
+      toast.error("Logo harus lebih kecil dari 2 MB.");
       event.target.value = "";
       return;
     }
@@ -87,7 +87,7 @@ export function OrganizationForm({
       const result = await updateOrganization(undefined, formData);
 
       if (result?.ok) {
-        toast.success("Organization settings saved.");
+        toast.success("Pengaturan organisasi tersimpan.");
         setErrors({});
         setLogoRemoved(false);
         return;
@@ -104,7 +104,7 @@ export function OrganizationForm({
         <CardHeader>
           <CardTitle>Branding</CardTitle>
           <CardDescription>
-            The logo and name appear at the top-left of the sidebar.
+            Logo dan nama muncul di kiri atas sidebar.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -113,7 +113,7 @@ export function OrganizationForm({
               {logoPreview ? (
                 <AvatarImage
                   src={logoPreview}
-                  alt="Company logo"
+                  alt="Logo perusahaan"
                   className="rounded-xl"
                 />
               ) : null}
@@ -131,7 +131,7 @@ export function OrganizationForm({
                 disabled={pending}
               >
                 <ImagePlusIcon />
-                Upload logo
+                Unggah logo
               </Button>
               {logoPreview ? (
                 <Button
@@ -142,7 +142,7 @@ export function OrganizationForm({
                   disabled={pending}
                 >
                   <Trash2Icon />
-                  Remove
+                  Hapus
                 </Button>
               ) : null}
               <input
@@ -156,8 +156,8 @@ export function OrganizationForm({
             </div>
           </div>
           <p className="text-muted-foreground mt-2 text-xs">
-            PNG, JPG, WEBP or SVG up to 2 MB. Stored in the organization folder
-            in object storage.
+            PNG, JPG, WEBP, atau SVG maksimal 2 MB. Disimpan di folder organisasi
+            pada penyimpanan objek.
           </p>
           <FieldError message={errors.logo} />
         </CardContent>
@@ -165,14 +165,14 @@ export function OrganizationForm({
 
       <Card size="sm">
         <CardHeader>
-          <CardTitle>Company details</CardTitle>
+          <CardTitle>Detail perusahaan</CardTitle>
           <CardDescription>
-            Basic information about this organization.
+            Informasi dasar tentang organisasi ini.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">
-            <Label htmlFor="org-name">Company name</Label>
+            <Label htmlFor="org-name">Nama perusahaan</Label>
             <Input
               id="org-name"
               name="name"
@@ -183,12 +183,12 @@ export function OrganizationForm({
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="org-legal">Legal name</Label>
+            <Label htmlFor="org-legal">Nama legal</Label>
             <Input
               id="org-legal"
               name="legalName"
               defaultValue={organization.legalName ?? ""}
-              placeholder="PT Example Tbk"
+              placeholder="PT Contoh Sejahtera Tbk"
             />
             <FieldError message={errors.legalName} />
           </div>
@@ -206,7 +206,7 @@ export function OrganizationForm({
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="org-phone">Phone</Label>
+            <Label htmlFor="org-phone">Telepon</Label>
             <Input
               id="org-phone"
               name="phone"
@@ -217,13 +217,13 @@ export function OrganizationForm({
           </div>
 
           <div className="space-y-1.5 sm:col-span-2">
-            <Label htmlFor="org-address">Address</Label>
+            <Label htmlFor="org-address">Alamat</Label>
             <Textarea
               id="org-address"
               name="address"
               defaultValue={organization.address ?? ""}
               rows={3}
-              placeholder="Street, city, postal code"
+              placeholder="Jalan, kota, kode pos"
             />
             <FieldError message={errors.address} />
           </div>
@@ -234,12 +234,13 @@ export function OrganizationForm({
         <CardHeader>
           <CardTitle>Regional</CardTitle>
           <CardDescription>
-            Currency and timezone used across orders, finance and reports.
+            Mata uang dan zona waktu yang digunakan pada pesanan, keuangan, dan
+            laporan.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">
-            <Label>Currency</Label>
+            <Label>Mata uang</Label>
             <Select
               value={currency}
               onValueChange={(value) => setCurrency(value ?? "IDR")}
@@ -259,7 +260,7 @@ export function OrganizationForm({
           </div>
 
           <div className="space-y-1.5">
-            <Label>Timezone</Label>
+            <Label>Zona waktu</Label>
             <Select
               value={timezone}
               onValueChange={(value) => setTimezone(value ?? "Asia/Jakarta")}
@@ -283,7 +284,7 @@ export function OrganizationForm({
       <div className="flex justify-end">
         <Button type="submit" disabled={pending}>
           {pending ? <Loader2Icon className="animate-spin" /> : null}
-          Save changes
+          Simpan perubahan
         </Button>
       </div>
     </form>

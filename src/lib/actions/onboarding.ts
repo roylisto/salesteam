@@ -20,7 +20,7 @@ const OnboardingSchema = z.object({
   organizationName: z.string().trim().min(2).max(150),
   name: z.string().trim().min(2).max(150),
   email: z.string().trim().toLowerCase().pipe(z.email()),
-  password: z.string().min(8, "Use at least 8 characters."),
+  password: z.string().min(8, "Gunakan minimal 8 karakter."),
 });
 
 function slugify(value: string): string {
@@ -79,7 +79,7 @@ export async function createOrganization(
     .limit(1);
 
   if (taken) {
-    return { fieldErrors: { email: "This email is already registered." } };
+    return { fieldErrors: { email: "Email ini sudah terdaftar." } };
   }
 
   const slug = await resolveUniqueSlug(slugify(organizationName));

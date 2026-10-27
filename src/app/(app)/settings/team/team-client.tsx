@@ -60,15 +60,15 @@ const UNASSIGNED_TAB = "unassigned";
 
 function StatusBadge({ member }: { member: MemberRow }) {
   if (member.isOrganizationOwner) {
-    return <Badge variant="secondary">Owner</Badge>;
+    return <Badge variant="secondary">Pemilik</Badge>;
   }
   if (member.isAdmin) {
     return <Badge variant="secondary">Admin</Badge>;
   }
   return member.isActive ? (
-    <Badge variant="outline">Active</Badge>
+    <Badge variant="outline">Aktif</Badge>
   ) : (
-    <Badge variant="destructive">Inactive</Badge>
+    <Badge variant="destructive">Tidak aktif</Badge>
   );
 }
 
@@ -98,15 +98,15 @@ function HierarchyNode({
       >
         <span className="flex flex-wrap items-center gap-2">
           <span className="text-sm font-medium">{member.name}</span>
-          <Badge variant="secondary">{member.roleName ?? "Unassigned"}</Badge>
-          {member.isOrganizationOwner ? <Badge variant="outline">Owner</Badge> : null}
+          <Badge variant="secondary">{member.roleName ?? "Belum ditugaskan"}</Badge>
+          {member.isOrganizationOwner ? <Badge variant="outline">Pemilik</Badge> : null}
         </span>
         <span className="text-muted-foreground mt-1 block text-xs">
           {member.areaNames.length > 0
             ? member.areaNames.join(" · ")
-            : "No areas assigned"}
+            : "Belum ada area yang ditugaskan"}
           {children.length > 0
-            ? ` · ${children.length} direct report${children.length === 1 ? "" : "s"}`
+            ? ` · ${children.length} bawahan langsung`
             : ""}
         </span>
       </button>
@@ -161,7 +161,7 @@ function MemberTable({
   if (rows.length === 0) {
     return (
       <p className="text-muted-foreground rounded-xl border border-dashed px-4 py-8 text-center text-sm">
-        No team members here yet.
+        Belum ada anggota tim di sini.
       </p>
     );
   }
@@ -171,10 +171,10 @@ function MemberTable({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Member</TableHead>
-              <TableHead className="hidden md:table-cell">Role</TableHead>
-              <TableHead className="hidden lg:table-cell">Reports to</TableHead>
-              <TableHead className="hidden xl:table-cell">Areas</TableHead>
+              <TableHead>Anggota</TableHead>
+              <TableHead className="hidden md:table-cell">Peran</TableHead>
+              <TableHead className="hidden lg:table-cell">Atasan</TableHead>
+              <TableHead className="hidden xl:table-cell">Area</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="w-10" />
             </TableRow>
@@ -196,7 +196,7 @@ function MemberTable({
                 </TableCell>
                 <TableCell className="hidden md:table-cell">
                   {member.roleName ?? (
-                    <span className="text-muted-foreground">Unassigned</span>
+                    <span className="text-muted-foreground">Belum ditugaskan</span>
                   )}
                 </TableCell>
                 <TableCell className="hidden lg:table-cell">
@@ -217,7 +217,7 @@ function MemberTable({
                       ) : null}
                     </span>
                   ) : (
-                    <span className="text-muted-foreground text-xs">No areas</span>
+                    <span className="text-muted-foreground text-xs">Tanpa area</span>
                   )}
                 </TableCell>
                 <TableCell>
@@ -227,11 +227,11 @@ function MemberTable({
                   <DropdownMenu>
                     <DropdownMenuTrigger className="hover:bg-muted inline-flex size-7 items-center justify-center rounded-lg transition-colors">
                       <MoreHorizontalIcon className="size-4" />
-                      <span className="sr-only">Actions</span>
+                      <span className="sr-only">Aksi</span>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem onClick={() => onSelect(member.id)}>
-                        View & edit
+                        Lihat & ubah
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -280,8 +280,8 @@ export function TeamClient({
 
   const tabs = useMemo(() => {
     const list: { value: string; label: string; count: number }[] = [
-      { value: ALL_TAB, label: "All", count: members.length },
-      { value: HIERARCHY_TAB, label: "Hierarchy", count: members.length },
+      { value: ALL_TAB, label: "Semua", count: members.length },
+      { value: HIERARCHY_TAB, label: "Hierarki", count: members.length },
       {
         value: ADMIN_TAB,
         label: "Admin",
@@ -297,7 +297,7 @@ export function TeamClient({
     if (members.some((m) => roleTabOf(m) === UNASSIGNED_TAB)) {
       list.push({
         value: UNASSIGNED_TAB,
-        label: "Unassigned",
+        label: "Belum ditugaskan",
         count: members.filter((m) => roleTabOf(m) === UNASSIGNED_TAB).length,
       });
     }
@@ -344,7 +344,7 @@ export function TeamClient({
     }
     const unassigned = visible.filter((m) => roleTabOf(m) === UNASSIGNED_TAB);
     if (unassigned.length > 0) {
-      groups.push({ key: UNASSIGNED_TAB, label: "Unassigned", rows: unassigned });
+      groups.push({ key: UNASSIGNED_TAB, label: "Belum ditugaskan", rows: unassigned });
     }
     return groups;
   }, [visible, roles, activeTab]);
@@ -366,7 +366,7 @@ export function TeamClient({
   }, [members]);
 
   const selectedStatusName =
-    status === "all" ? "All status" : status === "active" ? "Active" : "Inactive";
+    status === "all" ? "Semua status" : status === "active" ? "Aktif" : "Tidak aktif";
 
   return (
     <div className="space-y-3">
@@ -398,7 +398,7 @@ export function TeamClient({
               void setQuery(event.target.value);
               void setPage(1);
             }}
-            placeholder="Search by name, email or staff code"
+            placeholder="Cari berdasarkan nama, email, atau kode pegawai"
             className="pl-8"
           />
         </div>
@@ -414,15 +414,15 @@ export function TeamClient({
             <SelectValue>{selectedStatusName}</SelectValue>
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All status</SelectItem>
-            <SelectItem value="active">Active</SelectItem>
-            <SelectItem value="inactive">Inactive</SelectItem>
+            <SelectItem value="all">Semua status</SelectItem>
+            <SelectItem value="active">Aktif</SelectItem>
+            <SelectItem value="inactive">Tidak aktif</SelectItem>
           </SelectContent>
         </Select>
 
         <Button onClick={() => void setAction("create")}>
           <UserPlusIcon />
-          Add member
+          Tambah anggota
         </Button>
       </div>
 
@@ -430,7 +430,7 @@ export function TeamClient({
         <div className="space-y-2">
           {roots.length === 0 ? (
             <p className="text-muted-foreground rounded-xl border border-dashed px-4 py-8 text-center text-sm">
-              No reporting lines yet. Edit a member to assign who they report to.
+              Belum ada garis atasan. Ubah anggota untuk menetapkan atasan mereka.
             </p>
           ) : (
             roots.map((root) => (
@@ -448,7 +448,7 @@ export function TeamClient({
         <div className="space-y-4">
           {grouped.length === 0 ? (
             <p className="text-muted-foreground rounded-xl border border-dashed px-4 py-8 text-center text-sm">
-              No team members match these filters.
+              Tidak ada anggota tim yang cocok dengan filter ini.
             </p>
           ) : (
             grouped.map((group) => (
@@ -456,7 +456,7 @@ export function TeamClient({
                 <h2 className="text-sm font-semibold">
                   {group.label}
                   <span className="text-muted-foreground ml-2 text-xs font-normal">
-                    {group.rows.length} member{group.rows.length === 1 ? "" : "s"}
+                    {group.rows.length} anggota
                   </span>
                 </h2>
                 <MemberTable rows={group.rows} onSelect={(id) => void setMemberId(id)} />
@@ -472,8 +472,8 @@ export function TeamClient({
         <div className="flex flex-wrap items-center justify-between gap-2">
           <p className="text-muted-foreground text-xs">
             {filtered.length === 0
-              ? "No results"
-              : `Showing ${start + 1}–${Math.min(start + PAGE_SIZE, filtered.length)} of ${filtered.length}`}
+              ? "Tidak ada hasil"
+              : `Menampilkan ${start + 1}–${Math.min(start + PAGE_SIZE, filtered.length)} dari ${filtered.length}`}
           </p>
           <div className="flex items-center gap-2">
             <Button
@@ -483,7 +483,7 @@ export function TeamClient({
               onClick={() => void setPage(currentPage - 1)}
             >
               <ChevronLeftIcon />
-              Previous
+              Sebelumnya
             </Button>
             <span className="text-muted-foreground text-xs tabular-nums">
               {currentPage} / {totalPages}
@@ -494,7 +494,7 @@ export function TeamClient({
               disabled={currentPage >= totalPages}
               onClick={() => void setPage(currentPage + 1)}
             >
-              Next
+              Berikutnya
               <ChevronRightIcon />
             </Button>
           </div>

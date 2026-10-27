@@ -23,7 +23,7 @@ export function Brand({
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={logoSrc}
-            alt={`${label} logo`}
+            alt={`Logo ${label}`}
             className="size-full object-cover"
           />
         </span>

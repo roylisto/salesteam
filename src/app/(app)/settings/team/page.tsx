@@ -22,7 +22,7 @@ import type {
   WarehouseOption,
 } from "./types";
 
-export const metadata: Metadata = { title: "Team" };
+export const metadata: Metadata = { title: "Tim" };
 
 function collectSubtreeIds(
   rows: { id: number; reportsTo: number | null }[],
@@ -206,8 +206,8 @@ export default async function TeamPage() {
   return (
     <div className="w-full">
       <PageHeader
-        title="Team"
-        description="Manage reporting lines, areas, and access for this organization."
+        title="Tim"
+        description="Kelola garis atasan, area, dan akses untuk organisasi ini."
       />
       <TeamClient
         members={visibleMembers}

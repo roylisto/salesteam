@@ -95,11 +95,11 @@ export function OutletsClient({
     warehouseFilter === ALL_WAREHOUSES
       ? undefined
       : warehouseFilter === NO_WAREHOUSE
-        ? "No warehouse"
+        ? "Tanpa gudang"
         : (warehouses.find((w) => String(w.id) === warehouseFilter)?.name ??
           undefined);
   const statusName =
-    status === "all" ? "All status" : status === "active" ? "Active" : "Inactive";
+    status === "all" ? "Semua status" : status === "active" ? "Aktif" : "Tidak aktif";
 
   return (
     <div className="space-y-3">
@@ -112,7 +112,7 @@ export function OutletsClient({
               void setQuery(event.target.value);
               void setPage(1);
             }}
-            placeholder="Search outlets by name or code"
+            placeholder="Cari outlet berdasarkan nama atau kode"
             className="pl-8"
           />
         </div>
@@ -125,13 +125,13 @@ export function OutletsClient({
           }}
         >
           <SelectTrigger className="w-44">
-            <SelectValue placeholder="All warehouses">
+            <SelectValue placeholder="Semua gudang">
               {warehouseFilterName}
             </SelectValue>
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={ALL_WAREHOUSES}>All warehouses</SelectItem>
-            <SelectItem value={NO_WAREHOUSE}>No warehouse</SelectItem>
+            <SelectItem value={ALL_WAREHOUSES}>Semua gudang</SelectItem>
+            <SelectItem value={NO_WAREHOUSE}>Tanpa gudang</SelectItem>
             {warehouses.map((warehouse) => (
               <SelectItem key={warehouse.id} value={String(warehouse.id)}>
                 {warehouse.name}
@@ -151,9 +151,9 @@ export function OutletsClient({
             <SelectValue>{statusName}</SelectValue>
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All status</SelectItem>
-            <SelectItem value="active">Active</SelectItem>
-            <SelectItem value="inactive">Inactive</SelectItem>
+            <SelectItem value="all">Semua status</SelectItem>
+            <SelectItem value="active">Aktif</SelectItem>
+            <SelectItem value="inactive">Tidak aktif</SelectItem>
           </SelectContent>
         </Select>
 
@@ -162,7 +162,7 @@ export function OutletsClient({
           nativeButton={false}
         >
           <PlusIcon />
-          New outlet
+          Outlet baru
         </Button>
       </div>
 
@@ -172,9 +172,9 @@ export function OutletsClient({
             <TableHeader>
               <TableRow>
                 <TableHead>Outlet</TableHead>
-                <TableHead className="hidden md:table-cell">Type</TableHead>
-                <TableHead className="hidden lg:table-cell">Warehouse</TableHead>
-                <TableHead className="hidden lg:table-cell">Sales rep</TableHead>
+                <TableHead className="hidden md:table-cell">Tipe</TableHead>
+                <TableHead className="hidden lg:table-cell">Gudang</TableHead>
+                <TableHead className="hidden lg:table-cell">Tenaga penjualan</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="w-10" />
               </TableRow>
@@ -186,7 +186,7 @@ export function OutletsClient({
                     colSpan={6}
                     className="text-muted-foreground h-24 text-center"
                   >
-                    No outlets match these filters.
+                    Tidak ada outlet yang cocok dengan filter ini.
                   </TableCell>
                 </TableRow>
               ) : (
@@ -200,7 +200,7 @@ export function OutletsClient({
                         <StoreIcon className="text-muted-foreground size-4 shrink-0" />
                         <span className="block">
                           <span className="block text-sm font-medium">
-                            {outlet.name ?? "Untitled outlet"}
+                            {outlet.name ?? "Outlet tanpa nama"}
                           </span>
                           {outlet.code ? (
                             <span className="text-muted-foreground block text-xs">
@@ -214,30 +214,30 @@ export function OutletsClient({
                       {outlet.outletTypeName ?? "—"}
                     </TableCell>
                     <TableCell className="text-muted-foreground hidden text-sm lg:table-cell">
-                      {outlet.warehouseName ?? "Unassigned"}
+                      {outlet.warehouseName ?? "Belum ditugaskan"}
                     </TableCell>
                     <TableCell className="text-muted-foreground hidden text-sm lg:table-cell">
-                      {outlet.salesName ?? "Unassigned"}
+                      {outlet.salesName ?? "Belum ditugaskan"}
                     </TableCell>
                     <TableCell>
                       <Badge
                         variant={outlet.status === "active" ? "secondary" : "outline"}
                       >
-                        {outlet.status === "active" ? "Active" : "Inactive"}
+                        {outlet.status === "active" ? "Aktif" : "Tidak aktif"}
                       </Badge>
                     </TableCell>
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger className="hover:bg-muted inline-flex size-7 items-center justify-center rounded-lg transition-colors">
                           <MoreHorizontalIcon className="size-4" />
-                          <span className="sr-only">Actions</span>
+                          <span className="sr-only">Aksi</span>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem
                             render={<Link href={`/master-data/outlets/${outlet.id}`} />}
                             nativeButton={false}
                           >
-                            View &amp; edit
+                            Lihat &amp; ubah
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -253,8 +253,8 @@ export function OutletsClient({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-muted-foreground text-xs">
           {filtered.length === 0
-            ? "No results"
-            : `Showing ${start + 1}–${Math.min(start + PAGE_SIZE, filtered.length)} of ${filtered.length}`}
+            ? "Tidak ada hasil"
+            : `Menampilkan ${start + 1}–${Math.min(start + PAGE_SIZE, filtered.length)} dari ${filtered.length}`}
         </p>
         <div className="flex items-center gap-2">
           <Button
@@ -264,7 +264,7 @@ export function OutletsClient({
             onClick={() => void setPage(currentPage - 1)}
           >
             <ChevronLeftIcon />
-            Previous
+            Sebelumnya
           </Button>
           <span className="text-muted-foreground text-xs tabular-nums">
             {currentPage} / {totalPages}
@@ -275,7 +275,7 @@ export function OutletsClient({
             disabled={currentPage >= totalPages}
             onClick={() => void setPage(currentPage + 1)}
           >
-            Next
+            Berikutnya
             <ChevronRightIcon />
           </Button>
         </div>

@@ -24,12 +24,12 @@ async function requireWarehouseManager() {
 }
 
 const WarehouseSchema = z.object({
-  name: z.string().trim().min(2, "Use at least 2 characters.").max(150),
+  name: z.string().trim().min(2, "Gunakan minimal 2 karakter.").max(150),
   // Every warehouse belongs to an area; an area can hold many warehouses.
   areaOfficeId: z.coerce
     .number()
     .int()
-    .positive("Select an area for this warehouse."),
+    .positive("Pilih area untuk gudang ini."),
   depotType: z
     .string()
     .trim()
@@ -67,13 +67,13 @@ export async function createWarehouse(
 ): Promise<WarehouseFormState> {
   const manager = await requireWarehouseManager();
   if (!manager)
-    return { error: "You do not have permission to manage warehouses." };
+    return { error: "Anda tidak memiliki izin untuk mengelola gudang." };
 
   const parsed = readForm(formData);
   if (!parsed.success) return { fieldErrors: toFieldErrors(parsed.error) };
 
   if (!(await areaBelongsToOrg(parsed.data.areaOfficeId, manager.organization.id))) {
-    return { fieldErrors: { areaOfficeId: "Select a valid area." } };
+    return { fieldErrors: { areaOfficeId: "Pilih area yang valid." } };
   }
 
   const [existing] = await db
@@ -89,7 +89,7 @@ export async function createWarehouse(
     .limit(1);
 
   if (existing) {
-    return { fieldErrors: { name: "A warehouse with this name already exists." } };
+    return { fieldErrors: { name: "Gudang dengan nama ini sudah ada." } };
   }
 
   await db.insert(warehouses).values({
@@ -110,10 +110,10 @@ export async function updateWarehouse(
 ): Promise<WarehouseFormState> {
   const manager = await requireWarehouseManager();
   if (!manager)
-    return { error: "You do not have permission to manage warehouses." };
+    return { error: "Anda tidak memiliki izin untuk mengelola gudang." };
 
   const id = Number(formData.get("id"));
-  if (!Number.isSafeInteger(id) || id <= 0) return { error: "Warehouse not found." };
+  if (!Number.isSafeInteger(id) || id <= 0) return { error: "Gudang tidak ditemukan." };
 
   const parsed = readForm(formData);
   if (!parsed.success) return { fieldErrors: toFieldErrors(parsed.error) };
@@ -130,10 +130,10 @@ export async function updateWarehouse(
     )
     .limit(1);
 
-  if (!warehouse) return { error: "Warehouse not found." };
+  if (!warehouse) return { error: "Gudang tidak ditemukan." };
 
   if (!(await areaBelongsToOrg(parsed.data.areaOfficeId, manager.organization.id))) {
-    return { fieldErrors: { areaOfficeId: "Select a valid area." } };
+    return { fieldErrors: { areaOfficeId: "Pilih area yang valid." } };
   }
 
   const [duplicate] = await db
@@ -150,7 +150,7 @@ export async function updateWarehouse(
     .limit(1);
 
   if (duplicate) {
-    return { fieldErrors: { name: "A warehouse with this name already exists." } };
+    return { fieldErrors: { name: "Gudang dengan nama ini sudah ada." } };
   }
 
   await db
@@ -175,10 +175,10 @@ export async function updateWarehouse(
 export async function deleteWarehouse(formData: FormData): Promise<WarehouseFormState> {
   const manager = await requireWarehouseManager();
   if (!manager)
-    return { error: "You do not have permission to manage warehouses." };
+    return { error: "Anda tidak memiliki izin untuk mengelola gudang." };
 
   const id = Number(formData.get("id"));
-  if (!Number.isSafeInteger(id) || id <= 0) return { error: "Warehouse not found." };
+  if (!Number.isSafeInteger(id) || id <= 0) return { error: "Gudang tidak ditemukan." };
 
   const [warehouse] = await db
     .select()
@@ -192,7 +192,7 @@ export async function deleteWarehouse(formData: FormData): Promise<WarehouseForm
     )
     .limit(1);
 
-  if (!warehouse) return { error: "Warehouse not found." };
+  if (!warehouse) return { error: "Gudang tidak ditemukan." };
 
   // Soft delete: outlets and stock rows keep their references.
   await db

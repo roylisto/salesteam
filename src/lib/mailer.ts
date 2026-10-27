@@ -64,27 +64,27 @@ export async function sendMemberCredentialsEmail(options: {
   temporaryPassword: string;
 }): Promise<void> {
   const { to, name, temporaryPassword } = options;
-  const subject = `Your ${APP_NAME} login details`;
+  const subject = `Detail login ${APP_NAME} Anda`;
 
   const text = [
-    `Hi ${name},`,
+    `Halo ${name},`,
     "",
-    `You have been added to ${APP_NAME}.`,
-    `Your temporary password is: ${temporaryPassword}`,
+    `Anda telah ditambahkan ke ${APP_NAME}.`,
+    `Kata sandi sementara Anda adalah: ${temporaryPassword}`,
     "",
-    "Sign in with your email address and this password. On your first sign-in",
-    "you will be asked to choose your own password.",
+    "Masuk dengan alamat email Anda dan kata sandi ini. Pada login pertama",
+    "Anda akan diminta memilih kata sandi Anda sendiri.",
     "",
-    "If you were not expecting this, please contact your administrator.",
+    "Jika Anda tidak mengharapkan ini, silakan hubungi administrator Anda.",
   ].join("\n");
 
   const html = `
     <div style="font-family:system-ui,Segoe UI,Helvetica,Arial,sans-serif;line-height:1.6;color:#0f172a">
-      <p>Hi ${name},</p>
-      <p>You have been added to ${APP_NAME}. Use the temporary password below to sign in:</p>
+      <p>Halo ${name},</p>
+      <p>Anda telah ditambahkan ke ${APP_NAME}. Gunakan kata sandi sementara di bawah ini untuk masuk:</p>
       <p style="font-size:20px;font-weight:700;letter-spacing:2px;padding:12px 16px;background:#f1f5f9;border-radius:8px;display:inline-block">${temporaryPassword}</p>
-      <p>On your first sign-in you will be asked to choose your own password.</p>
-      <p style="color:#64748b;font-size:13px">If you were not expecting this, please contact your administrator.</p>
+      <p>Pada login pertama, Anda akan diminta memilih kata sandi Anda sendiri.</p>
+      <p style="color:#64748b;font-size:13px">Jika Anda tidak mengharapkan ini, silakan hubungi administrator Anda.</p>
     </div>
   `;
 
@@ -99,27 +99,27 @@ export async function sendTemporaryPasswordEmail(options: {
   expiresMinutes: number;
 }): Promise<void> {
   const { to, name, temporaryPassword, expiresMinutes } = options;
-  const subject = `${APP_NAME} password reset`;
+  const subject = `Reset kata sandi ${APP_NAME}`;
 
   const text = [
-    `Hi ${name},`,
+    `Halo ${name},`,
     "",
-    `We received a request to reset your ${APP_NAME} password.`,
-    `Your temporary password is: ${temporaryPassword}`,
+    `Kami menerima permintaan untuk mereset kata sandi ${APP_NAME} Anda.`,
+    `Kata sandi sementara Anda adalah: ${temporaryPassword}`,
     "",
-    `It expires in ${expiresMinutes} minutes. Open the forgot-password page,`,
-    "enter this temporary password together with your new password.",
+    `Kata sandi ini kedaluwarsa dalam ${expiresMinutes} menit. Buka halaman lupa kata sandi,`,
+    "masukkan kata sandi sementara ini bersama kata sandi baru Anda.",
     "",
-    "If you did not request this, you can safely ignore this email.",
+    "Jika Anda tidak meminta ini, Anda dapat mengabaikan email ini dengan aman.",
   ].join("\n");
 
   const html = `
     <div style="font-family:system-ui,Segoe UI,Helvetica,Arial,sans-serif;line-height:1.6;color:#0f172a">
-      <p>Hi ${name},</p>
-      <p>We received a request to reset your ${APP_NAME} password. Use the temporary password below:</p>
+      <p>Halo ${name},</p>
+      <p>Kami menerima permintaan untuk mereset kata sandi ${APP_NAME} Anda. Gunakan kata sandi sementara di bawah ini:</p>
       <p style="font-size:20px;font-weight:700;letter-spacing:2px;padding:12px 16px;background:#f1f5f9;border-radius:8px;display:inline-block">${temporaryPassword}</p>
-      <p>It expires in ${expiresMinutes} minutes. Open the forgot-password page and enter this temporary password together with your new password.</p>
-      <p style="color:#64748b;font-size:13px">If you did not request this, you can safely ignore this email.</p>
+      <p>Kata sandi ini kedaluwarsa dalam ${expiresMinutes} menit. Buka halaman lupa kata sandi dan masukkan kata sandi sementara ini bersama kata sandi baru Anda.</p>
+      <p style="color:#64748b;font-size:13px">Jika Anda tidak meminta ini, Anda dapat mengabaikan email ini dengan aman.</p>
     </div>
   `;
 

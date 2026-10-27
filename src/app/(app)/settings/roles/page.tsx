@@ -9,7 +9,7 @@ import { requirePermission } from "@/lib/auth";
 import { RolesClient } from "./roles-client";
 import type { RoleDetail } from "./types";
 
-export const metadata: Metadata = { title: "Roles" };
+export const metadata: Metadata = { title: "Peran" };
 
 export default async function RolesPage() {
   const user = await requirePermission("roles");
@@ -49,8 +49,8 @@ export default async function RolesPage() {
   return (
     <div className="w-full">
       <PageHeader
-        title="Roles"
-        description="Permission presets that decide which modules a member can access."
+        title="Peran"
+        description="Praset izin yang menentukan modul mana yang dapat diakses oleh anggota."
       />
       <RolesClient roles={roleList} />
     </div>

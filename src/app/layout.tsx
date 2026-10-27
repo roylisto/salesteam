@@ -24,13 +24,13 @@ export const metadata: Metadata = {
     template: "%s · Salesteam",
   },
   description:
-    "Multitenant sales operations platform for outlets, orders and field teams.",
+    "Platform operasi penjualan multitenan untuk outlet, pesanan, dan tim lapangan.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
-      lang="en"
+      lang="id"
       className={`${sans.variable} ${mono.variable} h-full antialiased`}
     >
       <body className="bg-background text-foreground min-h-full font-sans">

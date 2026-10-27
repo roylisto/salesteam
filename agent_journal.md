@@ -3,7 +3,10 @@
 > Handoff notes for AI agents doing "vibe coding" on this repo.
 > Read this first; it captures the project context, conventions, and what has
 > already been built so you can continue without re-discovering everything.
-> Last updated: 2026-10-27 (Reworked **Outlets** into full create/edit **pages** — `/master-data/outlets/new` + `/master-data/outlets/[id]` — with a much richer store profile (address parts, lat/lng picked on an **OpenStreetMap/Leaflet** map, owner & contact, legal/KYC ids, storefront photo upload), an **outlet type** dropdown backed by the new `outlet_types` master table/module (`/master-data/outlet-types`, permission `outlet_types`). Team members can also be assigned **warehouses** area-first via `user_warehouse_assignments`; DB TLS CA supplied as a PEM string in `DB_SSL_CA`, read by `src/db/index.ts` + `drizzle.config.ts`; migrations applied to the Aiven dev DB; added `.env.example` + local `.env`; earlier: Admin role option hidden for non-admin actors, warehouse management, Profile page + admin-only password reset).
+> Last updated: 2026-10-27 (**Localised the whole UI to Bahasa Indonesia** — all
+> user-facing copy, toasts, `metadata`, server-action/Zod messages and emails are
+> now Indonesian, with `<html lang="id">`; code, keys, DB values and comments stay
+> English. Previously: reworked **Outlets** into full create/edit **pages** — `/master-data/outlets/new` + `/master-data/outlets/[id]` — with a much richer store profile (address parts, lat/lng picked on an **OpenStreetMap/Leaflet** map, owner & contact, legal/KYC ids, storefront photo upload), an **outlet type** dropdown backed by the new `outlet_types` master table/module (`/master-data/outlet-types`, permission `outlet_types`). Team members can also be assigned **warehouses** area-first via `user_warehouse_assignments`; DB TLS CA supplied as a PEM string in `DB_SSL_CA`, read by `src/db/index.ts` + `drizzle.config.ts`; migrations applied to the Aiven dev DB; added `.env.example` + local `.env`; earlier: Admin role option hidden for non-admin actors, warehouse management, Profile page + admin-only password reset).
 >
 > **⚠️ RULE: always update this file after making any change.** Whenever you add
 > a table, page, action, env var, dependency, migration, or change a convention,
@@ -521,6 +524,15 @@ src/proxy.ts                   optimistic auth guard
 
 ## 8. Patterns to follow
 
+- **Bahasa Indonesia (UI language)**: the app is for Indonesia, so **all
+  user-facing copy is Indonesian** — labels, buttons, tables, placeholders,
+  `aria-label`, `sr-only`, `metadata` titles/descriptions, toasts, Zod messages
+  in server actions, and email content (`mailer.ts`). The root `<html lang="id">`.
+  **Keep code as English**: identifiers, object keys, DB values (e.g. `"active"`),
+  permission keys, route paths, and code comments. Formal tone, address the user
+  as "Anda". Spring-cleaning glossary used: Gudang, Outlet, Tipe Outlet, Area,
+  Organisasi, Tim, Peran, Izin, Pengaturan, Data Induk, Dasbor, Simpan, Ubah,
+  Hapus, Batal, Kembali, Cari, Aktif/Tidak aktif, Belum ditugaskan.
 - **Server Actions**: files start with `"use server"`. Actions take
   `(state, formData)` and return `{ ok?, error?, fieldErrors? }`. They
   re-check auth (`getCurrentUser` + `can(...)`) at the top and call

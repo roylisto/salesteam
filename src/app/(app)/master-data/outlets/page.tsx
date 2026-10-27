@@ -9,7 +9,7 @@ import { requirePermission } from "@/lib/auth";
 import { OutletsClient } from "./outlets-client";
 import type { OutletRow, WarehouseOption } from "./types";
 
-export const metadata: Metadata = { title: "Outlets" };
+export const metadata: Metadata = { title: "Outlet" };
 
 export default async function OutletsPage() {
   const user = await requirePermission("outlets");
@@ -67,8 +67,8 @@ export default async function OutletsPage() {
   return (
     <div className="w-full">
       <PageHeader
-        title="Outlets"
-        description="Customer stores visited by sales reps, with their warehouse and rep assignments."
+        title="Outlet"
+        description="Toko pelanggan yang dikunjungi tenaga penjualan, lengkap dengan penugasan gudang dan tenaga penjualannya."
       />
       <OutletsClient outlets={outletsList} warehouses={warehouseOptions} />
     </div>

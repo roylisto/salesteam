@@ -54,7 +54,7 @@ export function ProfileForm({
 
       if (result?.ok) {
         formRef.current?.reset();
-        toast.success("Password updated.");
+        toast.success("Kata sandi diperbarui.");
         return;
       }
 
@@ -68,32 +68,33 @@ export function ProfileForm({
     <div className="space-y-3">
       <Card size="sm">
         <CardHeader>
-          <CardTitle>Account</CardTitle>
+          <CardTitle>Akun</CardTitle>
           <CardDescription>
-            Managed by your administrator. Contact them to change these details.
+            Dikelola oleh administrator Anda. Hubungi mereka untuk mengubah
+            detail ini.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
-          <Detail label="Full name" value={name} />
+          <Detail label="Nama lengkap" value={name} />
           <Detail label="Email" value={email} />
-          <Detail label="Role" value={roleName} />
-          <Detail label="Staff code" value={code ?? "—"} />
-          <Detail label="Organization" value={organizationName} />
+          <Detail label="Peran" value={roleName} />
+          <Detail label="Kode pegawai" value={code ?? "—"} />
+          <Detail label="Organisasi" value={organizationName} />
         </CardContent>
       </Card>
 
       <form ref={formRef} action={handleSubmit}>
         <Card size="sm">
           <CardHeader>
-            <CardTitle>Change password</CardTitle>
+            <CardTitle>Ubah kata sandi</CardTitle>
             <CardDescription>
-              Enter your current password, then choose a new one of at least 8
-              characters.
+              Masukkan kata sandi Anda saat ini, lalu pilih kata sandi baru
+              minimal 8 karakter.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-1.5">
-              <Label htmlFor="profile-current">Current password</Label>
+              <Label htmlFor="profile-current">Kata sandi saat ini</Label>
               <Input
                 id="profile-current"
                 name="currentPassword"
@@ -105,7 +106,7 @@ export function ProfileForm({
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="profile-password">New password</Label>
+              <Label htmlFor="profile-password">Kata sandi baru</Label>
               <Input
                 id="profile-password"
                 name="password"
@@ -118,7 +119,7 @@ export function ProfileForm({
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="profile-confirm">Confirm new password</Label>
+              <Label htmlFor="profile-confirm">Konfirmasi kata sandi baru</Label>
               <Input
                 id="profile-confirm"
                 name="confirmPassword"
@@ -135,7 +136,7 @@ export function ProfileForm({
         <div className="mt-3 flex justify-end">
           <Button type="submit" disabled={pending}>
             {pending ? <Loader2Icon className="animate-spin" /> : null}
-            Update password
+            Perbarui kata sandi
           </Button>
         </div>
       </form>

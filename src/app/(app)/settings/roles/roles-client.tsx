@@ -38,11 +38,11 @@ export function RolesClient({ roles }: { roles: RoleDetail[] }) {
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-muted-foreground text-sm">
-          {roles.length} role{roles.length === 1 ? "" : "s"} in this organization
+          {roles.length} peran di organisasi ini
         </p>
         <Button onClick={() => void setAction("create")}>
           <PlusIcon />
-          New role
+          Peran baru
         </Button>
       </div>
 
@@ -55,18 +55,17 @@ export function RolesClient({ roles }: { roles: RoleDetail[] }) {
                 {role.name}
               </CardTitle>
               <CardDescription className="line-clamp-2">
-                {role.description ?? "No description"}
+                {role.description ?? "Tanpa deskripsi"}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="text-muted-foreground flex items-center gap-3 text-xs">
                 <span className="inline-flex items-center gap-1">
                   <UsersIcon className="size-3.5" />
-                  {role.memberCount} member{role.memberCount === 1 ? "" : "s"}
+                  {role.memberCount} anggota
                 </span>
                 <span>
-                  {role.permissions.length} module
-                  {role.permissions.length === 1 ? "" : "s"}
+                  {role.permissions.length} modul
                 </span>
               </div>
 
@@ -90,7 +89,7 @@ export function RolesClient({ roles }: { roles: RoleDetail[] }) {
                 onClick={() => void setRoleId(role.id)}
               >
                 <PencilIcon />
-                Edit role
+                Ubah peran
               </Button>
             </CardContent>
           </Card>

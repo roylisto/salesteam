@@ -9,7 +9,7 @@ import { requirePermission } from "@/lib/auth";
 import { OrganizationForm } from "./organization-form";
 import type { OrganizationDetail } from "./types";
 
-export const metadata: Metadata = { title: "Organization" };
+export const metadata: Metadata = { title: "Organisasi" };
 
 export default async function OrganizationPage() {
   const user = await requirePermission("organization");
@@ -35,10 +35,10 @@ export default async function OrganizationPage() {
     return (
       <div className="w-full">
         <PageHeader
-          title="Organization"
-          description="Manage this company's profile and branding."
+          title="Organisasi"
+          description="Kelola profil dan branding perusahaan ini."
         />
-        <p className="text-muted-foreground text-sm">Organization not found.</p>
+        <p className="text-muted-foreground text-sm">Organisasi tidak ditemukan.</p>
       </div>
     );
   }
@@ -48,8 +48,8 @@ export default async function OrganizationPage() {
   return (
     <div className="w-full">
       <PageHeader
-        title="Organization"
-        description="Company profile, branding logo and regional settings."
+        title="Organisasi"
+        description="Profil perusahaan, logo branding, dan pengaturan regional."
       />
       <div className="max-w-3xl">
         <OrganizationForm organization={organization} />

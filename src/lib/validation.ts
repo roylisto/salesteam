@@ -11,6 +11,6 @@ export function toFieldErrors(error: z.ZodError): Record<string, string> {
   ][];
 
   return Object.fromEntries(
-    entries.map(([key, messages]) => [key, messages?.[0] ?? "Invalid value"]),
+    entries.map(([key, messages]) => [key, messages?.[0] ?? "Nilai tidak valid"]),
   );
 }

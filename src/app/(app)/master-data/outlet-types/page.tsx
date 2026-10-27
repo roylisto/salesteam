@@ -9,7 +9,7 @@ import { requirePermission } from "@/lib/auth";
 import { OutletTypesClient } from "./outlet-types-client";
 import type { OutletTypeRow } from "./types";
 
-export const metadata: Metadata = { title: "Outlet Types" };
+export const metadata: Metadata = { title: "Tipe Outlet" };
 
 export default async function OutletTypesPage() {
   const user = await requirePermission("outlet_types");
@@ -41,8 +41,8 @@ export default async function OutletTypesPage() {
   return (
     <div className="w-full">
       <PageHeader
-        title="Outlet Types"
-        description="Classify outlets by sales channel (Retail, Grosir, Horeca, ...)."
+        title="Tipe Outlet"
+        description="Klasifikasikan outlet berdasarkan saluran penjualan (Retail, Grosir, Horeca, ...)."
       />
       <OutletTypesClient outletTypes={outletTypesList} />
     </div>

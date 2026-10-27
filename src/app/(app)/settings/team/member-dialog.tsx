@@ -105,17 +105,17 @@ function RoleSelect({
   const showAdminOption = actorIsAdmin || value === SYSTEM_ADMIN_ROLE_VALUE;
   const selectedName =
     value === SYSTEM_ADMIN_ROLE_VALUE
-      ? "Admin (system)"
+      ? "Admin (sistem)"
       : (roles.find((r) => String(r.id) === value)?.name ?? undefined);
   return (
     <Select value={value} onValueChange={(v) => onChange(v ?? "")} disabled={disabled}>
       <SelectTrigger className="w-full">
-        <SelectValue placeholder="Select a role">{selectedName}</SelectValue>
+        <SelectValue placeholder="Pilih peran">{selectedName}</SelectValue>
       </SelectTrigger>
       <SelectContent>
         {showAdminOption ? (
           <SelectItem value={SYSTEM_ADMIN_ROLE_VALUE}>
-            Admin (system)
+            Admin (sistem)
           </SelectItem>
         ) : null}
         {roles.map((role) => (
@@ -144,20 +144,20 @@ function ReportingSelect({
   const options = members.filter((m) => m.id !== excludeId);
   const selectedName =
     value === ""
-      ? "No reporting line"
+      ? "Tanpa garis atasan"
       : (options.find((m) => String(m.id) === value)?.name ?? undefined);
   return (
     <Select value={value} onValueChange={(v) => onChange(v ?? "")}>
       <SelectTrigger id={idPrefix} className="w-full">
-        <SelectValue placeholder="Select who they report to">
+        <SelectValue placeholder="Pilih atasan">
           {selectedName}
         </SelectValue>
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value="">No reporting line</SelectItem>
+        <SelectItem value="">Tanpa garis atasan</SelectItem>
         {options.map((member) => (
           <SelectItem key={member.id} value={String(member.id)}>
-            {member.name} · {member.roleName ?? "Unassigned"}
+            {member.name} · {member.roleName ?? "Belum ditugaskan"}
           </SelectItem>
         ))}
       </SelectContent>
@@ -177,7 +177,7 @@ function AreaChecklist({
   if (options.length === 0) {
     return (
       <p className="text-muted-foreground text-xs">
-        No areas available for this reporting line yet.
+        Belum ada area yang tersedia untuk garis atasan ini.
       </p>
     );
   }
@@ -223,7 +223,7 @@ function WarehouseChecklist({
   if (selectedAreas.length === 0) {
     return (
       <p className="text-muted-foreground text-xs">
-        Select an area first to choose its warehouses.
+        Pilih area terlebih dahulu untuk memilih gudangnya.
       </p>
     );
   }
@@ -238,7 +238,7 @@ function WarehouseChecklist({
   if (groups.length === 0) {
     return (
       <p className="text-muted-foreground text-xs">
-        The selected areas have no warehouses yet.
+        Area yang dipilih belum memiliki gudang.
       </p>
     );
   }
@@ -250,7 +250,7 @@ function WarehouseChecklist({
           <p className="text-muted-foreground text-xs font-medium">{area.name}</p>
           {items.length === 0 ? (
             <p className="text-muted-foreground text-xs">
-              No warehouses in this area.
+              Tidak ada gudang di area ini.
             </p>
           ) : (
             <div className="grid gap-1.5 sm:grid-cols-2">
@@ -361,7 +361,7 @@ export function CreateMemberDialog({
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      toast.error("Could not copy. Select the password and copy it manually.");
+      toast.error("Tidak dapat menyalin. Pilih kata sandi dan salin secara manual.");
     }
   }
 
@@ -393,10 +393,10 @@ export function CreateMemberDialog({
           password: result.temporaryPassword,
           emailSent: result.emailSent ?? false,
         });
-        if (result.emailSent) toast.success("Team member added.");
+        if (result.emailSent) toast.success("Anggota tim ditambahkan.");
         else
           toast.warning(
-            "Member added, but the email could not be sent. Share the password below.",
+            "Anggota ditambahkan, tetapi email tidak dapat dikirim. Bagikan kata sandi di bawah ini.",
           );
         router.refresh();
         return;
@@ -413,17 +413,17 @@ export function CreateMemberDialog({
         {created ? (
           <div className="space-y-4">
             <DialogHeader>
-              <DialogTitle>{created.name} added</DialogTitle>
+              <DialogTitle>{created.name} ditambahkan</DialogTitle>
               <DialogDescription>
                 {created.emailSent
-                  ? `A temporary password was emailed to ${created.email}.`
-                  : `The email to ${created.email} could not be sent. Share this password with them manually.`}
+                  ? `Kata sandi sementara telah dikirim melalui email ke ${created.email}.`
+                  : `Email ke ${created.email} tidak dapat dikirim. Bagikan kata sandi ini kepada mereka secara manual.`}
               </DialogDescription>
             </DialogHeader>
 
             <div className="space-y-2 rounded-lg border p-4">
               <div className="flex items-center justify-between gap-2">
-                <Label htmlFor="created-password">Temporary password</Label>
+                <Label htmlFor="created-password">Kata sandi sementara</Label>
                 <Button
                   type="button"
                   variant="outline"
@@ -435,7 +435,7 @@ export function CreateMemberDialog({
                   ) : (
                     <CopyIcon className="size-3.5" />
                   )}
-                  {copied ? "Copied" : "Copy"}
+                  {copied ? "Tersalin" : "Salin"}
                 </Button>
               </div>
               <p
@@ -445,32 +445,32 @@ export function CreateMemberDialog({
                 {created.password}
               </p>
               <p className="text-muted-foreground text-xs">
-                The member will be asked to choose their own password the
-                first time they sign in.
+                Anggota akan diminta memilih kata sandi sendiri saat pertama kali
+                masuk.
               </p>
             </div>
 
             <DialogFooter>
               <Button type="button" onClick={() => handleOpenChange(false)}>
-                Done
+                Selesai
               </Button>
             </DialogFooter>
           </div>
         ) : (
           <>
         <DialogHeader>
-          <DialogTitle>Add team member</DialogTitle>
+          <DialogTitle>Tambah anggota tim</DialogTitle>
           <DialogDescription>
-            Assign their role, reporting line, areas, and warehouses. Areas must
-            be handed down from who they report to, and warehouses are chosen
-            within those areas.
+            Tetapkan peran, garis atasan, area, dan gudang mereka. Area harus
+            diturunkan dari atasan mereka, dan gudang dipilih di dalam area
+            tersebut.
           </DialogDescription>
         </DialogHeader>
 
         <form action={handleSubmit} className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5 sm:col-span-2">
-              <Label htmlFor="member-name">Full name</Label>
+              <Label htmlFor="member-name">Nama lengkap</Label>
               <Input id="member-name" name="name" required />
               <FieldError message={errors.name} />
             </div>
@@ -488,19 +488,19 @@ export function CreateMemberDialog({
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="member-phone">Phone</Label>
+              <Label htmlFor="member-phone">Telepon</Label>
               <Input id="member-phone" name="phone" />
               <FieldError message={errors.phone} />
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="member-code">Staff code</Label>
-              <Input id="member-code" name="code" placeholder="Optional" />
+              <Label htmlFor="member-code">Kode pegawai</Label>
+              <Input id="member-code" name="code" placeholder="Opsional" />
               <FieldError message={errors.code} />
             </div>
 
             <div className="space-y-1.5 sm:col-span-2">
-              <Label>Role</Label>
+              <Label>Peran</Label>
               <RoleSelect
                 value={roleId}
                 onChange={setRoleId}
@@ -511,7 +511,7 @@ export function CreateMemberDialog({
             </div>
 
             <div className="space-y-1.5 sm:col-span-2">
-              <Label htmlFor="member-reports">Reports to</Label>
+              <Label htmlFor="member-reports">Atasan</Label>
               <ReportingSelect
                 value={reportsTo}
                 onChange={handleReportsChange}
@@ -522,7 +522,7 @@ export function CreateMemberDialog({
             </div>
 
             <div className="space-y-1.5 sm:col-span-2">
-              <Label>Areas</Label>
+              <Label>Area</Label>
               <AreaChecklist
                 options={allowedAreas}
                 selected={areaIds}
@@ -532,7 +532,7 @@ export function CreateMemberDialog({
             </div>
 
             <div className="space-y-1.5 sm:col-span-2">
-              <Label>Warehouses</Label>
+              <Label>Gudang</Label>
               <WarehouseChecklist
                 warehouses={warehouses}
                 areas={areas}
@@ -544,10 +544,10 @@ export function CreateMemberDialog({
             </div>
 
             <div className="space-y-1.5 sm:col-span-2">
-              <Label>Temporary password</Label>
+              <Label>Kata sandi sementara</Label>
               <p className="text-muted-foreground text-xs">
-                Generated automatically and emailed to the member. They will
-                set their own password on first sign-in.
+                Dibuat secara otomatis dan dikirim melalui email ke anggota.
+                Mereka akan menetapkan kata sandi sendiri saat pertama kali masuk.
               </p>
             </div>
           </div>
@@ -555,7 +555,7 @@ export function CreateMemberDialog({
           <DialogFooter>
             <Button type="submit" disabled={pending}>
               {pending ? <Loader2Icon className="animate-spin" /> : null}
-              Add member
+              Tambah anggota
             </Button>
           </DialogFooter>
         </form>
@@ -648,7 +648,7 @@ export function MemberDetailDialog({
       const result = await updateMember(undefined, formData);
 
       if (result?.ok) {
-        toast.success("Member updated.");
+        toast.success("Anggota diperbarui.");
         setErrors({});
         router.refresh();
         return;
@@ -666,7 +666,7 @@ export function MemberDetailDialog({
       const result = await resetMemberPassword(undefined, formData);
 
       if (result?.ok) {
-        toast.success("Password updated.");
+        toast.success("Kata sandi diperbarui.");
         setErrors({});
         passwordForm.current?.reset();
         return;
@@ -685,13 +685,13 @@ export function MemberDetailDialog({
       const result = await deleteMember(formData);
 
       if (result?.ok) {
-        toast.success("Member removed.");
+        toast.success("Anggota dihapus.");
         onOpenChange(false);
         router.refresh();
         return;
       }
 
-      toast.error(result?.error ?? "Unable to remove this member.");
+      toast.error(result?.error ?? "Tidak dapat menghapus anggota ini.");
     });
   }
 
@@ -704,7 +704,7 @@ export function MemberDetailDialog({
             {member.isOrganizationOwner ? (
               <Badge variant="secondary" className="gap-1">
                 <ShieldCheckIcon className="size-3" />
-                Owner
+                Pemilik
               </Badge>
             ) : null}
           </DialogTitle>
@@ -714,7 +714,7 @@ export function MemberDetailDialog({
         <form action={handleProfile} className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5 sm:col-span-2">
-              <Label htmlFor="edit-name">Full name</Label>
+              <Label htmlFor="edit-name">Nama lengkap</Label>
               <Input
                 id="edit-name"
                 name="name"
@@ -737,7 +737,7 @@ export function MemberDetailDialog({
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="edit-phone">Phone</Label>
+              <Label htmlFor="edit-phone">Telepon</Label>
               <Input
                 id="edit-phone"
                 name="phone"
@@ -747,7 +747,7 @@ export function MemberDetailDialog({
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="edit-code">Staff code</Label>
+              <Label htmlFor="edit-code">Kode pegawai</Label>
               <Input
                 id="edit-code"
                 name="code"
@@ -757,7 +757,7 @@ export function MemberDetailDialog({
             </div>
 
             <div className="space-y-1.5 sm:col-span-2">
-              <Label>Role</Label>
+              <Label>Peran</Label>
               <RoleSelect
                 value={roleId}
                 onChange={setRoleId}
@@ -769,7 +769,7 @@ export function MemberDetailDialog({
             </div>
 
             <div className="space-y-1.5 sm:col-span-2">
-              <Label htmlFor="edit-reports">Reports to</Label>
+              <Label htmlFor="edit-reports">Atasan</Label>
               <ReportingSelect
                 value={reportsTo}
                 onChange={setReportsTo}
@@ -781,7 +781,7 @@ export function MemberDetailDialog({
             </div>
 
             <div className="space-y-1.5 sm:col-span-2">
-              <Label>Areas</Label>
+              <Label>Area</Label>
               <AreaChecklist
                 options={allowedAreas}
                 selected={areaIds}
@@ -791,7 +791,7 @@ export function MemberDetailDialog({
             </div>
 
             <div className="space-y-1.5 sm:col-span-2">
-              <Label>Warehouses</Label>
+              <Label>Gudang</Label>
               <WarehouseChecklist
                 warehouses={warehouses}
                 areas={areas}
@@ -804,11 +804,11 @@ export function MemberDetailDialog({
 
             <div className="flex items-center justify-between gap-4 rounded-lg border p-3 sm:col-span-2">
               <div className="space-y-0.5">
-                <Label htmlFor="edit-active">Active</Label>
+                <Label htmlFor="edit-active">Aktif</Label>
                 <p className="text-muted-foreground text-xs">
                   {isProtected
-                    ? "The organization owner always stays active."
-                    : "Inactive members cannot sign in."}
+                    ? "Pemilik organisasi selalu dalam keadaan aktif."
+                    : "Anggota yang tidak aktif tidak dapat masuk."}
                 </p>
               </div>
               <Switch
@@ -823,7 +823,7 @@ export function MemberDetailDialog({
           <DialogFooter>
             <Button type="submit" disabled={pending}>
               {pending ? <Loader2Icon className="animate-spin" /> : null}
-              Save changes
+              Simpan perubahan
             </Button>
           </DialogFooter>
         </form>
@@ -834,14 +834,14 @@ export function MemberDetailDialog({
 
             <form ref={passwordForm} action={handlePassword} className="space-y-4">
               <div className="space-y-1.5">
-                <Label htmlFor="edit-password">Reset password</Label>
+                <Label htmlFor="edit-password">Reset kata sandi</Label>
                 <Input
                   id="edit-password"
                   name="password"
                   type="password"
                   autoComplete="new-password"
                   minLength={8}
-                  placeholder="New password"
+                  placeholder="Kata sandi baru"
                   required
                 />
                 <FieldError message={errors.password} />
@@ -849,7 +849,7 @@ export function MemberDetailDialog({
               <DialogFooter>
                 <Button type="submit" variant="outline" disabled={pending}>
                   {pending ? <Loader2Icon className="animate-spin" /> : null}
-                  Update password
+                  Perbarui kata sandi
                 </Button>
               </DialogFooter>
             </form>
@@ -861,7 +861,7 @@ export function MemberDetailDialog({
             <Separator />
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="text-muted-foreground text-xs">
-                Removing a member also deletes their sessions.
+                Menghapus anggota juga menghapus sesi mereka.
               </div>
               {confirming ? (
                 <div className="flex items-center gap-2">
@@ -871,7 +871,7 @@ export function MemberDetailDialog({
                     onClick={() => setConfirming(false)}
                     disabled={pending}
                   >
-                    Cancel
+                    Batal
                   </Button>
                   <Button
                     variant="destructive"
@@ -880,7 +880,7 @@ export function MemberDetailDialog({
                     disabled={pending}
                   >
                     {pending ? <Loader2Icon className="animate-spin" /> : null}
-                    Confirm removal
+                    Konfirmasi hapus
                   </Button>
                 </div>
               ) : (
@@ -889,7 +889,7 @@ export function MemberDetailDialog({
                   size="sm"
                   onClick={() => setConfirming(true)}
                 >
-                  Remove member
+                  Hapus anggota
                 </Button>
               )}
             </div>
@@ -899,8 +899,8 @@ export function MemberDetailDialog({
         <p className="text-muted-foreground flex items-center gap-1.5 text-xs">
           <LogInIcon className="size-3.5" />
           {member.lastLoginAt
-            ? `Last signed in ${new Date(member.lastLoginAt).toLocaleString()}`
-            : "Never signed in"}
+            ? `Terakhir masuk ${new Date(member.lastLoginAt).toLocaleString()}`
+            : "Belum pernah masuk"}
         </p>
       </DialogContent>
     </Dialog>

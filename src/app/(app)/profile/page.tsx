@@ -5,7 +5,7 @@ import { requireUser } from "@/lib/auth";
 
 import { ProfileForm } from "./profile-form";
 
-export const metadata: Metadata = { title: "Profile" };
+export const metadata: Metadata = { title: "Profil" };
 
 export default async function ProfilePage() {
   const user = await requireUser();
@@ -13,15 +13,15 @@ export default async function ProfilePage() {
   return (
     <div className="w-full">
       <PageHeader
-        title="Profile"
-        description="Your account details and password."
+        title="Profil"
+        description="Detail akun dan kata sandi Anda."
       />
       <div className="max-w-3xl">
         <ProfileForm
           name={user.name}
           email={user.email}
           code={user.code}
-          roleName={user.isAdmin ? "Admin" : (user.role?.name ?? "Unassigned")}
+          roleName={user.isAdmin ? "Admin" : (user.role?.name ?? "Belum ditugaskan")}
           organizationName={user.organization.name}
         />
       </div>

@@ -65,7 +65,7 @@ export function RoleDialog({
         : await createRole(undefined, formData);
 
       if (result?.ok) {
-        toast.success(role ? "Role updated." : "Role created.");
+        toast.success(role ? "Peran diperbarui." : "Peran dibuat.");
         setErrors({});
         onOpenChange(false);
         router.refresh();
@@ -87,13 +87,13 @@ export function RoleDialog({
       const result = await deleteRole(formData);
 
       if (result?.ok) {
-        toast.success("Role deleted.");
+        toast.success("Peran dihapus.");
         onOpenChange(false);
         router.refresh();
         return;
       }
 
-      toast.error(result?.error ?? "Unable to delete this role.");
+      toast.error(result?.error ?? "Tidak dapat menghapus peran ini.");
     });
   }
 
@@ -101,39 +101,39 @@ export function RoleDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90svh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>{isEdit ? "Edit role" : "New role"}</DialogTitle>
+          <DialogTitle>{isEdit ? "Ubah peran" : "Peran baru"}</DialogTitle>
           <DialogDescription>
-            Choose which modules this role can access. Admin-only modules stay
-            with the system Admin.
+            Pilih modul mana yang dapat diakses peran ini. Modul khusus Admin
+            tetap pada Admin sistem.
           </DialogDescription>
         </DialogHeader>
 
         <form action={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="role-name">Name</Label>
+            <Label htmlFor="role-name">Nama</Label>
             <Input
               id="role-name"
               name="name"
               defaultValue={role?.name ?? ""}
-              placeholder="Regional manager"
+              placeholder="Manajer regional"
               required
             />
             <FieldError message={errors.name} />
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="role-description">Description</Label>
+            <Label htmlFor="role-description">Deskripsi</Label>
             <Input
               id="role-description"
               name="description"
               defaultValue={role?.description ?? ""}
-              placeholder="Optional"
+              placeholder="Opsional"
             />
             <FieldError message={errors.description} />
           </div>
 
           <div className="space-y-2">
-            <Label>Permissions</Label>
+            <Label>Izin</Label>
             <div className="grid gap-1.5 sm:grid-cols-2">
               {ASSIGNABLE_PERMISSIONS.map((permission) => {
                 const checked = selected.includes(permission.key);
@@ -157,7 +157,7 @@ export function RoleDialog({
           <DialogFooter>
             <Button type="submit" disabled={pending}>
               {pending ? <Loader2Icon className="animate-spin" /> : null}
-              {isEdit ? "Save role" : "Create role"}
+              {isEdit ? "Simpan peran" : "Buat peran"}
             </Button>
           </DialogFooter>
         </form>
@@ -168,8 +168,8 @@ export function RoleDialog({
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="text-muted-foreground text-xs">
                 {role.memberCount > 0
-                  ? `${role.memberCount} member(s) use this role.`
-                  : "No members use this role."}
+                  ? `${role.memberCount} anggota menggunakan peran ini.`
+                  : "Tidak ada anggota yang menggunakan peran ini."}
               </p>
               {confirming ? (
                 <div className="flex items-center gap-2">
@@ -179,7 +179,7 @@ export function RoleDialog({
                     onClick={() => setConfirming(false)}
                     disabled={pending}
                   >
-                    Cancel
+                    Batal
                   </Button>
                   <Button
                     variant="destructive"
@@ -188,7 +188,7 @@ export function RoleDialog({
                     disabled={pending}
                   >
                     {pending ? <Loader2Icon className="animate-spin" /> : null}
-                    Confirm delete
+                    Konfirmasi hapus
                   </Button>
                 </div>
               ) : (
@@ -197,7 +197,7 @@ export function RoleDialog({
                   size="sm"
                   onClick={() => setConfirming(true)}
                 >
-                  Delete role
+                  Hapus peran
                 </Button>
               )}
             </div>

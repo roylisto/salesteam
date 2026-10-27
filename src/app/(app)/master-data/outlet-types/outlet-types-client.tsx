@@ -82,14 +82,14 @@ export function OutletTypesClient({
               void setQuery(event.target.value);
               void setPage(1);
             }}
-            placeholder="Search outlet types by name"
+            placeholder="Cari tipe outlet berdasarkan nama"
             className="pl-8"
           />
         </div>
 
         <Button onClick={() => void setAction("create")}>
           <PlusIcon />
-          New outlet type
+          Tipe outlet baru
         </Button>
       </div>
 
@@ -98,9 +98,9 @@ export function OutletTypesClient({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Outlet type</TableHead>
+                <TableHead>Tipe outlet</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="hidden lg:table-cell">Created</TableHead>
+                <TableHead className="hidden lg:table-cell">Dibuat</TableHead>
                 <TableHead className="w-10" />
               </TableRow>
             </TableHeader>
@@ -111,7 +111,7 @@ export function OutletTypesClient({
                     colSpan={4}
                     className="text-muted-foreground h-24 text-center"
                   >
-                    No outlet types match these filters.
+                    Tidak ada tipe outlet yang cocok dengan filter ini.
                   </TableCell>
                 </TableRow>
               ) : (
@@ -131,7 +131,7 @@ export function OutletTypesClient({
                     </TableCell>
                     <TableCell>
                       <Badge variant={outletType.isActive ? "secondary" : "outline"}>
-                        {outletType.isActive ? "Active" : "Inactive"}
+                        {outletType.isActive ? "Aktif" : "Tidak aktif"}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-muted-foreground hidden text-xs lg:table-cell">
@@ -141,13 +141,13 @@ export function OutletTypesClient({
                       <DropdownMenu>
                         <DropdownMenuTrigger className="hover:bg-muted inline-flex size-7 items-center justify-center rounded-lg transition-colors">
                           <MoreHorizontalIcon className="size-4" />
-                          <span className="sr-only">Actions</span>
+                          <span className="sr-only">Aksi</span>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem
                             onClick={() => void setOutletTypeId(outletType.id)}
                           >
-                            View & edit
+                            Lihat &amp; ubah
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -163,8 +163,8 @@ export function OutletTypesClient({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-muted-foreground text-xs">
           {filtered.length === 0
-            ? "No results"
-            : `Showing ${start + 1}–${Math.min(start + PAGE_SIZE, filtered.length)} of ${filtered.length}`}
+            ? "Tidak ada hasil"
+            : `Menampilkan ${start + 1}–${Math.min(start + PAGE_SIZE, filtered.length)} dari ${filtered.length}`}
         </p>
         <div className="flex items-center gap-2">
           <Button
@@ -174,7 +174,7 @@ export function OutletTypesClient({
             onClick={() => void setPage(currentPage - 1)}
           >
             <ChevronLeftIcon />
-            Previous
+            Sebelumnya
           </Button>
           <span className="text-muted-foreground text-xs tabular-nums">
             {currentPage} / {totalPages}
@@ -185,7 +185,7 @@ export function OutletTypesClient({
             disabled={currentPage >= totalPages}
             onClick={() => void setPage(currentPage + 1)}
           >
-            Next
+            Berikutnya
             <ChevronRightIcon />
           </Button>
         </div>

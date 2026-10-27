@@ -75,12 +75,12 @@ export async function requestPasswordReset(
     .limit(1);
 
   if (!user) {
-    return { fieldErrors: { email: "No account found with this email." } };
+    return { fieldErrors: { email: "Tidak ada akun dengan email ini." } };
   }
 
   if (!user.isActive) {
     return {
-      error: "This account is inactive. Please contact your administrator.",
+      error: "Akun ini tidak aktif. Silakan hubungi administrator Anda.",
     };
   }
 
@@ -97,7 +97,7 @@ export async function requestPasswordReset(
 
   if ((used?.value ?? 0) >= MONTHLY_LIMIT) {
     return {
-      error: `You have reached the limit of ${MONTHLY_LIMIT} password resets this month.`,
+      error: `Anda telah mencapai batas ${MONTHLY_LIMIT} reset kata sandi bulan ini.`,
     };
   }
 
@@ -133,7 +133,7 @@ export async function requestPasswordReset(
       .where(eq(passwordResetRequests.id, created.id));
 
     return {
-      error: "We couldn't send the email right now. Please try again later.",
+      error: "Kami tidak dapat mengirim email saat ini. Silakan coba lagi nanti.",
     };
   }
 
@@ -142,8 +142,8 @@ export async function requestPasswordReset(
 
 const ResetSchema = z.object({
   email: z.string().trim().toLowerCase().pipe(z.email()),
-  temporaryPassword: z.string().min(1, "Enter the temporary password."),
-  password: z.string().min(8, "Use at least 8 characters."),
+  temporaryPassword: z.string().min(1, "Masukkan kata sandi sementara."),
+  password: z.string().min(8, "Gunakan minimal 8 karakter."),
 });
 
 /**
@@ -173,7 +173,7 @@ export async function completePasswordReset(
     .limit(1);
 
   if (!user) {
-    return { error: "Invalid email or temporary password." };
+    return { error: "Email atau kata sandi sementara salah." };
   }
 
   const [request] = await db
@@ -191,19 +191,19 @@ export async function completePasswordReset(
 
   if (!request) {
     return {
-      error: "No active reset request. Request a new temporary password.",
+      error: "Tidak ada permintaan reset yang aktif. Minta kata sandi sementara baru.",
     };
   }
 
   if (request.expiresAt.getTime() < Date.now()) {
     return {
-      error: "This temporary password has expired. Request a new one.",
+      error: "Kata sandi sementara ini sudah kedaluwarsa. Minta yang baru.",
     };
   }
 
   const valid = await verifyPassword(temporaryPassword, request.tokenHash);
   if (!valid) {
-    return { error: "Invalid email or temporary password." };
+    return { error: "Email atau kata sandi sementara salah." };
   }
 
   const passwordHash = await hashPassword(password);

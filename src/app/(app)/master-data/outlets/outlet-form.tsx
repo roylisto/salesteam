@@ -97,27 +97,27 @@ export function OutletForm({
 
   const selectedWarehouse =
     warehouseId === ""
-      ? "No warehouse"
+      ? "Tanpa gudang"
       : warehouses.find((row) => String(row.id) === warehouseId)?.name;
   const selectedSales =
     salesId === ""
-      ? "Unassigned"
+      ? "Belum ditugaskan"
       : members.find((row) => String(row.id) === salesId)?.name;
   const selectedOutletType =
     outletTypeId === ""
-      ? "Not set"
+      ? "Belum diatur"
       : outletTypes.find((row) => String(row.id) === outletTypeId)?.name;
 
   function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      toast.error("Please choose an image file.");
+      toast.error("Pilih berkas gambar.");
       event.target.value = "";
       return;
     }
     if (file.size > 2 * 1024 * 1024) {
-      toast.error("Photo must be smaller than 2 MB.");
+      toast.error("Foto harus lebih kecil dari 2 MB.");
       event.target.value = "";
       return;
     }
@@ -147,7 +147,7 @@ export function OutletForm({
         : await createOutlet(undefined, formData);
 
       if (result?.ok) {
-        toast.success(outlet ? "Outlet saved." : "Outlet created.");
+        toast.success(outlet ? "Outlet tersimpan." : "Outlet dibuat.");
         setErrors({});
         if (outlet) {
           setImageRemoved(false);
@@ -173,13 +173,13 @@ export function OutletForm({
       const result = await deleteOutlet(formData);
 
       if (result?.ok) {
-        toast.success("Outlet deleted.");
+        toast.success("Outlet dihapus.");
         router.push(LIST_PATH);
         router.refresh();
         return;
       }
 
-      toast.error(result?.error ?? "Unable to delete this outlet.");
+      toast.error(result?.error ?? "Tidak dapat menghapus outlet ini.");
     });
   }
 
@@ -187,15 +187,15 @@ export function OutletForm({
     <form action={handleSubmit} className="space-y-3">
       <Card size="sm">
         <CardHeader>
-          <CardTitle>Outlet details</CardTitle>
+          <CardTitle>Detail outlet</CardTitle>
           <CardDescription>
-            Name and code identify the store; the type, warehouse and rep drive
-            routing and stock.
+            Nama dan kode mengidentifikasi toko; tipe, gudang, dan tenaga penjualan
+            menentukan rute dan stok.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5 sm:col-span-2">
-            <Label htmlFor="outlet-name">Name</Label>
+            <Label htmlFor="outlet-name">Nama</Label>
             <Input
               id="outlet-name"
               name="name"
@@ -207,18 +207,18 @@ export function OutletForm({
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="outlet-code">Code</Label>
+            <Label htmlFor="outlet-code">Kode</Label>
             <Input
               id="outlet-code"
               name="code"
               defaultValue={outlet?.code ?? ""}
-              placeholder="Optional"
+              placeholder="Opsional"
             />
             <FieldError message={errors.code} />
           </div>
 
           <div className="space-y-1.5">
-            <Label>Outlet type</Label>
+            <Label>Tipe outlet</Label>
             <Select
               value={outletTypeId}
               onValueChange={(value) => setOutletTypeId(value ?? "")}
@@ -227,7 +227,7 @@ export function OutletForm({
                 <SelectValue>{selectedOutletType}</SelectValue>
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Not set</SelectItem>
+                <SelectItem value="">Belum diatur</SelectItem>
                 {outletTypes.map((outletType) => (
                   <SelectItem key={outletType.id} value={String(outletType.id)}>
                     {outletType.name}
@@ -239,7 +239,7 @@ export function OutletForm({
           </div>
 
           <div className="space-y-1.5">
-            <Label>Warehouse</Label>
+            <Label>Gudang</Label>
             <Select
               value={warehouseId}
               onValueChange={(value) => setWarehouseId(value ?? "")}
@@ -248,7 +248,7 @@ export function OutletForm({
                 <SelectValue>{selectedWarehouse}</SelectValue>
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">No warehouse</SelectItem>
+                <SelectItem value="">Tanpa gudang</SelectItem>
                 {warehouses.map((warehouse) => (
                   <SelectItem key={warehouse.id} value={String(warehouse.id)}>
                     {warehouse.name}
@@ -260,7 +260,7 @@ export function OutletForm({
           </div>
 
           <div className="space-y-1.5">
-            <Label>Sales rep</Label>
+            <Label>Tenaga penjualan</Label>
             <Select
               value={salesId}
               onValueChange={(value) => setSalesId(value ?? "")}
@@ -269,7 +269,7 @@ export function OutletForm({
                 <SelectValue>{selectedSales}</SelectValue>
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Unassigned</SelectItem>
+                <SelectItem value="">Belum ditugaskan</SelectItem>
                 {members.map((member) => (
                   <SelectItem key={member.id} value={String(member.id)}>
                     {member.name}
@@ -282,9 +282,9 @@ export function OutletForm({
 
           <div className="flex items-center justify-between gap-4 rounded-lg border p-3 sm:col-span-2">
             <div className="space-y-0.5">
-              <Label htmlFor="outlet-active">Active</Label>
+              <Label htmlFor="outlet-active">Aktif</Label>
               <p className="text-muted-foreground text-xs">
-                Inactive outlets are hidden from new visits and orders.
+                Outlet tidak aktif disembunyikan dari kunjungan dan pesanan baru.
               </p>
             </div>
             <Switch
@@ -298,9 +298,9 @@ export function OutletForm({
 
       <Card size="sm">
         <CardHeader>
-          <CardTitle>Storefront photo</CardTitle>
+          <CardTitle>Foto toko</CardTitle>
           <CardDescription>
-            Optional storefront image used by reps during visits.
+            Gambar foto toko opsional yang digunakan tenaga penjualan saat kunjungan.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -309,7 +309,7 @@ export function OutletForm({
               {imagePreview ? (
                 <AvatarImage
                   src={imagePreview}
-                  alt="Outlet photo"
+                  alt="Foto outlet"
                   className="rounded-xl"
                 />
               ) : null}
@@ -327,7 +327,7 @@ export function OutletForm({
                 disabled={pending}
               >
                 <ImagePlusIcon />
-                Upload photo
+                Unggah foto
               </Button>
               {imagePreview ? (
                 <Button
@@ -338,7 +338,7 @@ export function OutletForm({
                   disabled={pending}
                 >
                   <Trash2Icon />
-                  Remove
+                  Hapus
                 </Button>
               ) : null}
               <input
@@ -352,7 +352,7 @@ export function OutletForm({
             </div>
           </div>
           <p className="text-muted-foreground mt-2 text-xs">
-            PNG, JPG or WEBP up to 2 MB.
+            PNG, JPG, atau WEBP maksimal 2 MB.
           </p>
           <FieldError message={errors.image} />
         </CardContent>
@@ -360,38 +360,38 @@ export function OutletForm({
 
       <Card size="sm">
         <CardHeader>
-          <CardTitle>Address</CardTitle>
+          <CardTitle>Alamat</CardTitle>
           <CardDescription>
-            Search or click the map to pick the exact coordinates.
+            Cari atau klik peta untuk memilih koordinat yang tepat.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5 sm:col-span-2">
-              <Label htmlFor="outlet-address">Address</Label>
+              <Label htmlFor="outlet-address">Alamat</Label>
               <Textarea
                 id="outlet-address"
                 name="address"
                 defaultValue={outlet?.address ?? ""}
                 rows={2}
-                placeholder="Street, number"
+                placeholder="Jalan, nomor"
               />
               <FieldError message={errors.address} />
             </div>
 
             <div className="space-y-1.5 sm:col-span-2">
-              <Label htmlFor="outlet-address-detail">Address detail</Label>
+              <Label htmlFor="outlet-address-detail">Detail alamat</Label>
               <Input
                 id="outlet-address-detail"
                 name="addressDetail"
                 defaultValue={outlet?.addressDetail ?? ""}
-                placeholder="Building, floor, landmark"
+                placeholder="Gedung, lantai, patokan"
               />
               <FieldError message={errors.addressDetail} />
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="outlet-village">Village / Kelurahan</Label>
+              <Label htmlFor="outlet-village">Kelurahan</Label>
               <Input
                 id="outlet-village"
                 name="village"
@@ -401,7 +401,7 @@ export function OutletForm({
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="outlet-district">District / Kecamatan</Label>
+              <Label htmlFor="outlet-district">Kecamatan</Label>
               <Input
                 id="outlet-district"
                 name="district"
@@ -411,7 +411,7 @@ export function OutletForm({
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="outlet-city">City / Regency</Label>
+              <Label htmlFor="outlet-city">Kota/Kabupaten</Label>
               <Input
                 id="outlet-city"
                 name="city"
@@ -421,7 +421,7 @@ export function OutletForm({
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="outlet-province">Province</Label>
+              <Label htmlFor="outlet-province">Provinsi</Label>
               <Input
                 id="outlet-province"
                 name="province"
@@ -431,7 +431,7 @@ export function OutletForm({
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="outlet-country">Country</Label>
+              <Label htmlFor="outlet-country">Negara</Label>
               <Input
                 id="outlet-country"
                 name="country"
@@ -441,7 +441,7 @@ export function OutletForm({
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="outlet-postal">Postal code</Label>
+              <Label htmlFor="outlet-postal">Kode pos</Label>
               <Input
                 id="outlet-postal"
                 name="postalCode"
@@ -451,7 +451,7 @@ export function OutletForm({
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="outlet-lat">Latitude</Label>
+              <Label htmlFor="outlet-lat">Lintang</Label>
               <Input
                 id="outlet-lat"
                 inputMode="decimal"
@@ -463,7 +463,7 @@ export function OutletForm({
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="outlet-lng">Longitude</Label>
+              <Label htmlFor="outlet-lng">Bujur</Label>
               <Input
                 id="outlet-lng"
                 inputMode="decimal"
@@ -490,12 +490,12 @@ export function OutletForm({
 
       <Card size="sm">
         <CardHeader>
-          <CardTitle>Owner &amp; contact</CardTitle>
-          <CardDescription>Who runs the store and how to reach them.</CardDescription>
+          <CardTitle>Pemilik &amp; kontak</CardTitle>
+          <CardDescription>Siapa yang mengelola toko dan bagaimana menghubunginya.</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">
-            <Label htmlFor="outlet-owner">Owner name</Label>
+            <Label htmlFor="outlet-owner">Nama pemilik</Label>
             <Input
               id="outlet-owner"
               name="ownerName"
@@ -505,7 +505,7 @@ export function OutletForm({
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="outlet-phone">Phone</Label>
+            <Label htmlFor="outlet-phone">Telepon</Label>
             <Input
               id="outlet-phone"
               name="phone"
@@ -526,7 +526,7 @@ export function OutletForm({
           </div>
 
           <div className="space-y-1.5 sm:col-span-2">
-            <Label htmlFor="outlet-owner-address">Owner address</Label>
+            <Label htmlFor="outlet-owner-address">Alamat pemilik</Label>
             <Textarea
               id="outlet-owner-address"
               name="ownerAddress"
@@ -540,14 +540,14 @@ export function OutletForm({
 
       <Card size="sm">
         <CardHeader>
-          <CardTitle>Legal identifiers</CardTitle>
+          <CardTitle>Identitas legal</CardTitle>
           <CardDescription>
-            Optional KYC details captured during onboarding.
+            Detail KYC opsional yang dicatat saat pendaftaran.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">
-            <Label htmlFor="outlet-national-id">National ID (KTP)</Label>
+            <Label htmlFor="outlet-national-id">NIK (KTP)</Label>
             <Input
               id="outlet-national-id"
               name="nationalId"
@@ -557,7 +557,7 @@ export function OutletForm({
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="outlet-family-card">Family card (KK)</Label>
+            <Label htmlFor="outlet-family-card">Kartu Keluarga (KK)</Label>
             <Input
               id="outlet-family-card"
               name="familyCardNumber"
@@ -567,7 +567,7 @@ export function OutletForm({
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="outlet-tax-id">Tax ID (NPWP)</Label>
+            <Label htmlFor="outlet-tax-id">NPWP</Label>
             <Input
               id="outlet-tax-id"
               name="taxId"
@@ -577,7 +577,7 @@ export function OutletForm({
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="outlet-business-id">Business ID (NIB)</Label>
+            <Label htmlFor="outlet-business-id">NIB</Label>
             <Input
               id="outlet-business-id"
               name="businessId"
@@ -587,13 +587,13 @@ export function OutletForm({
           </div>
 
           <div className="space-y-1.5 sm:col-span-2">
-            <Label htmlFor="outlet-notes">Notes</Label>
+            <Label htmlFor="outlet-notes">Catatan</Label>
             <Textarea
               id="outlet-notes"
               name="notes"
               defaultValue={outlet?.notes ?? ""}
               rows={3}
-              placeholder="Anything worth remembering on the visit"
+              placeholder="Hal yang perlu diingat saat kunjungan"
             />
             <FieldError message={errors.notes} />
           </div>
@@ -607,7 +607,7 @@ export function OutletForm({
           variant="ghost"
         >
           <ArrowLeftIcon />
-          Back
+          Kembali
         </Button>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -620,7 +620,7 @@ export function OutletForm({
                   onClick={() => setConfirming(false)}
                   disabled={pending}
                 >
-                  Cancel
+                  Batal
                 </Button>
                 <Button
                   type="button"
@@ -629,7 +629,7 @@ export function OutletForm({
                   disabled={pending}
                 >
                   {pending ? <Loader2Icon className="animate-spin" /> : null}
-                  Confirm delete
+                  Konfirmasi hapus
                 </Button>
               </>
             ) : (
@@ -640,14 +640,14 @@ export function OutletForm({
                 disabled={pending}
               >
                 <Trash2Icon />
-                Delete
+                Hapus
               </Button>
             )
           ) : null}
 
           <Button type="submit" disabled={pending}>
             {pending ? <Loader2Icon className="animate-spin" /> : null}
-            {isEdit ? "Save outlet" : "Create outlet"}
+            {isEdit ? "Simpan outlet" : "Buat outlet"}
           </Button>
         </div>
       </div>

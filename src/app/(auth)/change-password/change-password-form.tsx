@@ -48,29 +48,29 @@ export function ChangePasswordForm() {
   return (
     <Card className="ring-foreground/5 shadow-sm">
       <CardHeader>
-        <CardTitle className="text-lg">Choose a new password</CardTitle>
+        <CardTitle className="text-lg">Pilih kata sandi baru</CardTitle>
         <CardDescription>
-          This is your first sign-in. Set your own password to continue to the
-          dashboard.
+          Ini adalah pertama kali Anda masuk. Tetapkan kata sandi Anda sendiri
+          untuk melanjutkan ke dasbor.
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form action={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="currentPassword">Current password</Label>
+            <Label htmlFor="currentPassword">Kata sandi saat ini</Label>
             <Input
               id="currentPassword"
               name="currentPassword"
               type="password"
               autoComplete="current-password"
-              placeholder="The temporary password you signed in with"
+              placeholder="Kata sandi sementara yang Anda gunakan untuk masuk"
               required
             />
             <FieldError message={errors.currentPassword} />
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="password">New password</Label>
+            <Label htmlFor="password">Kata sandi baru</Label>
             <Input
               id="password"
               name="password"
@@ -83,7 +83,7 @@ export function ChangePasswordForm() {
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="confirmPassword">Confirm new password</Label>
+            <Label htmlFor="confirmPassword">Konfirmasi kata sandi baru</Label>
             <Input
               id="confirmPassword"
               name="confirmPassword"
@@ -105,25 +105,25 @@ export function ChangePasswordForm() {
             {pending ? (
               <>
                 <Loader2Icon className="animate-spin" />
-                Updating…
+                Memperbarui…
               </>
             ) : (
-              "Set new password"
+              "Simpan kata sandi baru"
             )}
           </Button>
         </form>
 
         <p className="text-muted-foreground mt-4 text-center text-sm">
-          Temporary password not working?{" "}
+          Kata sandi sementara tidak berfungsi?{" "}
           <button
             type="button"
             onClick={handleSignOut}
             disabled={signOutPending}
             className="text-foreground font-medium underline-offset-4 hover:underline"
           >
-            Sign out
+            Keluar
           </button>{" "}
-          and use the &ldquo;Forgot password?&rdquo; link on the sign-in page.
+          lalu gunakan tautan &ldquo;Lupa kata sandi?&rdquo; di halaman masuk.
         </p>
       </CardContent>
     </Card>

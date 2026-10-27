@@ -40,7 +40,7 @@ export async function login(
   });
 
   if (!parsed.success) {
-    return { error: "Enter a valid email and password." };
+    return { error: "Masukkan email dan kata sandi yang valid." };
   }
 
   const { email, password, next } = parsed.data;
@@ -52,12 +52,12 @@ export async function login(
     .limit(1);
 
   if (!user || !user.isActive) {
-    return { error: "Invalid email or password." };
+    return { error: "Email atau kata sandi salah." };
   }
 
   const valid = await verifyPassword(password, user.passwordHash);
   if (!valid) {
-    return { error: "Invalid email or password." };
+    return { error: "Email atau kata sandi salah." };
   }
 
   const headerList = await headers();
@@ -80,9 +80,9 @@ export async function logout(): Promise<void> {
 }
 
 const ChangePasswordSchema = z.object({
-  currentPassword: z.string().min(1, "Enter your current password."),
-  password: z.string().min(8, "Use at least 8 characters."),
-  confirmPassword: z.string().min(1, "Confirm your new password."),
+  currentPassword: z.string().min(1, "Masukkan kata sandi Anda saat ini."),
+  password: z.string().min(8, "Gunakan minimal 8 karakter."),
+  confirmPassword: z.string().min(1, "Konfirmasi kata sandi baru Anda."),
 });
 
 /**
@@ -96,7 +96,7 @@ export async function changePassword(
 ): Promise<AuthFormState> {
   const currentUser = await getCurrentUser();
   if (!currentUser) {
-    return { error: "Your session has expired. Please sign in again." };
+    return { error: "Sesi Anda telah berakhir. Silakan masuk kembali." };
   }
 
   const parsed = ChangePasswordSchema.safeParse({
@@ -109,7 +109,7 @@ export async function changePassword(
   const { currentPassword, password, confirmPassword } = parsed.data;
   if (password !== confirmPassword) {
     return {
-      fieldErrors: { confirmPassword: "Passwords do not match." },
+      fieldErrors: { confirmPassword: "Konfirmasi kata sandi tidak cocok." },
     };
   }
 
@@ -118,11 +118,11 @@ export async function changePassword(
     .from(users)
     .where(and(eq(users.id, currentUser.id), notDeleted(users)))
     .limit(1);
-  if (!user) return { error: "Your session has expired. Please sign in again." };
+  if (!user) return { error: "Sesi Anda telah berakhir. Silakan masuk kembali." };
 
   const valid = await verifyPassword(currentPassword, user.passwordHash);
   if (!valid) {
-    return { fieldErrors: { currentPassword: "Current password is incorrect." } };
+    return { fieldErrors: { currentPassword: "Kata sandi saat ini salah." } };
   }
 
   await db

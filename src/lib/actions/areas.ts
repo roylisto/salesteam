@@ -32,7 +32,7 @@ export async function createArea(
   formData: FormData,
 ): Promise<AreaFormState> {
   const manager = await requireAreaManager();
-  if (!manager) return { error: "You do not have permission to manage areas." };
+  if (!manager) return { error: "Anda tidak memiliki izin untuk mengelola area." };
 
   const parsed = AreaSchema.safeParse({
     name: formData.get("name"),
@@ -52,7 +52,7 @@ export async function createArea(
     .limit(1);
 
   if (existing) {
-    return { fieldErrors: { name: "An area with this name already exists." } };
+    return { fieldErrors: { name: "Area dengan nama ini sudah ada." } };
   }
 
   await db.insert(areaOffices).values({
@@ -69,10 +69,10 @@ export async function updateArea(
   formData: FormData,
 ): Promise<AreaFormState> {
   const manager = await requireAreaManager();
-  if (!manager) return { error: "You do not have permission to manage areas." };
+  if (!manager) return { error: "Anda tidak memiliki izin untuk mengelola area." };
 
   const id = Number(formData.get("id"));
-  if (!Number.isSafeInteger(id) || id <= 0) return { error: "Area not found." };
+  if (!Number.isSafeInteger(id) || id <= 0) return { error: "Area tidak ditemukan." };
 
   const parsed = AreaSchema.safeParse({
     name: formData.get("name"),
@@ -91,7 +91,7 @@ export async function updateArea(
     )
     .limit(1);
 
-  if (!area) return { error: "Area not found." };
+  if (!area) return { error: "Area tidak ditemukan." };
 
   const [duplicate] = await db
     .select({ id: areaOffices.id })
@@ -107,7 +107,7 @@ export async function updateArea(
     .limit(1);
 
   if (duplicate) {
-    return { fieldErrors: { name: "An area with this name already exists." } };
+    return { fieldErrors: { name: "Area dengan nama ini sudah ada." } };
   }
 
   await db
@@ -125,10 +125,10 @@ export async function updateArea(
 
 export async function deleteArea(formData: FormData): Promise<AreaFormState> {
   const manager = await requireAreaManager();
-  if (!manager) return { error: "You do not have permission to manage areas." };
+  if (!manager) return { error: "Anda tidak memiliki izin untuk mengelola area." };
 
   const id = Number(formData.get("id"));
-  if (!Number.isSafeInteger(id) || id <= 0) return { error: "Area not found." };
+  if (!Number.isSafeInteger(id) || id <= 0) return { error: "Area tidak ditemukan." };
 
   const [area] = await db
     .select()
@@ -142,7 +142,7 @@ export async function deleteArea(formData: FormData): Promise<AreaFormState> {
     )
     .limit(1);
 
-  if (!area) return { error: "Area not found." };
+  if (!area) return { error: "Area tidak ditemukan." };
 
   // Soft delete: an area may be referenced by assignments and warehouses.
   await db
