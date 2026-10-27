@@ -5,12 +5,15 @@ import {
   boolean,
   index,
   jsonb,
+  pgEnum,
   pgTable,
   text,
   timestamp,
   uniqueIndex,
   varchar,
 } from "drizzle-orm/pg-core";
+
+export const userTypeEnum = pgEnum("user_type", ["back_office", "sales"]);
 
 import { primaryId, timestamps } from "./_shared";
 import { organizations } from "./organizations";
@@ -67,6 +70,7 @@ export const users = pgTable(
     passwordHash: varchar("password_hash", { length: 255 }).notNull(),
     phone: varchar("phone", { length: 30 }),
     avatarUrl: text("avatar_url"),
+    userType: userTypeEnum("user_type").default("back_office").notNull(),
     isActive: boolean("is_active").default(true).notNull(),
     /**
      * True while the member is still using the system-generated password issued

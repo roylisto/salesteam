@@ -89,6 +89,33 @@ function useAllowedAreas(
   }, [areas, assignableAreas, members, reportsTo, actorIsAdmin]);
 }
 
+function UserTypeSelect({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: "back_office" | "sales";
+  onChange: (value: "back_office" | "sales") => void;
+  disabled?: boolean;
+}) {
+  const label = value === "sales" ? "Sales" : "Back Office";
+  return (
+    <Select
+      value={value}
+      onValueChange={(v) => onChange((v as "back_office" | "sales") ?? "back_office")}
+      disabled={disabled}
+    >
+      <SelectTrigger className="w-full">
+        <SelectValue placeholder="Pilih tipe pengguna">{label}</SelectValue>
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="back_office">Back Office</SelectItem>
+        <SelectItem value="sales">Sales</SelectItem>
+      </SelectContent>
+    </Select>
+  );
+}
+
 function RoleSelect({
   value,
   onChange,
@@ -102,7 +129,7 @@ function RoleSelect({
   actorIsAdmin: boolean;
   disabled?: boolean;
 }) {
-  const showAdminOption = actorIsAdmin || value === SYSTEM_ADMIN_ROLE_VALUE;
+  const showAdminOption = actorIsAdmin;
   const selectedName =
     value === SYSTEM_ADMIN_ROLE_VALUE
       ? "Admin (sistem)"
@@ -110,7 +137,7 @@ function RoleSelect({
   return (
     <Select value={value} onValueChange={(v) => onChange(v ?? "")} disabled={disabled}>
       <SelectTrigger className="w-full">
-        <SelectValue placeholder="Pilih peran">{selectedName}</SelectValue>
+        <SelectValue placeholder={selectedName ?? "Pilih peran"} />
       </SelectTrigger>
       <SelectContent>
         {showAdminOption ? (
@@ -297,6 +324,7 @@ export function CreateMemberDialog({
   const [roleId, setRoleId] = useState<string>(
     actorIsAdmin ? SYSTEM_ADMIN_ROLE_VALUE : "",
   );
+  const [userType, setUserType] = useState<"back_office" | "sales">("back_office");
   const [reportsTo, setReportsTo] = useState<string>("");
   const [areaIds, setAreaIds] = useState<number[]>([]);
   const [warehouseIds, setWarehouseIds] = useState<number[]>([]);
@@ -377,6 +405,7 @@ export function CreateMemberDialog({
 
   function handleSubmit(formData: FormData) {
     formData.set("roleId", roleId);
+    formData.set("userType", userType);
     formData.set("reportsTo", reportsTo);
     formData.delete("areaIds");
     for (const id of areaIds) formData.append("areaIds", String(id));
@@ -524,6 +553,11 @@ export function CreateMemberDialog({
             </div>
 
             <div className="space-y-1.5 sm:col-span-2">
+              <Label>Tipe pengguna</Label>
+              <UserTypeSelect value={userType} onChange={setUserType} />
+            </div>
+
+            <div className="space-y-1.5 sm:col-span-2">
               <Label>Peran</Label>
               <RoleSelect
                 value={roleId}
@@ -617,6 +651,9 @@ export function MemberDetailDialog({
         ? String(member.roleId)
         : "",
   );
+  const [userType, setUserType] = useState<"back_office" | "sales">(
+    member.userType ?? "back_office",
+  );
   const [reportsTo, setReportsTo] = useState(
     member.reportsTo ? String(member.reportsTo) : "",
   );
@@ -661,6 +698,7 @@ export function MemberDetailDialog({
   function handleProfile(formData: FormData) {
     formData.set("id", String(member.id));
     formData.set("roleId", roleId);
+    formData.set("userType", userType);
     formData.set("reportsTo", reportsTo);
     formData.delete("areaIds");
     for (const id of areaIds) formData.append("areaIds", String(id));
@@ -795,6 +833,15 @@ export function MemberDetailDialog({
                 defaultValue={member.code ?? ""}
               />
               <FieldError message={errors.code} />
+            </div>
+
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label>Tipe pengguna</Label>
+              <UserTypeSelect
+                value={userType}
+                onChange={setUserType}
+                disabled={member.isOrganizationOwner}
+              />
             </div>
 
             <div className="space-y-1.5 sm:col-span-2">

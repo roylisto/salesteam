@@ -24,6 +24,7 @@ export type MemberRow = {
   roleId: number | null;
   roleName: string | null;
   isAdmin: boolean;
+  userType: "back_office" | "sales";
   reportsTo: number | null;
   reportsToName: string | null;
   areaIds: number[];

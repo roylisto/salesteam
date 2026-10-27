@@ -72,6 +72,7 @@ export default async function TeamPage() {
           roleId: users.roleId,
           roleName: roles.name,
           isAdmin: users.isAdmin,
+          userType: users.userType,
           reportsTo: users.reportsTo,
           isActive: users.isActive,
           isOrganizationOwner: users.isOrganizationOwner,

@@ -47,6 +47,8 @@ const optionalText = z
   .optional()
   .transform((value) => (value && value.length > 0 ? value : null));
 
+const userTypeSchema = z.enum(["back_office", "sales"]).default("back_office");
+
 const CreateMemberSchema = z.object({
   name: z
     .string()
@@ -57,6 +59,7 @@ const CreateMemberSchema = z.object({
   username: optionalUsername,
   phone: z.string().trim().max(30).optional().transform((v) => (v && v.length > 0 ? v : null)),
   code: optionalText,
+  userType: userTypeSchema,
 });
 
 const UpdateMemberSchema = z.object({
@@ -70,6 +73,7 @@ const UpdateMemberSchema = z.object({
   username: optionalUsername,
   phone: z.string().trim().max(30).optional().transform((v) => (v && v.length > 0 ? v : null)),
   code: optionalText,
+  userType: userTypeSchema,
   isActive: z.enum(["true", "false"]).transform((value) => value === "true"),
 });
 
@@ -351,6 +355,7 @@ export async function createMember(
     username: formData.get("username") ?? "",
     phone: formData.get("phone") ?? undefined,
     code: formData.get("code") ?? undefined,
+    userType: formData.get("userType") ?? undefined,
   });
   if (!parsed.success) return { fieldErrors: toFieldErrors(parsed.error) };
 
@@ -449,7 +454,7 @@ export async function createMember(
     };
   }
 
-  const { name, email, username, phone, code } = parsed.data;
+  const { name, email, username, phone, code, userType } = parsed.data;
 
   const [taken] = await db
     .select({ id: users.id })
@@ -483,6 +488,7 @@ export async function createMember(
         username,
         code,
         phone,
+        userType,
         passwordHash,
         // First login is forced through the change-password flow.
         mustChangePassword: true,
@@ -521,6 +527,7 @@ export async function updateMember(
     username: formData.get("username") ?? "",
     phone: formData.get("phone") ?? undefined,
     code: formData.get("code") ?? undefined,
+    userType: formData.get("userType") ?? undefined,
     isActive: formData.get("isActive"),
   });
   if (!parsed.success) return { fieldErrors: toFieldErrors(parsed.error) };
@@ -551,7 +558,7 @@ export async function updateMember(
     return { fieldErrors: { warehouseIds: "Pilih gudang yang valid." } };
   }
 
-  const { id, name, email, username, phone, code } = parsed.data;
+  const { id, name, email, username, phone, code, userType } = parsed.data;
   const orgId = manager.organization.id;
 
   const [target] = await db
@@ -665,6 +672,7 @@ export async function updateMember(
         username,
         phone,
         code,
+        userType: protectedMember && target.isOrganizationOwner ? target.userType : userType,
         reportsTo: protectedMember && target.isOrganizationOwner ? target.reportsTo : reportsTo,
         roleId: protectedMember ? target.roleId : roleInput.roleId,
         isAdmin: protectedMember ? target.isAdmin : roleInput.isAdmin,
