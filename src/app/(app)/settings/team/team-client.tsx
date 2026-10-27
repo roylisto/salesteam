@@ -72,6 +72,13 @@ function StatusBadge({ member }: { member: MemberRow }) {
   );
 }
 
+function UserTypeBadge({ userType }: { userType: MemberRow["userType"] }) {
+  if (userType === "sales") {
+    return <Badge variant="outline">Sales</Badge>;
+  }
+  return <Badge variant="secondary">Back Office</Badge>;
+}
+
 function roleTabOf(member: MemberRow): string {
   if (member.isOrganizationOwner || member.isAdmin) return ADMIN_TAB;
   if (member.roleId === null) return UNASSIGNED_TAB;
@@ -172,9 +179,10 @@ function MemberTable({
           <TableHeader>
             <TableRow>
               <TableHead>Anggota</TableHead>
-              <TableHead className="hidden md:table-cell">Peran</TableHead>
-              <TableHead className="hidden lg:table-cell">Atasan</TableHead>
-              <TableHead className="hidden xl:table-cell">Area</TableHead>
+              <TableHead className="hidden md:table-cell">Tipe</TableHead>
+              <TableHead className="hidden lg:table-cell">Peran</TableHead>
+              <TableHead className="hidden xl:table-cell">Atasan</TableHead>
+              <TableHead className="hidden 2xl:table-cell">Area</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="w-10" />
             </TableRow>
@@ -195,16 +203,19 @@ function MemberTable({
                   </button>
                 </TableCell>
                 <TableCell className="hidden md:table-cell">
+                  <UserTypeBadge userType={member.userType} />
+                </TableCell>
+                <TableCell className="hidden lg:table-cell">
                   {member.roleName ?? (
                     <span className="text-muted-foreground">Belum ditugaskan</span>
                   )}
                 </TableCell>
-                <TableCell className="hidden lg:table-cell">
+                <TableCell className="hidden xl:table-cell">
                   {member.reportsToName ?? (
                     <span className="text-muted-foreground">—</span>
                   )}
                 </TableCell>
-                <TableCell className="hidden max-w-56 xl:table-cell">
+                <TableCell className="hidden max-w-56 2xl:table-cell">
                   {member.areaNames.length > 0 ? (
                     <span className="flex flex-wrap gap-1">
                       {member.areaNames.slice(0, 3).map((area) => (
