@@ -3,7 +3,7 @@
 > Handoff notes for AI agents doing "vibe coding" on this repo.
 > Read this first; it captures the project context, conventions, and what has
 > already been built so you can continue without re-discovering everything.
-> Last updated: 2026-10-27 (Team members can now be assigned **warehouses**, area-first: areas are picked first, then a per-area warehouse checklist — multiple areas + multiple warehouses per member, validated server-side via `user_warehouse_assignments`; DB TLS CA supplied as a PEM string in the `DB_SSL_CA` env var, read by `src/db/index.ts` + `drizzle.config.ts`; migrations applied to the Aiven dev DB; added `.env.example` + local `.env`, and un-ignored `.env.example` in `.gitignore`; earlier 2026-10-17: Admin role option hidden for non-admin actors in the team role dropdown; warehouse management, Profile page + admin-only password reset).
+> Last updated: 2026-10-27 (Reworked **Outlets** into full create/edit **pages** — `/master-data/outlets/new` + `/master-data/outlets/[id]` — with a much richer store profile (address parts, lat/lng picked on an **OpenStreetMap/Leaflet** map, owner & contact, legal/KYC ids, storefront photo upload), an **outlet type** dropdown backed by the new `outlet_types` master table/module (`/master-data/outlet-types`, permission `outlet_types`). Team members can also be assigned **warehouses** area-first via `user_warehouse_assignments`; DB TLS CA supplied as a PEM string in `DB_SSL_CA`, read by `src/db/index.ts` + `drizzle.config.ts`; migrations applied to the Aiven dev DB; added `.env.example` + local `.env`; earlier: Admin role option hidden for non-admin actors, warehouse management, Profile page + admin-only password reset).
 >
 > **⚠️ RULE: always update this file after making any change.** Whenever you add
 > a table, page, action, env var, dependency, migration, or change a convention,
@@ -126,6 +126,10 @@ src/app/
   (app)/dashboard               → dashboard
   (app)/master-data/areas       → area management
   (app)/master-data/warehouses  → warehouse management (per-area depots)
+  (app)/master-data/outlets     → outlet management (customer stores)
+  (app)/master-data/outlets/new      → create outlet (full-page form)
+  (app)/master-data/outlets/[id]     → edit outlet (full-page form)
+  (app)/master-data/outlet-types     → outlet type master data (sales channels)
   (app)/settings/organization   → org settings (logo upload, currency, tz)
   (app)/settings/team           → team hierarchy + members
   (app)/settings/roles          → user-defined roles & permissions
@@ -154,7 +158,7 @@ src/app/
 
 - Catalogue of module permission keys in
   [permissions.ts](file:///Users/roy/Projects/salesteam/src/lib/permissions.ts): `dashboard`, `products`,
-  `outlets`, `warehouses`, `warehouse_movements`, `sales_inventory`,
+  `outlets`, `outlet_types`, `warehouses`, `warehouse_movements`, `sales_inventory`,
   `sales_stock`, `orders`, `visits`, `finance`, `payments`, `areas`,
   `organization`, `team`, `roles`.
 - **Roles are user-defined per organization.** There are **no** seeded/default
@@ -314,7 +318,10 @@ Defined in `src/db/schema/*` and re-exported from `index.ts`.
   ip, userAgent, deletedAt), `password_reset_requests` (userId, tokenHash,
   expiresAt, usedAt, timestamps — backing the forgot-password flow + monthly limit).
 - **master-data.ts** — `area_offices`, `user_area_assignments`, `warehouses`,
-  `user_warehouse_assignments`, `products`, `outlets`, `warehouse_stocks`.
+  `user_warehouse_assignments`, `outlet_types` (per-org sales-channel master
+  data: name + isActive), `products`, `outlets` (references `outlet_type_id` →
+  `outlet_types`; optional `warehouse_id` + `sales_id`; address parts, lat/lng,
+  owner/contact, KYC ids, `image_url`), `warehouse_stocks`.
 - **inventory.ts** — `stock_movements`, `stock_movement_items`, `sales_stocks`,
   `sales_stock_items`, `sales_inventory`.
 - **orders.ts** — `orders`, `order_items`, `invoices`.
@@ -347,9 +354,15 @@ Defined in `src/db/schema/*` and re-exported from `index.ts`.
   (forced first-login password change). **Applied.**
 - `0005_user-warehouse-assignments.sql` — adds `user_warehouse_assignments`
   (member → warehouse, area-first). **Applied.**
-- All of `0000`–`0005` were applied to the Aiven dev database
+- `0006_far_ben_urich.sql` — adds the `outlet_types` table and rewires `outlets`
+  from the old free-text `outlet_type` column to `outlet_type_id` (FK →
+  `outlet_types`, `ON DELETE SET NULL`) with a partial unique index on
+  `(organization_id, name)`. **Applied.**
+- `0007_dry_randall.sql` — drops the legacy `outlets.outlet_type` varchar
+  column. **Applied.**
+- All of `0000`–`0007` were applied to the Aiven dev database
   (`pg-salesteam-dev-…aivencloud.com`, CA supplied via `DB_SSL_CA`) on
-  2026-10-27 — verified 27 tables in `public`.
+  2026-10-27 — verified 28 tables in `public`.
 
 ---
 
@@ -378,6 +391,23 @@ Defined in `src/db/schema/*` and re-exported from `index.ts`.
 - **Warehouse management** (`/master-data/warehouses`): CRUD (soft delete),
   each warehouse belongs to an area (an area can hold many), optional depot
   type, active flag, search + area filter. Gated by the `warehouses` permission.
+- **Outlet management** (`/master-data/outlets`): CRUD (soft delete) for
+  customer stores, using **full create/edit pages** (`/new`, `/[id]`) instead of
+  a dialog. Fields: name + per-org unique optional `code`, `status`
+  active/inactive, optional `warehouseId` + `salesId` (active member) +
+  `outletTypeId` (dropdown from `outlet_types`), storefront **photo upload to
+  S3**, address parts (address, addressDetail, village/district/city/province/
+  country/postalCode), **latitude/longitude picked on an OpenStreetMap (Leaflet)
+  map** (search via Nominatim + "my location"), owner/contact (ownerName,
+  ownerAddress, phone, email) and KYC/legal ids (nationalId, familyCardNumber,
+  taxId, businessId) + notes. List has search (name/code) + warehouse filter
+  (incl. "No warehouse") + status filter + pagination, and links into the pages.
+  Gated by the `outlets` permission. All queries scoped by org + soft-delete
+  aware; assignments validated to belong to the org.
+- **Outlet types** (`/master-data/outlet-types`): CRUD (soft delete) master data
+  for sales channels (Retail, Grosir, Horeca, …) — name + isActive, per-org
+  partial-unique name. Gated by the `outlet_types` permission. Feeds the outlet
+  form's type dropdown.
 - **Team** (`/settings/team`):
   - Tabs: **All**, **Hierarchy**, **Admin**, one tab per role, **Unassigned**.
   - **Hierarchy** tab: recursive indented diagram (member cards → direct reports).
@@ -406,14 +436,14 @@ Defined in `src/db/schema/*` and re-exported from `index.ts`.
 
 ### Not built yet (domain tables exist, no UI/actions)
 
-- Products, Outlets, Warehouse stock/movements.
+- Products, Warehouse stock/movements.
 - Sales inventory/stock transactions.
 - Orders, Invoices/Finance, Payment methods.
 - Routes, Visits (GPS check-in/out), Outlet assignment requests.
 - Scheduled tasks runner.
 
 The nav in `app-shell.tsx` only wires Dashboard, Area Management, Warehouses,
-Organization, Team, Roles & permissions today.
+Outlets, Organization, Team, Roles & permissions today.
 
 ---
 
@@ -445,6 +475,10 @@ src/lib/
     roles.ts                   create/update/delete role
     areas.ts                   create/update/delete area
     warehouses.ts              create/update/delete warehouse (area-scoped)
+    outlets.ts                 create/update/delete outlet (warehouse + rep +
+                               outlet-type assignment, per-org unique code,
+                               full address/geo/KYC fields, S3 photo upload)
+    outlet-types.ts            create/update/delete outlet type (per-org name)
     account.ts                 create/update/delete member (system-generated pw
                                + one credentials email), reset password
                                (Admin-only for other members)
@@ -458,6 +492,22 @@ src/app/(app)/master-data/warehouses/
   page.tsx                     warehouse list (joins area name)
   warehouses-client.tsx        search + area filter + paginated table
   warehouse-dialog.tsx         create/edit/delete dialog (area select)
+
+src/app/(app)/master-data/outlets/
+  page.tsx                     outlet list (joins warehouse + rep + type names)
+  outlets-client.tsx           search + warehouse/status filters + table (links)
+  new/page.tsx                 create outlet page (server: loads options)
+  [id]/page.tsx                edit outlet page (server: loads outlet + options)
+  outlet-form.tsx              shared full-page form (cards, photo, map, KYC)
+  location-picker.tsx          OpenStreetMap/Leaflet lat-lng picker (search)
+  data.ts                      loadFormOptions + loadOutletDetail helpers
+  types.ts                     OutletRow, OutletDetail, *Option types
+
+src/app/(app)/master-data/outlet-types/
+  page.tsx                     outlet type list (server component)
+  outlet-types-client.tsx      search + paginated table + dialog opener
+  outlet-type-dialog.tsx       create/edit/delete dialog (name + active)
+  types.ts                     OutletTypeRow
 
 src/components/
   app-shell.tsx                sidebar/header, permission-filtered nav
@@ -524,6 +574,20 @@ src/proxy.ts                   optimistic auth guard
 - **Never let an unhandled promise rejection reach the page.** Wrap outbound
   email sends in the action and return an error state; a throwing server action
   surfaces as a Next.js runtime error on the page.
+- **Leaflet is client-only.** `location-picker.tsx` imports `leaflet` lazily
+  inside a `useEffect` (never at module top-level) so SSR never touches
+  `window`. Leaflet's default marker images break under bundlers — use
+  `L.divIcon` for the pin. Coordinates are surfaced as strings and echoed into
+  the form via hidden state (not a real input).
+- **Don't write a ref during render** (`ref.current = x` at the top of a
+  component) — the `react-hooks/refs` lint rule errors. Mirror callbacks into a
+  ref inside a `useEffect` instead (see `location-picker.tsx`).
+- **Only one `<form>` per page.** The outlet form is a big `<form>`, so the
+  map picker's search box must **not** be its own `<form>` (nested forms →
+  hydration error). It uses a plain `<div>` + buttons and handles Enter via
+  `onKeyDown`. Never render a `<form>` inside another `<form>`.
+- **`Button render={<Link />}` also needs `nativeButton={false}`**, otherwise
+  Base UI logs "expected a native `<button>`" (see §8).
 - Git history so far: `64ff094 first commit` → setup, area mgmt, S3, org,
   admin lockdown, reporting line, soft delete.
 

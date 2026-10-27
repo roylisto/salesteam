@@ -43,6 +43,20 @@
       "when": 1793095673830,
       "tag": "0005_user-warehouse-assignments",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793098040236,
+      "tag": "0006_far_ben_urich",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793098054321,
+      "tag": "0007_dry_randall",
+      "breakpoints": true
     }
   ]
 }

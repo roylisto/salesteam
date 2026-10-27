@@ -1,0 +1,1 @@
+ALTER TABLE "outlets" DROP COLUMN "outlet_type";

@@ -116,6 +116,26 @@ export const userWarehouseAssignments = pgTable(
   ],
 );
 
+/** Outlet type / channel used to classify outlets (e.g. Retail, Grosir, Horeca). */
+export const outletTypes = pgTable(
+  "outlet_types",
+  {
+    id: primaryId(),
+    organizationId: bigint("organization_id", { mode: "number" })
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 150 }).notNull(),
+    isActive: boolean("is_active").default(true).notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex("outlet_types_organization_name_unique")
+      .on(table.organizationId, table.name)
+      .where(isNull(table.deletedAt)),
+    index("outlet_types_organization_idx").on(table.organizationId),
+  ],
+);
+
 /** Product catalogue. */
 export const products = pgTable(
   "products",
@@ -168,9 +188,12 @@ export const outlets = pgTable(
     salesId: bigint("sales_id", { mode: "number" }).references(() => users.id, {
       onDelete: "set null",
     }),
+    outletTypeId: bigint("outlet_type_id", { mode: "number" }).references(
+      () => outletTypes.id,
+      { onDelete: "set null" },
+    ),
     code: varchar("code", { length: 80 }),
     name: varchar("name", { length: 200 }),
-    outletType: varchar("outlet_type", { length: 50 }),
     status: varchar("status", { length: 50 }).default("active").notNull(),
     imageUrl: text("image_url"),
     notes: text("notes"),
@@ -201,6 +224,7 @@ export const outlets = pgTable(
     index("outlets_organization_idx").on(table.organizationId),
     index("outlets_warehouse_idx").on(table.warehouseId),
     index("outlets_sales_idx").on(table.salesId),
+    index("outlets_outlet_type_idx").on(table.outletTypeId),
     index("outlets_name_idx").on(table.name),
   ],
 );

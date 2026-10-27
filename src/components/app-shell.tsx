@@ -11,6 +11,8 @@ import {
   MapPinIcon,
   MenuIcon,
   ShieldCheckIcon,
+  StoreIcon,
+  TagsIcon,
   UserIcon,
   UsersIcon,
   WarehouseIcon,
@@ -75,6 +77,18 @@ const MASTER_NAV: NavItem[] = [
     href: "/master-data/warehouses",
     icon: WarehouseIcon,
     permission: "warehouses",
+  },
+  {
+    label: "Outlets",
+    href: "/master-data/outlets",
+    icon: StoreIcon,
+    permission: "outlets",
+  },
+  {
+    label: "Outlet Types",
+    href: "/master-data/outlet-types",
+    icon: TagsIcon,
+    permission: "outlet_types",
   },
 ];
 

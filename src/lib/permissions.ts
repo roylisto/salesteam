@@ -12,6 +12,7 @@ export const PERMISSIONS = [
   { key: "dashboard", label: "Dashboard" },
   { key: "products", label: "Products" },
   { key: "outlets", label: "Outlets" },
+  { key: "outlet_types", label: "Outlet Types" },
   { key: "warehouses", label: "Warehouses" },
   { key: "warehouse_movements", label: "Warehouse Movements" },
   { key: "sales_inventory", label: "Sales Inventory" },
