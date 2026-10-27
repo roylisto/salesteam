@@ -3,7 +3,7 @@
 > Handoff notes for AI agents doing "vibe coding" on this repo.
 > Read this first; it captures the project context, conventions, and what has
 > already been built so you can continue without re-discovering everything.
-> Last updated: 2026-10-17 (updated: Admin role option hidden for non-admin actors in the team role dropdown; earlier same day: warehouse management, Profile page + admin-only password reset).
+> Last updated: 2026-10-27 (DB TLS CA now supplied as a PEM string in the `DB_SSL_CA` env var, read by `src/db/index.ts` + `drizzle.config.ts`; migrations applied to the Aiven dev DB; added `.env.example` + local `.env`, and un-ignored `.env.example` in `.gitignore`; earlier 2026-10-17: Admin role option hidden for non-admin actors in the team role dropdown; warehouse management, Profile page + admin-only password reset).
 >
 > **⚠️ RULE: always update this file after making any change.** Whenever you add
 > a table, page, action, env var, dependency, migration, or change a convention,
@@ -69,10 +69,27 @@ npm run lint              # eslint
 
 ### Environment variables (`.env`)
 
+`.env.example` is committed (un-ignored via `!.env.example` in `.gitignore`);
+copy it to `.env` and fill in real values. `.env` itself stays gitignored.
+`storage.ts` **throws at startup** if any `S3_*` var is empty, so those must be
+set for the app to boot.
+
+**DB TLS:** the database is managed Postgres (Aiven) that requires a verified
+TLS connection. The project CA is supplied **as a PEM string in `DB_SSL_CA`**
+(no cert file in the repo). Both
+[db/index.ts](file:///Users/roy/Projects/salesteam/src/db/index.ts) and
+`drizzle.config.ts` read `DB_SSL_CA` (normalising literal `\n` → newline) and
+connect with `ssl: { ca, rejectUnauthorized: true }`. `DATABASE_URL` keeps
+`?sslmode=require`, but the explicit `ssl` option wins over the URL query
+(postgres-js resolves options before params). `drizzle.config.ts` therefore
+parses `DATABASE_URL` into discrete credentials (its `url` form can't take a
+CA).
+
 | Var                                         | Purpose                                              |
 | ------------------------------------------- | ---------------------------------------------------- |
 | `DATABASE_URL`                              | Postgres connection string (required)                |
 | `DB_POOL_SIZE`                              | Connection pool size (default 10)                    |
+| `DB_SSL_CA`                                 | DB CA cert (PEM) for TLS verification (required)     |
 | `NEXT_PUBLIC_APP_NAME`                      | Brand name (default "Salesteam")                     |
 | `SESSION_COOKIE_NAME`                       | Session cookie name (default `salesteam_session`)    |
 | `SESSION_TTL_DAYS`                          | Session lifetime (default 30)                        |
@@ -320,6 +337,9 @@ Defined in `src/db/schema/*` and re-exported from `index.ts`.
 - `0003_password-reset-requests.sql` — adds `password_reset_requests`. **Applied.**
 - `0004_users-must-change-password.sql` — adds `users.must_change_password`
   (forced first-login password change). **Applied.**
+- All of `0000`–`0004` were applied to the Aiven dev database
+  (`pg-salesteam-dev-…aivencloud.com`, CA supplied via `DB_SSL_CA`) on
+  2026-10-27 — verified 26 tables in `public`.
 
 ---
 
@@ -467,6 +487,9 @@ src/proxy.ts                   optimistic auth guard
 
 ## 9. Gotchas / lessons learned
 
+- **DB TLS CA lives in `DB_SSL_CA`** (a PEM string in `.env`), not a file. In
+  `.env` it's a quoted multi-line value; in single-line deploy envs use literal
+  `\n` escapes — the code normalises both.
 - **`isNull` is exported from `drizzle-orm`, not `drizzle-orm/pg-core`.**
   In schema files import it as `import { isNull } from "drizzle-orm";`.
 - When adding a `where`/`and` condition, make sure `and` is imported from
