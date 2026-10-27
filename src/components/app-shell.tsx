@@ -305,7 +305,7 @@ function CollapseButton({
         right: collapsed ? `${SIDEBAR_WIDTH_COLLAPSED}rem` : `${SIDEBAR_WIDTH_EXPANDED}rem`,
       }}
     >
-      {collapsed ? <ChevronRightIcon className="size-4" /> : <ChevronLeftIcon className="size-4" />}
+      {collapsed ? <ChevronRightIcon className="size-4" /> : <MenuIcon className="size-4" />}
     </Button>
   );
 }
@@ -380,7 +380,7 @@ export function AppShell({
             onClick={() => setCollapsed((c) => !c)}
             aria-label={collapsed ? "Perluas sidebar" : "Lipat sidebar"}
           >
-            {collapsed ? <ChevronRightIcon className="size-4" /> : <ChevronLeftIcon className="size-4" />}
+            {collapsed ? <ChevronRightIcon className="size-4" /> : <MenuIcon className="size-4" />}
           </Button>
 
           <div className="ml-auto flex items-center gap-2">
