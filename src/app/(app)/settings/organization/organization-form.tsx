@@ -27,18 +27,8 @@ function FieldError({ message }: { message?: string }) {
   return <p className="text-destructive text-xs">{message}</p>;
 }
 
-const CURRENCIES = ["IDR", "USD", "SGD", "MYR", "PHP", "THB", "VND", "AUD", "EUR", "GBP"];
-const TIMEZONES = [
-  "Asia/Jakarta",
-  "Asia/Makassar",
-  "Asia/Jayapura",
-  "Asia/Singapore",
-  "Asia/Kuala_Lumpur",
-  "Asia/Bangkok",
-  "Asia/Manila",
-  "Australia/Sydney",
-  "UTC",
-];
+const CURRENCIES = ["IDR"];
+const TIMEZONES = ["Asia/Jakarta", "Asia/Makassar", "Asia/Jayapura"];
 
 export function OrganizationForm({
   organization,
