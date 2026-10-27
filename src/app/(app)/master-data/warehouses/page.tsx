@@ -3,7 +3,7 @@ import { and, asc, eq } from "drizzle-orm";
 
 import { PageHeader } from "@/components/page-header";
 import { db } from "@/db";
-import { areaOffices, notDeleted, warehouses } from "@/db/schema";
+import { areaOffices, notDeleted, users, warehouses } from "@/db/schema";
 import { requirePermission } from "@/lib/auth";
 
 import { WarehousesClient } from "./warehouses-client";
@@ -31,11 +31,22 @@ export default async function WarehousesPage() {
       isActive: warehouses.isActive,
       areaOfficeId: warehouses.areaOfficeId,
       areaName: areaOffices.name,
+      picUserId: warehouses.picUserId,
+      picName: users.name,
+      address: warehouses.address,
+      province: warehouses.province,
+      regency: warehouses.regency,
+      district: warehouses.district,
+      village: warehouses.village,
+      postalCode: warehouses.postalCode,
+      latitude: warehouses.latitude,
+      longitude: warehouses.longitude,
       createdAt: warehouses.createdAt,
       updatedAt: warehouses.updatedAt,
     })
     .from(warehouses)
     .leftJoin(areaOffices, eq(warehouses.areaOfficeId, areaOffices.id))
+    .leftJoin(users, eq(warehouses.picUserId, users.id))
     .where(
       and(eq(warehouses.organizationId, organization.id), notDeleted(warehouses)),
     )
@@ -44,6 +55,8 @@ export default async function WarehousesPage() {
   const areas: AreaOption[] = areaRows;
   const warehousesList: WarehouseRow[] = warehouseRows.map((warehouse) => ({
     ...warehouse,
+    latitude: warehouse.latitude,
+    longitude: warehouse.longitude,
     createdAt: warehouse.createdAt.toISOString(),
     updatedAt: warehouse.updatedAt.toISOString(),
   }));
@@ -54,7 +67,10 @@ export default async function WarehousesPage() {
         title="Gudang"
         description="Depo yang menyimpan stok, dikelompokkan di bawah setiap area."
       />
-      <WarehousesClient warehouses={warehousesList} areas={areas} />
+      <WarehousesClient
+        warehouses={warehousesList}
+        areas={areas}
+      />
     </div>
   );
 }

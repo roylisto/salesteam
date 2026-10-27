@@ -33,6 +33,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { LocationPicker } from "@/components/location-picker";
 import {
   createOutlet,
   deleteOutlet,
@@ -40,7 +41,6 @@ import {
 } from "@/lib/actions/outlets";
 import { toFileSrc } from "@/lib/files";
 
-import { LocationPicker } from "./location-picker";
 import type {
   MemberOption,
   OutletDetail,

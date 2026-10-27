@@ -73,8 +73,19 @@ export const warehouses = pgTable(
       () => areaOffices.id,
       { onDelete: "set null" },
     ),
+    picUserId: bigint("pic_user_id", { mode: "number" }).references(() => users.id, {
+      onDelete: "set null",
+    }),
     name: varchar("name", { length: 150 }).notNull(),
     depotType: varchar("depot_type", { length: 50 }),
+    address: text("address"),
+    province: varchar("province", { length: 120 }),
+    regency: varchar("regency", { length: 120 }),
+    district: varchar("district", { length: 120 }),
+    village: varchar("village", { length: 120 }),
+    postalCode: varchar("postal_code", { length: 20 }),
+    latitude: doublePrecision("latitude"),
+    longitude: doublePrecision("longitude"),
     isActive: boolean("is_active").default(true).notNull(),
     ...timestamps,
   },
@@ -83,6 +94,7 @@ export const warehouses = pgTable(
       .on(table.organizationId, table.name)
       .where(isNull(table.deletedAt)),
     index("warehouses_area_office_idx").on(table.areaOfficeId),
+    index("warehouses_pic_user_idx").on(table.picUserId),
   ],
 );
 

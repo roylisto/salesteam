@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -9,7 +11,7 @@ import {
   SearchIcon,
   WarehouseIcon,
 } from "lucide-react";
-import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryState } from "nuqs";
+import { parseAsInteger, parseAsString, useQueryState } from "nuqs";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -36,7 +38,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-import { WarehouseDialog } from "./warehouse-dialog";
 import type { AreaOption, WarehouseRow } from "./types";
 
 const PAGE_SIZE = 10;
@@ -49,6 +50,7 @@ export function WarehousesClient({
   warehouses: WarehouseRow[];
   areas: AreaOption[];
 }) {
+  const router = useRouter();
   const [query, setQuery] = useQueryState(
     "q",
     parseAsString.withDefault("").withOptions({ history: "replace" }),
@@ -58,16 +60,6 @@ export function WarehousesClient({
     parseAsString.withDefault(ALL_AREAS).withOptions({ history: "replace" }),
   );
   const [page, setPage] = useQueryState("page", parseAsInteger.withDefault(1));
-  const [warehouseId, setWarehouseId] = useQueryState("warehouse", parseAsInteger);
-  const [action, setAction] = useQueryState(
-    "action",
-    parseAsStringLiteral(["create"] as const),
-  );
-
-  const selected = useMemo(
-    () => warehouses.find((warehouse) => warehouse.id === warehouseId) ?? null,
-    [warehouses, warehouseId],
-  );
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -126,10 +118,12 @@ export function WarehousesClient({
           </SelectContent>
         </Select>
 
-        <Button onClick={() => void setAction("create")}>
-          <PlusIcon />
-          Gudang baru
-        </Button>
+        <Link href="/master-data/warehouses/new">
+          <Button>
+            <PlusIcon />
+            Gudang baru
+          </Button>
+        </Link>
       </div>
 
       <div className="overflow-hidden rounded-xl ring-1 ring-foreground/10">
@@ -158,16 +152,15 @@ export function WarehousesClient({
                 visible.map((warehouse) => (
                   <TableRow key={warehouse.id}>
                     <TableCell>
-                      <button
-                        type="button"
-                        onClick={() => void setWarehouseId(warehouse.id)}
-                        className="flex items-center gap-2 text-left"
+                      <Link
+                        href={`/master-data/warehouses/${warehouse.id}`}
+                        className="flex items-center gap-2 text-left hover:underline"
                       >
                         <WarehouseIcon className="text-muted-foreground size-4 shrink-0" />
                         <span className="block text-sm font-medium">
                           {warehouse.name}
                         </span>
-                      </button>
+                      </Link>
                     </TableCell>
                     <TableCell className="text-muted-foreground text-sm">
                       {warehouse.areaName ?? "Belum ditugaskan"}
@@ -188,9 +181,9 @@ export function WarehousesClient({
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem
-                            onClick={() => void setWarehouseId(warehouse.id)}
+                            onClick={() => router.push(`/master-data/warehouses/${warehouse.id}`)}
                           >
-                            Lihat &amp; ubah
+                            Lihat & ubah
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -233,25 +226,6 @@ export function WarehousesClient({
           </Button>
         </div>
       </div>
-
-      <WarehouseDialog
-        warehouse={null}
-        areas={areas}
-        open={action === "create"}
-        onOpenChange={(open) => void setAction(open ? "create" : null)}
-      />
-
-      {selected ? (
-        <WarehouseDialog
-          key={selected.id}
-          warehouse={selected}
-          areas={areas}
-          open
-          onOpenChange={(open) => {
-            if (!open) void setWarehouseId(null);
-          }}
-        />
-      ) : null}
     </div>
   );
 }

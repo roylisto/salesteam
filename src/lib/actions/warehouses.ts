@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { db } from "@/db";
-import { areaOffices, notDeleted, warehouses } from "@/db/schema";
+import { areaOffices, notDeleted, users, warehouses } from "@/db/schema";
 import { can, getCurrentUser } from "@/lib/auth";
 import { toFieldErrors } from "@/lib/validation";
 
@@ -30,19 +30,81 @@ const WarehouseSchema = z.object({
     .number()
     .int()
     .positive("Pilih area untuk gudang ini."),
+  picUserId: z.coerce
+    .number()
+    .int()
+    .positive("Pilih PIC penanggung jawab.")
+    .optional()
+    .nullable()
+    .transform((value) => (value && value > 0 ? value : null)),
   depotType: z
     .string()
     .trim()
     .max(50)
     .optional()
     .transform((value) => (value ? value : null)),
+  address: z
+    .string()
+    .trim()
+    .max(500)
+    .optional()
+    .transform((value) => (value ? value : null)),
+  province: z
+    .string()
+    .trim()
+    .max(120)
+    .optional()
+    .transform((value) => (value ? value : null)),
+  regency: z
+    .string()
+    .trim()
+    .max(120)
+    .optional()
+    .transform((value) => (value ? value : null)),
+  district: z
+    .string()
+    .trim()
+    .max(120)
+    .optional()
+    .transform((value) => (value ? value : null)),
+  village: z
+    .string()
+    .trim()
+    .max(120)
+    .optional()
+    .transform((value) => (value ? value : null)),
+  postalCode: z
+    .string()
+    .trim()
+    .max(20)
+    .optional()
+    .transform((value) => (value ? value : null)),
+  latitude: z.coerce
+    .number()
+    .optional()
+    .nullable()
+    .transform((value) => (value === null || Number.isNaN(value) ? null : value)),
+  longitude: z.coerce
+    .number()
+    .optional()
+    .nullable()
+    .transform((value) => (value === null || Number.isNaN(value) ? null : value)),
 });
 
 function readForm(formData: FormData) {
   return WarehouseSchema.safeParse({
     name: formData.get("name"),
     areaOfficeId: formData.get("areaOfficeId"),
+    picUserId: formData.get("picUserId"),
     depotType: formData.get("depotType"),
+    address: formData.get("address"),
+    province: formData.get("province"),
+    regency: formData.get("regency"),
+    district: formData.get("district"),
+    village: formData.get("village"),
+    postalCode: formData.get("postalCode"),
+    latitude: formData.get("latitude"),
+    longitude: formData.get("longitude"),
   });
 }
 
@@ -76,6 +138,24 @@ export async function createWarehouse(
     return { fieldErrors: { areaOfficeId: "Pilih area yang valid." } };
   }
 
+  if (parsed.data.picUserId) {
+    const [picUser] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(
+        and(
+          eq(users.id, parsed.data.picUserId),
+          eq(users.organizationId, manager.organization.id),
+          eq(users.userType, "back_office"),
+          notDeleted(users),
+        ),
+      )
+      .limit(1);
+    if (!picUser) {
+      return { fieldErrors: { picUserId: "Pilih PIC Back Office yang valid." } };
+    }
+  }
+
   const [existing] = await db
     .select({ id: warehouses.id })
     .from(warehouses)
@@ -95,8 +175,17 @@ export async function createWarehouse(
   await db.insert(warehouses).values({
     organizationId: manager.organization.id,
     areaOfficeId: parsed.data.areaOfficeId,
+    picUserId: parsed.data.picUserId,
     name: parsed.data.name,
     depotType: parsed.data.depotType,
+    address: parsed.data.address,
+    province: parsed.data.province,
+    regency: parsed.data.regency,
+    district: parsed.data.district,
+    village: parsed.data.village,
+    postalCode: parsed.data.postalCode,
+    latitude: parsed.data.latitude,
+    longitude: parsed.data.longitude,
     isActive: formData.get("isActive") !== "false",
   });
 
@@ -136,6 +225,24 @@ export async function updateWarehouse(
     return { fieldErrors: { areaOfficeId: "Pilih area yang valid." } };
   }
 
+  if (parsed.data.picUserId) {
+    const [picUser] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(
+        and(
+          eq(users.id, parsed.data.picUserId),
+          eq(users.organizationId, manager.organization.id),
+          eq(users.userType, "back_office"),
+          notDeleted(users),
+        ),
+      )
+      .limit(1);
+    if (!picUser) {
+      return { fieldErrors: { picUserId: "Pilih PIC Back Office yang valid." } };
+    }
+  }
+
   const [duplicate] = await db
     .select({ id: warehouses.id })
     .from(warehouses)
@@ -157,8 +264,17 @@ export async function updateWarehouse(
     .update(warehouses)
     .set({
       areaOfficeId: parsed.data.areaOfficeId,
+      picUserId: parsed.data.picUserId,
       name: parsed.data.name,
       depotType: parsed.data.depotType,
+      address: parsed.data.address,
+      province: parsed.data.province,
+      regency: parsed.data.regency,
+      district: parsed.data.district,
+      village: parsed.data.village,
+      postalCode: parsed.data.postalCode,
+      latitude: parsed.data.latitude,
+      longitude: parsed.data.longitude,
       isActive: formData.get("isActive") !== "false",
     })
     .where(
