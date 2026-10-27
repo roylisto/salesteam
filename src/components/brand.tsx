@@ -1,4 +1,7 @@
+"use client";
+
 import { toFileSrc } from "@/lib/files";
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 
 // NOTE: plain <img> on purpose. The logo is served from the private bucket
@@ -8,13 +11,23 @@ export function Brand({
   className,
   name,
   logoUrl,
+  collapsed = false,
 }: {
   className?: string;
   name?: string;
   logoUrl?: string | null;
+  collapsed?: boolean;
 }) {
   const label = name ?? "Salesteam";
   const logoSrc = toFileSrc(logoUrl ?? null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+  }, []);
+
+  const displayName = mounted && collapsed ? "" : label;
 
   return (
     <div className={cn("flex items-center gap-2.5", className)}>
@@ -23,7 +36,7 @@ export function Brand({
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={logoSrc}
-            alt={`Logo ${label}`}
+            alt={`Logo ${displayName || label}`}
             className="size-full object-cover"
           />
         </span>
@@ -33,7 +46,7 @@ export function Brand({
         </span>
       )}
       <span className="font-heading truncate text-[0.95rem] font-semibold tracking-tight">
-        {label}
+        {displayName}
       </span>
     </div>
   );

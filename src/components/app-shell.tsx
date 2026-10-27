@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import {
   Building2Icon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
   ChevronsUpDownIcon,
   LayoutDashboardIcon,
   LogOutIcon,
@@ -30,6 +32,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
 import {
   Sheet,
   SheetContent,
@@ -48,6 +51,9 @@ export type ShellUser = {
   organizationLogoUrl: string | null;
   roleName: string | null;
 };
+
+const SIDEBAR_WIDTH_EXPANDED = 16; // rem (w-64)
+const SIDEBAR_WIDTH_COLLAPSED = 4; // rem (w-16)
 
 type NavItem = {
   label: string;
@@ -125,9 +131,11 @@ function initials(name: string): string {
 function NavLinks({
   items,
   onNavigate,
+  collapsed = false,
 }: {
   items: NavItem[];
   onNavigate?: () => void;
+  collapsed?: boolean;
 }) {
   const pathname = usePathname();
 
@@ -146,13 +154,15 @@ function NavLinks({
             aria-current={active ? "page" : undefined}
             className={cn(
               "flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm font-medium transition-colors",
+              collapsed ? "justify-center px-2" : "",
               active
                 ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-sm"
                 : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
             )}
+            title={collapsed ? item.label : undefined}
           >
             <Icon className="size-4 shrink-0" />
-            {item.label}
+            {!collapsed && <span className="truncate">{item.label}</span>}
           </Link>
         );
       })}
@@ -164,10 +174,12 @@ function SidebarContent({
   user,
   permissions,
   onNavigate,
+  collapsed = false,
 }: {
   user: ShellUser;
   permissions: string[];
   onNavigate?: () => void;
+  collapsed?: boolean;
 }) {
   const primary = PRIMARY_NAV.filter((item) =>
     permissions.includes(item.permission),
@@ -180,33 +192,38 @@ function SidebarContent({
   );
 
   return (
-    <div className="text-sidebar-foreground flex h-full flex-col gap-6 overflow-y-auto p-3">
+    <div className={cn("text-sidebar-foreground flex h-full flex-col gap-6 overflow-y-auto p-3", collapsed && "px-2")}>
       <Brand
         className="px-1.5 pt-1.5"
         name={user.organizationName}
         logoUrl={user.organizationLogoUrl}
+        collapsed={collapsed}
       />
 
       <div className="flex-1 space-y-6">
         {primary.length > 0 ? (
-          <NavLinks items={primary} onNavigate={onNavigate} />
+          <NavLinks items={primary} onNavigate={onNavigate} collapsed={collapsed} />
         ) : null}
 
         {master.length > 0 ? (
           <div className="space-y-1">
-            <p className="text-sidebar-foreground/50 px-2.5 text-xs font-medium">
-              Data Induk
-            </p>
-            <NavLinks items={master} onNavigate={onNavigate} />
+            {!collapsed && (
+              <p className="text-sidebar-foreground/50 px-2.5 text-xs font-medium">
+                Data Induk
+              </p>
+            )}
+            <NavLinks items={master} onNavigate={onNavigate} collapsed={collapsed} />
           </div>
         ) : null}
 
         {settings.length > 0 ? (
           <div className="space-y-1">
-            <p className="text-sidebar-foreground/50 px-2.5 text-xs font-medium">
-              Pengaturan
-            </p>
-            <NavLinks items={settings} onNavigate={onNavigate} />
+            {!collapsed && (
+              <p className="text-sidebar-foreground/50 px-2.5 text-xs font-medium">
+                Pengaturan
+              </p>
+            )}
+            <NavLinks items={settings} onNavigate={onNavigate} collapsed={collapsed} />
           </div>
         ) : null}
       </div>
@@ -270,6 +287,29 @@ function UserMenu({ user }: { user: ShellUser }) {
   );
 }
 
+function CollapseButton({
+  collapsed,
+  onClick,
+}: {
+  collapsed: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      className="absolute right-0 top-12 -translate-x-1/2 lg:block hidden z-10"
+      onClick={onClick}
+      aria-label={collapsed ? "Perluas sidebar" : "Lipat sidebar"}
+      style={{
+        right: collapsed ? `${SIDEBAR_WIDTH_COLLAPSED}rem` : `${SIDEBAR_WIDTH_EXPANDED}rem`,
+      }}
+    >
+      {collapsed ? <ChevronRightIcon className="size-4" /> : <ChevronLeftIcon className="size-4" />}
+    </Button>
+  );
+}
+
 export function AppShell({
   user,
   permissions,
@@ -280,11 +320,35 @@ export function AppShell({
   children: React.ReactNode;
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+
+  useEffect(() => {
+    const saved = localStorage.getItem("sidebarCollapsed");
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (saved === "true") setCollapsed(true);
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("sidebarCollapsed", String(collapsed));
+  }, [collapsed]);
+
+  const sidebarWidth = collapsed ? SIDEBAR_WIDTH_COLLAPSED : SIDEBAR_WIDTH_EXPANDED;
 
   return (
-    <div className="lg:grid lg:min-h-svh lg:grid-cols-[15rem_1fr]">
-      <aside className="bg-sidebar text-sidebar-foreground border-sidebar-border sticky top-0 hidden h-svh border-r lg:block">
-        <SidebarContent user={user} permissions={permissions} />
+    <div
+      className="lg:grid lg:min-h-svh transition-all duration-200"
+      style={{
+        gridTemplateColumns: `${sidebarWidth}rem 1fr`,
+      } as React.CSSProperties}
+    >
+      <aside
+        className={cn(
+          "bg-sidebar text-sidebar-foreground border-sidebar-border sticky top-0 hidden h-svh border-r lg:block relative transition-all duration-200",
+        )}
+        style={{ width: `${sidebarWidth}rem` }}
+      >
+        <SidebarContent user={user} permissions={permissions} collapsed={collapsed} />
+        <CollapseButton collapsed={collapsed} onClick={() => setCollapsed((c) => !c)} />
       </aside>
 
       <div className="flex min-h-svh flex-col">
@@ -309,7 +373,17 @@ export function AppShell({
             </SheetContent>
           </Sheet>
 
-          <div className="ml-auto">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="lg:flex hidden"
+            onClick={() => setCollapsed((c) => !c)}
+            aria-label={collapsed ? "Perluas sidebar" : "Lipat sidebar"}
+          >
+            {collapsed ? <ChevronRightIcon className="size-4" /> : <ChevronLeftIcon className="size-4" />}
+          </Button>
+
+          <div className="ml-auto flex items-center gap-2">
             <UserMenu user={user} />
           </div>
         </header>

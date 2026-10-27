@@ -6,7 +6,7 @@
 > Last updated: 2026-10-27 (**Localised the whole UI to Bahasa Indonesia** — all
 > user-facing copy, toasts, `metadata`, server-action/Zod messages and emails are
 > now Indonesian, with `<html lang="id">`; code, keys, DB values and comments stay
-> English. Previously: reworked **Outlets** into full create/edit **pages** — `/master-data/outlets/new` + `/master-data/outlets/[id]` — with a much richer store profile (address parts, lat/lng picked on an **OpenStreetMap/Leaflet** map, owner & contact, legal/KYC ids, storefront photo upload), an **outlet type** dropdown backed by the new `outlet_types` master table/module (`/master-data/outlet-types`, permission `outlet_types`). Team members can also be assigned **warehouses** area-first via `user_warehouse_assignments`; DB TLS CA supplied as a PEM string in `DB_SSL_CA`, read by `src/db/index.ts` + `drizzle.config.ts`; migrations applied to the Aiven dev DB; added `.env.example` + local `.env`; earlier: Admin role option hidden for non-admin actors, warehouse management, Profile page + admin-only password reset).
+> English. Previously: reworked **Warehouses** into full create/edit **pages** — `/master-data/warehouses/new` + `/master-data/warehouses/[id]` — with address parts, lat/lng picked on an **OpenStreetMap/Leaflet** map, PIC dropdown (Back Office users only), wilayah.id cascading dropdowns (province→regency→district→village), postal code; made the **sidebar collapsible** (persisted in localStorage) showing icons only when collapsed; extracted **LocationPicker** as a shared component (`src/components/location-picker.tsx`) used by both Outlets and Warehouses. Earlier: reworked **Outlets** into full pages, **outlet types** master table/module, Team members assigned **warehouses** area-first, DB TLS CA as PEM string in `DB_SSL_CA`, migrations applied to Aiven dev DB, `.env.example` + local `.env`; Admin role option hidden for non-admin actors, Profile page + admin-only password reset).
 >
 > **⚠️ RULE: always update this file after making any change.** Whenever you add
 > a table, page, action, env var, dependency, migration, or change a convention,
@@ -128,7 +128,9 @@ src/app/
   (app)/layout.tsx              → requires user, renders <AppShell>
   (app)/dashboard               → dashboard
   (app)/master-data/areas       → area management
-  (app)/master-data/warehouses  → warehouse management (per-area depots)
+  (app)/master-data/warehouses       → warehouse list
+  (app)/master-data/warehouses/new   → create warehouse (full-page form)
+  (app)/master-data/warehouses/[id]  → edit warehouse (full-page form)
   (app)/master-data/outlets     → outlet management (customer stores)
   (app)/master-data/outlets/new      → create outlet (full-page form)
   (app)/master-data/outlets/[id]     → edit outlet (full-page form)
@@ -149,7 +151,10 @@ src/app/
   tokens (see §4.10), giving it a solid deep-indigo surface with light content;
   nav links use `text-sidebar-foreground`, `hover:bg-sidebar-accent` and
   `bg-sidebar-primary` for the active item. The mobile sheet reuses the same
-  tokens so it matches the desktop rail.
+  tokens so it matches the desktop rail. **Sidebar is collapsible** (toggle button
+  in header, state persisted in `localStorage.sidebarCollapsed`): collapsed
+  width is `w-16` showing icons only with tooltip labels; expanded width is
+  `w-64` showing full labels. Smooth 200ms transition.
 
 ### 4.2 Auth & sessions
 
@@ -384,7 +389,13 @@ Defined in `src/db/schema/*` and re-exported from `index.ts`.
 - `0008_keen_redwing.sql` — adds `users.username` (varchar(50), nullable) plus
   the partial unique index `users_username_unique` (global — usernames are
   unique across all tenants because login is global). **Applied.**
-- All of `0000`–`0008` were applied to the Aiven dev database
+- `0009_richard_goldstein.sql` — adds `users.user_type` enum (`back_office`,
+  `sales`, default `back_office`) for team member type separation. **Applied.**
+- `0010_public_the_professor.sql` — adds warehouse detail columns:
+  `pic_user_id` (FK → users, set null), `address`, `province`, `regency`,
+  `district`, `village`, `postal_code`, `latitude` (double precision),
+  `longitude` (double precision); plus `warehouses_pic_user_idx`. **Applied.**
+- All of `0000`–`0010` were applied to the Aiven dev database
   (`pg-salesteam-dev-…aivencloud.com`, CA supplied via `DB_SSL_CA`) on
   2026-10-27 — verified 28 tables in `public`.
 
@@ -420,9 +431,15 @@ Defined in `src/db/schema/*` and re-exported from `index.ts`.
   timezone, logo upload to S3 (with old-logo cleanup), private-file serving via
   `/api/files`.
 - **Area management** (`/master-data/areas`): CRUD (soft delete).
-- **Warehouse management** (`/master-data/warehouses`): CRUD (soft delete),
-  each warehouse belongs to an area (an area can hold many), optional depot
-  type, active flag, search + area filter. Gated by the `warehouses` permission.
+- **Warehouse management** (`/master-data/warehouses`): **full create/edit pages**
+  (`/new`, `/[id]`) instead of a dialog. Fields: name, depot type, active flag,
+  area (dropdown), **PIC** (dropdown of Back Office users only), **address parts**
+  (address, province/regency/district/village cascading dropdowns from
+  `api.kodewilayah.web.id`, postal code), **latitude/longitude picked on an
+  OpenStreetMap (Leaflet) map** (search via Nominatim + "my location" + click/drag
+  pin). List has search (name) + area filter + pagination. Gated by the
+  `warehouses` permission. All queries scoped by org + soft-delete aware;
+  assignments validated to belong to the org.
 - **Outlet management** (`/master-data/outlets`): CRUD (soft delete) for
   customer stores, using **full create/edit pages** (`/new`, `/[id]`) instead of
   a dialog. Fields: name + per-org unique optional `code`, `status`
@@ -523,7 +540,11 @@ src/app/(app)/profile/
 src/app/(app)/master-data/warehouses/
   page.tsx                     warehouse list (joins area name)
   warehouses-client.tsx        search + area filter + paginated table
-  warehouse-dialog.tsx         create/edit/delete dialog (area select)
+  new/page.tsx                 create warehouse page (server: loads options)
+  [id]/page.tsx                edit warehouse page (server: loads warehouse + options)
+  warehouse-form.tsx           shared full-page form (cards, PIC, wilayah, map)
+  data.ts                      loadFormOptions + loadWarehouseDetail helpers
+  types.ts                     WarehouseRow, WarehouseDetail, *Option types
 
 src/app/(app)/master-data/outlets/
   page.tsx                     outlet list (joins warehouse + rep + type names)
@@ -544,6 +565,7 @@ src/app/(app)/master-data/outlet-types/
 src/components/
   app-shell.tsx                sidebar/header, permission-filtered nav
   page-header.tsx, brand.tsx
+  location-picker.tsx          shared OpenStreetMap/Leaflet lat-lng picker (used by Outlets & Warehouses)
   ui/*                         shadcn/ui primitives (base-ui + radix)
 
 src/proxy.ts                   optimistic auth guard
@@ -620,6 +642,11 @@ src/proxy.ts                   optimistic auth guard
   `window`. Leaflet's default marker images break under bundlers — use
   `L.divIcon` for the pin. Coordinates are surfaced as strings and echoed into
   the form via hidden state (not a real input).
+- **Collapsible sidebar**: state is read from `localStorage` on mount (with
+  `typeof window` guard to avoid SSR mismatch) and written on change. The
+  `SidebarContent` component receives `collapsed` prop and conditionally hides
+  labels + shortens section headers; `NavLinks` uses `justify-center` +
+  `title` tooltip when collapsed.
 - **Don't write a ref during render** (`ref.current = x` at the top of a
   component) — the `react-hooks/refs` lint rule errors. Mirror callbacks into a
   ref inside a `useEffect` instead (see `location-picker.tsx`).
