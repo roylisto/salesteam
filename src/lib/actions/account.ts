@@ -18,7 +18,7 @@ import { can, getCurrentUser, isAdmin } from "@/lib/auth";
 import { sendMemberCredentialsEmail } from "@/lib/mailer";
 import { generateTemporaryPassword, hashPassword } from "@/lib/password";
 import { SYSTEM_ADMIN_ROLE_VALUE } from "@/lib/permissions";
-import { toFieldErrors } from "@/lib/validation";
+import { toFieldErrors, optionalUsername } from "@/lib/validation";
 
 export type AccountFormState = {
   ok?: boolean;
@@ -54,6 +54,7 @@ const CreateMemberSchema = z.object({
     .min(2, "Gunakan minimal 2 karakter.")
     .max(150, "Maksimal 150 karakter."),
   email: z.string().trim().toLowerCase().pipe(z.email()),
+  username: optionalUsername,
   phone: z.string().trim().max(30).optional().transform((v) => (v && v.length > 0 ? v : null)),
   code: optionalText,
 });
@@ -66,6 +67,7 @@ const UpdateMemberSchema = z.object({
     .min(2, "Gunakan minimal 2 karakter.")
     .max(150, "Maksimal 150 karakter."),
   email: z.string().trim().toLowerCase().pipe(z.email()),
+  username: optionalUsername,
   phone: z.string().trim().max(30).optional().transform((v) => (v && v.length > 0 ? v : null)),
   code: optionalText,
   isActive: z.enum(["true", "false"]).transform((value) => value === "true"),
@@ -144,6 +146,25 @@ async function assertCodeAvailable(
     eq(users.code, code),
     notDeleted(users),
   ];
+  if (excludeUserId) conditions.push(ne(users.id, excludeUserId));
+
+  const [existing] = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(and(...conditions))
+    .limit(1);
+
+  return !existing;
+}
+
+/** Usernames are unique across all tenants because login is global. */
+async function assertUsernameAvailable(
+  username: string | null,
+  excludeUserId?: number,
+) {
+  if (!username) return true;
+
+  const conditions = [eq(users.username, username), notDeleted(users)];
   if (excludeUserId) conditions.push(ne(users.id, excludeUserId));
 
   const [existing] = await db
@@ -327,6 +348,7 @@ export async function createMember(
   const parsed = CreateMemberSchema.safeParse({
     name: formData.get("name"),
     email: formData.get("email"),
+    username: formData.get("username") ?? "",
     phone: formData.get("phone") ?? undefined,
     code: formData.get("code") ?? undefined,
   });
@@ -427,7 +449,7 @@ export async function createMember(
     };
   }
 
-  const { name, email, phone, code } = parsed.data;
+  const { name, email, username, phone, code } = parsed.data;
 
   const [taken] = await db
     .select({ id: users.id })
@@ -435,6 +457,10 @@ export async function createMember(
     .where(and(eq(users.email, email), notDeleted(users)))
     .limit(1);
   if (taken) return { fieldErrors: { email: "Email ini sudah digunakan." } };
+
+  if (!(await assertUsernameAvailable(username))) {
+    return { fieldErrors: { username: "Nama pengguna ini sudah digunakan." } };
+  }
 
   if (!(await assertCodeAvailable(orgId, code))) {
     return { fieldErrors: { code: "Kode staf ini sudah digunakan." } };
@@ -454,6 +480,7 @@ export async function createMember(
         reportsTo,
         name,
         email,
+        username,
         code,
         phone,
         passwordHash,
@@ -469,7 +496,7 @@ export async function createMember(
   // Exactly one email per created member so the SMTP quota is not wasted.
   let emailSent = true;
   try {
-    await sendMemberCredentialsEmail({ to: email, name, temporaryPassword });
+    await sendMemberCredentialsEmail({ to: email, name, username, temporaryPassword });
   } catch (error) {
     console.error("[account] failed to email credentials:", error);
     emailSent = false;
@@ -491,6 +518,7 @@ export async function updateMember(
     id: formData.get("id"),
     name: formData.get("name"),
     email: formData.get("email"),
+    username: formData.get("username") ?? "",
     phone: formData.get("phone") ?? undefined,
     code: formData.get("code") ?? undefined,
     isActive: formData.get("isActive"),
@@ -523,7 +551,7 @@ export async function updateMember(
     return { fieldErrors: { warehouseIds: "Pilih gudang yang valid." } };
   }
 
-  const { id, name, email, phone, code } = parsed.data;
+  const { id, name, email, username, phone, code } = parsed.data;
   const orgId = manager.organization.id;
 
   const [target] = await db
@@ -617,6 +645,10 @@ export async function updateMember(
     .limit(1);
   if (emailTaken) return { fieldErrors: { email: "Email ini sudah digunakan." } };
 
+  if (!(await assertUsernameAvailable(username, id))) {
+    return { fieldErrors: { username: "Nama pengguna ini sudah digunakan." } };
+  }
+
   if (!(await assertCodeAvailable(orgId, code, id))) {
     return { fieldErrors: { code: "Kode staf ini sudah digunakan." } };
   }
@@ -630,6 +662,7 @@ export async function updateMember(
       .set({
         name,
         email,
+        username,
         phone,
         code,
         reportsTo: protectedMember && target.isOrganizationOwner ? target.reportsTo : reportsTo,

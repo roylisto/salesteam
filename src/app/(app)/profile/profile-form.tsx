@@ -33,12 +33,14 @@ function Detail({ label, value }: { label: string; value: string }) {
 export function ProfileForm({
   name,
   email,
+  username,
   code,
   roleName,
   organizationName,
 }: {
   name: string;
   email: string;
+  username: string | null;
   code: string | null;
   roleName: string;
   organizationName: string;
@@ -77,6 +79,7 @@ export function ProfileForm({
         <CardContent className="grid gap-4 sm:grid-cols-2">
           <Detail label="Nama lengkap" value={name} />
           <Detail label="Email" value={email} />
+          <Detail label="Nama pengguna" value={username ?? "—"} />
           <Detail label="Peran" value={roleName} />
           <Detail label="Kode pegawai" value={code ?? "—"} />
           <Detail label="Organisasi" value={organizationName} />

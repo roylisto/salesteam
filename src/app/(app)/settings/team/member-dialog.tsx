@@ -304,6 +304,7 @@ export function CreateMemberDialog({
   const [created, setCreated] = useState<{
     name: string;
     email: string;
+    username: string;
     password: string;
     emailSent: boolean;
   } | null>(null);
@@ -390,6 +391,7 @@ export function CreateMemberDialog({
         setCreated({
           name: String(formData.get("name") ?? ""),
           email: String(formData.get("email") ?? ""),
+          username: String(formData.get("username") ?? "").trim().toLowerCase(),
           password: result.temporaryPassword,
           emailSent: result.emailSent ?? false,
         });
@@ -448,6 +450,14 @@ export function CreateMemberDialog({
                 Anggota akan diminta memilih kata sandi sendiri saat pertama kali
                 masuk.
               </p>
+              {created.username ? (
+                <p className="text-muted-foreground text-xs">
+                  Nama pengguna:{" "}
+                  <span className="text-foreground font-medium">
+                    {created.username}
+                  </span>
+                </p>
+              ) : null}
             </div>
 
             <DialogFooter>
@@ -485,6 +495,20 @@ export function CreateMemberDialog({
                 required
               />
               <FieldError message={errors.email} />
+            </div>
+
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label htmlFor="member-username">Nama pengguna</Label>
+              <Input
+                id="member-username"
+                name="username"
+                autoComplete="off"
+                placeholder="Opsional, mis. budi.santoso"
+              />
+              <p className="text-muted-foreground text-xs">
+                Bisa dipakai untuk masuk selain email.
+              </p>
+              <FieldError message={errors.username} />
             </div>
 
             <div className="space-y-1.5">
@@ -708,7 +732,9 @@ export function MemberDetailDialog({
               </Badge>
             ) : null}
           </DialogTitle>
-          <DialogDescription>{member.email}</DialogDescription>
+          <DialogDescription>
+            {member.username ? `@${member.username} · ${member.email}` : member.email}
+          </DialogDescription>
         </DialogHeader>
 
         <form action={handleProfile} className="space-y-4">
@@ -734,6 +760,21 @@ export function MemberDetailDialog({
                 required
               />
               <FieldError message={errors.email} />
+            </div>
+
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label htmlFor="edit-username">Nama pengguna</Label>
+              <Input
+                id="edit-username"
+                name="username"
+                autoComplete="off"
+                defaultValue={member.username ?? ""}
+                placeholder="Opsional, mis. budi.santoso"
+              />
+              <p className="text-muted-foreground text-xs">
+                Bisa dipakai untuk masuk selain email.
+              </p>
+              <FieldError message={errors.username} />
             </div>
 
             <div className="space-y-1.5">

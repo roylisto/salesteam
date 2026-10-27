@@ -28,7 +28,7 @@ export function LoginForm({ next }: { next?: string }) {
       <CardHeader>
         <CardTitle className="text-lg">Masuk</CardTitle>
         <CardDescription>
-          Gunakan email dan kata sandi akun Salesteam Anda.
+          Gunakan email atau nama pengguna dan kata sandi akun Salesteam Anda.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -36,12 +36,12 @@ export function LoginForm({ next }: { next?: string }) {
           {next ? <input type="hidden" name="next" value={next} /> : null}
 
           <div className="space-y-1.5">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="identifier">Email atau nama pengguna</Label>
             <Input
-              id="email"
-              name="email"
-              type="email"
-              autoComplete="email"
+              id="identifier"
+              name="identifier"
+              type="text"
+              autoComplete="username"
               placeholder="you@company.com"
               required
             />

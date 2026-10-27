@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, or } from "drizzle-orm";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -19,7 +19,8 @@ export type AuthFormState = {
 } | undefined;
 
 const LoginSchema = z.object({
-  email: z.string().trim().toLowerCase().pipe(z.email()),
+  // Accepts either the member's email or their username.
+  identifier: z.string().trim().toLowerCase().min(1),
   password: z.string().min(1),
   next: z.string().optional(),
 });
@@ -34,30 +35,35 @@ export async function login(
   formData: FormData,
 ): Promise<AuthFormState> {
   const parsed = LoginSchema.safeParse({
-    email: formData.get("email"),
+    identifier: formData.get("identifier"),
     password: formData.get("password"),
     next: formData.get("next") ?? undefined,
   });
 
   if (!parsed.success) {
-    return { error: "Masukkan email dan kata sandi yang valid." };
+    return { error: "Masukkan email atau nama pengguna dan kata sandi yang valid." };
   }
 
-  const { email, password, next } = parsed.data;
+  const { identifier, password, next } = parsed.data;
 
   const [user] = await db
     .select()
     .from(users)
-    .where(and(eq(users.email, email), notDeleted(users)))
+    .where(
+      and(
+        or(eq(users.email, identifier), eq(users.username, identifier)),
+        notDeleted(users),
+      ),
+    )
     .limit(1);
 
   if (!user || !user.isActive) {
-    return { error: "Email atau kata sandi salah." };
+    return { error: "Email, nama pengguna, atau kata sandi salah." };
   }
 
   const valid = await verifyPassword(password, user.passwordHash);
   if (!valid) {
-    return { error: "Email atau kata sandi salah." };
+    return { error: "Email, nama pengguna, atau kata sandi salah." };
   }
 
   const headerList = await headers();

@@ -9,7 +9,7 @@ import { db } from "@/db";
 import { notDeleted, organizations, users } from "@/db/schema";
 import { hashPassword } from "@/lib/password";
 import { createSession } from "@/lib/session";
-import { toFieldErrors } from "@/lib/validation";
+import { toFieldErrors, optionalUsername } from "@/lib/validation";
 
 export type OnboardingFormState = {
   error?: string;
@@ -20,6 +20,7 @@ const OnboardingSchema = z.object({
   organizationName: z.string().trim().min(2).max(150),
   name: z.string().trim().min(2).max(150),
   email: z.string().trim().toLowerCase().pipe(z.email()),
+  username: optionalUsername,
   password: z.string().min(8, "Gunakan minimal 8 karakter."),
 });
 
@@ -63,6 +64,7 @@ export async function createOrganization(
     organizationName: formData.get("organizationName"),
     name: formData.get("name"),
     email: formData.get("email"),
+    username: formData.get("username") ?? "",
     password: formData.get("password"),
   });
 
@@ -70,7 +72,7 @@ export async function createOrganization(
     return { fieldErrors: toFieldErrors(parsed.error) };
   }
 
-  const { organizationName, name, email, password } = parsed.data;
+  const { organizationName, name, email, username, password } = parsed.data;
 
   const [taken] = await db
     .select({ id: users.id })
@@ -80,6 +82,17 @@ export async function createOrganization(
 
   if (taken) {
     return { fieldErrors: { email: "Email ini sudah terdaftar." } };
+  }
+
+  if (username) {
+    const [usernameTaken] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(and(eq(users.username, username), notDeleted(users)))
+      .limit(1);
+    if (usernameTaken) {
+      return { fieldErrors: { username: "Nama pengguna ini sudah digunakan." } };
+    }
   }
 
   const slug = await resolveUniqueSlug(slugify(organizationName));

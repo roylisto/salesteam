@@ -74,6 +74,20 @@ export function RegisterForm() {
           </div>
 
           <div className="space-y-1.5">
+            <Label htmlFor="username">Nama pengguna</Label>
+            <Input
+              id="username"
+              name="username"
+              autoComplete="username"
+              placeholder="Opsional, mis. budi.santoso"
+            />
+            <p className="text-muted-foreground text-xs">
+              Bisa dipakai untuk masuk selain email.
+            </p>
+            <FieldError message={errors.username} />
+          </div>
+
+          <div className="space-y-1.5">
             <Label htmlFor="password">Kata sandi</Label>
             <Input
               id="password"

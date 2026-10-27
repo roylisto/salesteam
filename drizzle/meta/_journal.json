@@ -57,6 +57,13 @@
       "when": 1793098054321,
       "tag": "0007_dry_randall",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1793100576982,
+      "tag": "0008_keen_redwing",
+      "breakpoints": true
     }
   ]
 }

@@ -66,6 +66,7 @@ export default async function TeamPage() {
           id: users.id,
           name: users.name,
           email: users.email,
+          username: users.username,
           code: users.code,
           phone: users.phone,
           roleId: users.roleId,

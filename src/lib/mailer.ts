@@ -61,28 +61,37 @@ export async function sendMail(message: MailMessage): Promise<void> {
 export async function sendMemberCredentialsEmail(options: {
   to: string;
   name: string;
+  username: string | null;
   temporaryPassword: string;
 }): Promise<void> {
-  const { to, name, temporaryPassword } = options;
+  const { to, name, username, temporaryPassword } = options;
   const subject = `Detail login ${APP_NAME} Anda`;
+
+  const loginHint = username
+    ? `Masuk dengan email Anda atau nama pengguna "${username}", beserta kata sandi ini.`
+    : "Masuk dengan alamat email Anda dan kata sandi ini.";
 
   const text = [
     `Halo ${name},`,
     "",
     `Anda telah ditambahkan ke ${APP_NAME}.`,
+    username ? `Nama pengguna Anda: ${username}` : null,
     `Kata sandi sementara Anda adalah: ${temporaryPassword}`,
     "",
-    "Masuk dengan alamat email Anda dan kata sandi ini. Pada login pertama",
-    "Anda akan diminta memilih kata sandi Anda sendiri.",
+    loginHint,
+    "Pada login pertama, Anda akan diminta memilih kata sandi Anda sendiri.",
     "",
     "Jika Anda tidak mengharapkan ini, silakan hubungi administrator Anda.",
-  ].join("\n");
+  ]
+    .filter((line) => line !== null)
+    .join("\n");
 
   const html = `
     <div style="font-family:system-ui,Segoe UI,Helvetica,Arial,sans-serif;line-height:1.6;color:#0f172a">
       <p>Halo ${name},</p>
       <p>Anda telah ditambahkan ke ${APP_NAME}. Gunakan kata sandi sementara di bawah ini untuk masuk:</p>
       <p style="font-size:20px;font-weight:700;letter-spacing:2px;padding:12px 16px;background:#f1f5f9;border-radius:8px;display:inline-block">${temporaryPassword}</p>
+      ${username ? `<p>Nama pengguna Anda: <strong>${username}</strong></p>` : ""}
       <p>Pada login pertama, Anda akan diminta memilih kata sandi Anda sendiri.</p>
       <p style="color:#64748b;font-size:13px">Jika Anda tidak mengharapkan ini, silakan hubungi administrator Anda.</p>
     </div>

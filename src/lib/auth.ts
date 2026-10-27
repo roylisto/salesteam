@@ -10,6 +10,7 @@ export type CurrentUser = {
   id: number;
   name: string;
   email: string;
+  username: string | null;
   code: string | null;
   avatarUrl: string | null;
   isOrganizationOwner: boolean;
@@ -71,6 +72,7 @@ export const getCurrentUser = cache(
       id: context.user.id,
       name: context.user.name,
       email: context.user.email,
+      username: context.user.username,
       code: context.user.code,
       avatarUrl: context.user.avatarUrl,
       isOrganizationOwner: context.user.isOrganizationOwner,

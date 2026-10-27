@@ -18,6 +18,7 @@ export type MemberRow = {
   id: number;
   name: string;
   email: string;
+  username: string | null;
   code: string | null;
   phone: string | null;
   roleId: number | null;

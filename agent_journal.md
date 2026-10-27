@@ -363,7 +363,10 @@ Defined in `src/db/schema/*` and re-exported from `index.ts`.
   `(organization_id, name)`. **Applied.**
 - `0007_dry_randall.sql` — drops the legacy `outlets.outlet_type` varchar
   column. **Applied.**
-- All of `0000`–`0007` were applied to the Aiven dev database
+- `0008_keen_redwing.sql` — adds `users.username` (varchar(50), nullable) plus
+  the partial unique index `users_username_unique` (global — usernames are
+  unique across all tenants because login is global). **Applied.**
+- All of `0000`–`0008` were applied to the Aiven dev database
   (`pg-salesteam-dev-…aivencloud.com`, CA supplied via `DB_SSL_CA`) on
   2026-10-27 — verified 28 tables in `public`.
 
@@ -374,7 +377,15 @@ Defined in `src/db/schema/*` and re-exported from `index.ts`.
 ### Done
 
 - **Auth**: register (creates org + owner as system Admin), login, logout,
-  DB sessions, session cookie, route guard.
+  DB sessions, session cookie, route guard. **Login accepts either the member's
+  email or their (optional) username** — `users.username` is a global, optional,
+  lowercased handle; the login form posts a single `identifier` field matched
+  against `users.email OR users.username`.
+- **Username**: optional login handle on `users` (validated by
+  `optionalUsername` in `src/lib/validation.ts`: 3–50 chars, lowercase letters,
+  digits, `.`, `_`, `-`). Editable when creating/updating a member, set during
+  owner onboarding, shown on the profile page and quoted in the new-member
+  credentials email.
 - **Forced first-login password change**: members added by an admin are bounced
   to `/change-password` on every app page until they replace the
   system-generated password.

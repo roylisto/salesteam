@@ -20,6 +20,7 @@ export default async function ProfilePage() {
         <ProfileForm
           name={user.name}
           email={user.email}
+          username={user.username}
           code={user.code}
           roleName={user.isAdmin ? "Admin" : (user.role?.name ?? "Belum ditugaskan")}
           organizationName={user.organization.name}

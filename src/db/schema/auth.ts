@@ -41,7 +41,7 @@ export const roles = pgTable(
   ],
 );
 
-/** A member of an organization. Login is by globally unique email. */
+/** A member of an organization. Login is by globally unique email or username. */
 export const users = pgTable(
   "users",
   {
@@ -59,6 +59,11 @@ export const users = pgTable(
     code: varchar("code", { length: 50 }),
     name: varchar("name", { length: 150 }).notNull(),
     email: varchar("email", { length: 150 }).notNull(),
+    /**
+     * Optional login handle, stored lowercased. When set the member may sign in
+     * with it instead of their email; unique across all tenants (nulls allowed).
+     */
+    username: varchar("username", { length: 50 }),
     passwordHash: varchar("password_hash", { length: 255 }).notNull(),
     phone: varchar("phone", { length: 30 }),
     avatarUrl: text("avatar_url"),
@@ -80,6 +85,9 @@ export const users = pgTable(
   (table) => [
     uniqueIndex("users_email_unique")
       .on(table.email)
+      .where(isNull(table.deletedAt)),
+    uniqueIndex("users_username_unique")
+      .on(table.username)
       .where(isNull(table.deletedAt)),
     uniqueIndex("users_organization_code_unique")
       .on(table.organizationId, table.code)
