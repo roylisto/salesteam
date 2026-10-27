@@ -147,8 +147,8 @@ function NavLinks({
             className={cn(
               "flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm font-medium transition-colors",
               active
-                ? "bg-accent text-accent-foreground"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-sm"
+                : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
             )}
           >
             <Icon className="size-4 shrink-0" />
@@ -180,7 +180,7 @@ function SidebarContent({
   );
 
   return (
-    <div className="flex h-full flex-col gap-6 overflow-y-auto p-3">
+    <div className="text-sidebar-foreground flex h-full flex-col gap-6 overflow-y-auto p-3">
       <Brand
         className="px-1.5 pt-1.5"
         name={user.organizationName}
@@ -194,7 +194,7 @@ function SidebarContent({
 
         {master.length > 0 ? (
           <div className="space-y-1">
-            <p className="text-muted-foreground px-2.5 text-xs font-medium">
+            <p className="text-sidebar-foreground/50 px-2.5 text-xs font-medium">
               Data Induk
             </p>
             <NavLinks items={master} onNavigate={onNavigate} />
@@ -203,7 +203,7 @@ function SidebarContent({
 
         {settings.length > 0 ? (
           <div className="space-y-1">
-            <p className="text-muted-foreground px-2.5 text-xs font-medium">
+            <p className="text-sidebar-foreground/50 px-2.5 text-xs font-medium">
               Pengaturan
             </p>
             <NavLinks items={settings} onNavigate={onNavigate} />
@@ -283,7 +283,7 @@ export function AppShell({
 
   return (
     <div className="lg:grid lg:min-h-svh lg:grid-cols-[15rem_1fr]">
-      <aside className="bg-sidebar sticky top-0 hidden h-svh border-r lg:block">
+      <aside className="bg-sidebar text-sidebar-foreground border-sidebar-border sticky top-0 hidden h-svh border-r lg:block">
         <SidebarContent user={user} permissions={permissions} />
       </aside>
 
@@ -294,7 +294,10 @@ export function AppShell({
               <MenuIcon className="size-4" />
               <span className="sr-only">Buka navigasi</span>
             </SheetTrigger>
-            <SheetContent side="left" className="w-72 gap-0 p-0">
+            <SheetContent
+              side="left"
+              className="bg-sidebar text-sidebar-foreground border-sidebar-border w-72 gap-0 p-0"
+            >
               <SheetHeader className="sr-only">
                 <SheetTitle>Navigasi</SheetTitle>
               </SheetHeader>
