@@ -10,7 +10,9 @@ import {
   notDeleted,
   roles,
   userAreaAssignments,
+  userWarehouseAssignments,
   users,
+  warehouses,
 } from "@/db/schema";
 import { can, getCurrentUser, isAdmin } from "@/lib/auth";
 import { sendMemberCredentialsEmail } from "@/lib/mailer";
@@ -85,6 +87,18 @@ function parseReportsTo(raw: FormDataEntryValue | null): number | null | undefin
 
 function parseAreaIds(formData: FormData): number[] | undefined {
   const raw = formData.getAll("areaIds");
+  const ids: number[] = [];
+  for (const value of raw) {
+    if (typeof value !== "string" || value === "") continue;
+    const id = Number(value);
+    if (!Number.isInteger(id) || id <= 0) return undefined;
+    if (!ids.includes(id)) ids.push(id);
+  }
+  return ids;
+}
+
+function parseWarehouseIds(formData: FormData): number[] | undefined {
+  const raw = formData.getAll("warehouseIds");
   const ids: number[] = [];
   for (const value of raw) {
     if (typeof value !== "string" || value === "") continue;
@@ -218,6 +232,32 @@ async function getOrgAreaIds(organizationId: number): Promise<Set<number>> {
   return new Set(rows.map((row) => row.id));
 }
 
+/** Map of warehouse id → its area id (null when the warehouse has no area). */
+async function getOrgWarehouseAreas(
+  organizationId: number,
+): Promise<Map<number, number | null>> {
+  const rows = await db
+    .select({ id: warehouses.id, areaOfficeId: warehouses.areaOfficeId })
+    .from(warehouses)
+    .where(
+      and(eq(warehouses.organizationId, organizationId), notDeleted(warehouses)),
+    );
+  return new Map(rows.map((row) => [row.id, row.areaOfficeId]));
+}
+
+/** Every warehouse must belong to one of the member's selected areas. */
+function warehousesWithinAreas(
+  warehouseIds: number[],
+  areaIds: number[],
+  warehouseAreas: Map<number, number | null>,
+): boolean {
+  const areaSet = new Set(areaIds);
+  return warehouseIds.every((id) => {
+    const areaId = warehouseAreas.get(id);
+    return areaId != null && areaSet.has(areaId);
+  });
+}
+
 async function replaceAreaAssignments(
   tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
   organizationId: number,
@@ -239,6 +279,31 @@ async function replaceAreaAssignments(
       organizationId,
       userId,
       areaOfficeId,
+    })),
+  );
+}
+
+async function replaceWarehouseAssignments(
+  tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
+  organizationId: number,
+  userId: number,
+  warehouseIds: number[],
+) {
+  await tx
+    .update(userWarehouseAssignments)
+    .set({ deletedAt: new Date() })
+    .where(
+      and(
+        eq(userWarehouseAssignments.userId, userId),
+        notDeleted(userWarehouseAssignments),
+      ),
+    );
+  if (warehouseIds.length === 0) return;
+  await tx.insert(userWarehouseAssignments).values(
+    warehouseIds.map((warehouseId) => ({
+      organizationId,
+      userId,
+      warehouseId,
     })),
   );
 }
@@ -280,10 +345,16 @@ export async function createMember(
     return { fieldErrors: { areaIds: "Select valid areas." } };
   }
 
+  const warehouseIds = parseWarehouseIds(formData);
+  if (warehouseIds === undefined) {
+    return { fieldErrors: { warehouseIds: "Select valid warehouses." } };
+  }
+
   const orgId = manager.organization.id;
-  const [hierarchy, orgAreaSet] = await Promise.all([
+  const [hierarchy, orgAreaSet, warehouseAreas] = await Promise.all([
     loadHierarchy(orgId),
     getOrgAreaIds(orgId),
+    getOrgWarehouseAreas(orgId),
   ]);
   const memberById = new Map(hierarchy.map((row) => [row.id, row]));
 
@@ -340,6 +411,14 @@ export async function createMember(
     }
   }
 
+  if (!warehousesWithinAreas(warehouseIds, areaIds, warehouseAreas)) {
+    return {
+      fieldErrors: {
+        warehouseIds: "Warehouses must belong to the selected areas.",
+      },
+    };
+  }
+
   const { name, email, phone, code } = parsed.data;
 
   const [taken] = await db
@@ -376,6 +455,7 @@ export async function createMember(
       })
       .returning({ id: users.id });
     await replaceAreaAssignments(tx, orgId, created.id, areaIds);
+    await replaceWarehouseAssignments(tx, orgId, created.id, warehouseIds);
   });
 
   // Exactly one email per created member so the SMTP quota is not wasted.
@@ -430,6 +510,11 @@ export async function updateMember(
     return { fieldErrors: { areaIds: "Select valid areas." } };
   }
 
+  const warehouseIds = parseWarehouseIds(formData);
+  if (warehouseIds === undefined) {
+    return { fieldErrors: { warehouseIds: "Select valid warehouses." } };
+  }
+
   const { id, name, email, phone, code } = parsed.data;
   const orgId = manager.organization.id;
 
@@ -471,6 +556,7 @@ export async function updateMember(
   }
 
   const orgAreaSet = await getOrgAreaIds(orgId);
+  const warehouseAreas = await getOrgWarehouseAreas(orgId);
   for (const areaId of areaIds) {
     if (!orgAreaSet.has(areaId)) {
       return { fieldErrors: { areaIds: "Select valid areas." } };
@@ -508,6 +594,14 @@ export async function updateMember(
     }
   }
 
+  if (!warehousesWithinAreas(warehouseIds, areaIds, warehouseAreas)) {
+    return {
+      fieldErrors: {
+        warehouseIds: "Warehouses must belong to the selected areas.",
+      },
+    };
+  }
+
   const [emailTaken] = await db
     .select({ id: users.id })
     .from(users)
@@ -537,6 +631,7 @@ export async function updateMember(
       })
       .where(eq(users.id, id));
     await replaceAreaAssignments(tx, orgId, id, areaIds);
+    await replaceWarehouseAssignments(tx, orgId, id, warehouseIds);
   });
 
   revalidatePath(TEAM_PATH);
@@ -634,6 +729,15 @@ export async function deleteMember(
         and(
           eq(userAreaAssignments.userId, id),
           notDeleted(userAreaAssignments),
+        ),
+      );
+    await tx
+      .update(userWarehouseAssignments)
+      .set({ deletedAt: new Date() })
+      .where(
+        and(
+          eq(userWarehouseAssignments.userId, id),
+          notDeleted(userWarehouseAssignments),
         ),
       );
   });

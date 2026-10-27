@@ -3,7 +3,7 @@
 > Handoff notes for AI agents doing "vibe coding" on this repo.
 > Read this first; it captures the project context, conventions, and what has
 > already been built so you can continue without re-discovering everything.
-> Last updated: 2026-10-27 (DB TLS CA now supplied as a PEM string in the `DB_SSL_CA` env var, read by `src/db/index.ts` + `drizzle.config.ts`; migrations applied to the Aiven dev DB; added `.env.example` + local `.env`, and un-ignored `.env.example` in `.gitignore`; earlier 2026-10-17: Admin role option hidden for non-admin actors in the team role dropdown; warehouse management, Profile page + admin-only password reset).
+> Last updated: 2026-10-27 (Team members can now be assigned **warehouses**, area-first: areas are picked first, then a per-area warehouse checklist — multiple areas + multiple warehouses per member, validated server-side via `user_warehouse_assignments`; DB TLS CA supplied as a PEM string in the `DB_SSL_CA` env var, read by `src/db/index.ts` + `drizzle.config.ts`; migrations applied to the Aiven dev DB; added `.env.example` + local `.env`, and un-ignored `.env.example` in `.gitignore`; earlier 2026-10-17: Admin role option hidden for non-admin actors in the team role dropdown; warehouse management, Profile page + admin-only password reset).
 >
 > **⚠️ RULE: always update this file after making any change.** Whenever you add
 > a table, page, action, env var, dependency, migration, or change a convention,
@@ -199,10 +199,18 @@ src/app/
   reporting line's areas. E.g. a regional manager covering 3 areas can hand
   only those 3 down; each manager below only sees/passes on their assigned
   subset. Enforced in `createMember` / `updateMember`.
+- **Warehouse assignment (area-first):** `user_warehouse_assignments` maps a
+  user to multiple `warehouses` (org-scoped). A member can cover many
+  warehouses, but each must belong to one of the member's **selected areas** —
+  the UI shows a warehouse checklist grouped/separated by area and only for
+  areas that are currently ticked; picking an area is a prerequisite.
+  `warehousesWithinAreas()` in `account.ts` re-validates this server-side
+  (rejects warehouses outside the selected areas). Deselecting an area also
+  drops its warehouses in the dialog.
 - Cycle guards prevent circular reporting lines (`wouldCreateCycle`).
 - `deleteMember` soft-deletes the user, re-points direct reports to the deleted
   member's own manager (so the tree doesn't dangle), and soft-deletes their
-  area assignments.
+  area **and warehouse** assignments.
 - The organization owner is protected: cannot be demoted, disabled, or deleted;
   can only be edited by themselves for profile fields.
 
@@ -306,7 +314,7 @@ Defined in `src/db/schema/*` and re-exported from `index.ts`.
   ip, userAgent, deletedAt), `password_reset_requests` (userId, tokenHash,
   expiresAt, usedAt, timestamps — backing the forgot-password flow + monthly limit).
 - **master-data.ts** — `area_offices`, `user_area_assignments`, `warehouses`,
-  `products`, `outlets`, `warehouse_stocks`.
+  `user_warehouse_assignments`, `products`, `outlets`, `warehouse_stocks`.
 - **inventory.ts** — `stock_movements`, `stock_movement_items`, `sales_stocks`,
   `sales_stock_items`, `sales_inventory`.
 - **orders.ts** — `orders`, `order_items`, `invoices`.
@@ -337,9 +345,11 @@ Defined in `src/db/schema/*` and re-exported from `index.ts`.
 - `0003_password-reset-requests.sql` — adds `password_reset_requests`. **Applied.**
 - `0004_users-must-change-password.sql` — adds `users.must_change_password`
   (forced first-login password change). **Applied.**
-- All of `0000`–`0004` were applied to the Aiven dev database
+- `0005_user-warehouse-assignments.sql` — adds `user_warehouse_assignments`
+  (member → warehouse, area-first). **Applied.**
+- All of `0000`–`0005` were applied to the Aiven dev database
   (`pg-salesteam-dev-…aivencloud.com`, CA supplied via `DB_SSL_CA`) on
-  2026-10-27 — verified 26 tables in `public`.
+  2026-10-27 — verified 27 tables in `public`.
 
 ---
 
@@ -375,6 +385,11 @@ Defined in `src/db/schema/*` and re-exported from `index.ts`.
   - Search (name/email/code), status filter, pagination, member detail dialog.
   - Create/edit member: role dropdown (Admin shown by default option +
     org roles), reporting line dropdown, multi-area select.
+  - **Warehouse assignment (area-first)**: after picking areas, a warehouse
+    checklist appears grouped/separated by area (only for the selected areas).
+    A member can hold multiple warehouses across multiple areas; deselecting an
+    area removes its warehouses. Persisted in `user_warehouse_assignments` and
+    validated server-side (warehouses must fall within the selected areas).
   - **Admin (system) role option is Admin-only**: `RoleSelect` renders it only
     when the actor is an Admin (or the member already holds it), and the create
     dialog only pre-selects it for an Admin actor. Server-side
@@ -474,7 +489,7 @@ src/proxy.ts                   optimistic auth guard
   1. `requireManager()` (needs `team` permission),
   2. validate role belongs to org (Admin handled virtually),
   3. validate reporting line (in-subtree for non-admins, no cycles),
-  4. validate areas ⊆ reporting line's areas,
+  4. validate areas ⊆ reporting line's areas, and warehouses ⊆ selected areas,
   5. write inside `db.transaction`, then `revalidatePath("/settings/team")`.
 - **Reads in pages** are direct Drizzle queries (server components); wrap
   tenant filters with `eq(table.organizationId, organization.id)` **and**

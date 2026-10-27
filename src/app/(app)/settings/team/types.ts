@@ -8,6 +8,12 @@ export type AreaOption = {
   name: string;
 };
 
+export type WarehouseOption = {
+  id: number;
+  name: string;
+  areaOfficeId: number;
+};
+
 export type MemberRow = {
   id: number;
   name: string;
@@ -21,6 +27,7 @@ export type MemberRow = {
   reportsToName: string | null;
   areaIds: number[];
   areaNames: string[];
+  warehouseIds: number[];
   isActive: boolean;
   isOrganizationOwner: boolean;
   lastLoginAt: string | null;

@@ -42,7 +42,12 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { CreateMemberDialog, MemberDetailDialog } from "./member-dialog";
-import type { AreaOption, MemberRow, RoleOption } from "./types";
+import type {
+  AreaOption,
+  MemberRow,
+  RoleOption,
+  WarehouseOption,
+} from "./types";
 
 const STATUS_OPTIONS = ["all", "active", "inactive"] as const;
 const PAGE_SIZE = 10;
@@ -244,6 +249,7 @@ export function TeamClient({
   members,
   roles,
   areas,
+  warehouses,
   assignableAreas,
   currentUserId,
   isAdmin,
@@ -251,6 +257,7 @@ export function TeamClient({
   members: MemberRow[];
   roles: RoleOption[];
   areas: AreaOption[];
+  warehouses: WarehouseOption[];
   assignableAreas: AreaOption[];
   currentUserId: number;
   isAdmin: boolean;
@@ -499,6 +506,7 @@ export function TeamClient({
         onOpenChange={(open) => void setAction(open ? "create" : null)}
         roles={roles}
         areas={areas}
+        warehouses={warehouses}
         assignableAreas={assignableAreas}
         members={members}
         currentUserId={currentUserId}
@@ -511,6 +519,7 @@ export function TeamClient({
           member={selected}
           roles={roles}
           areas={areas}
+          warehouses={warehouses}
           assignableAreas={assignableAreas}
           members={members}
           currentUserId={currentUserId}

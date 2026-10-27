@@ -86,6 +86,36 @@ export const warehouses = pgTable(
   ],
 );
 
+/**
+ * Warehouses assigned to a member. A member can cover multiple warehouses,
+ * each of which must belong to one of the member's assigned areas (an area is
+ * therefore selected first).
+ */
+export const userWarehouseAssignments = pgTable(
+  "user_warehouse_assignments",
+  {
+    id: primaryId(),
+    organizationId: bigint("organization_id", { mode: "number" })
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    userId: bigint("user_id", { mode: "number" })
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    warehouseId: bigint("warehouse_id", { mode: "number" })
+      .notNull()
+      .references(() => warehouses.id, { onDelete: "cascade" }),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex("user_warehouse_assignments_user_warehouse_unique")
+      .on(table.userId, table.warehouseId)
+      .where(isNull(table.deletedAt)),
+    index("user_warehouse_assignments_organization_idx").on(table.organizationId),
+    index("user_warehouse_assignments_user_idx").on(table.userId),
+    index("user_warehouse_assignments_warehouse_idx").on(table.warehouseId),
+  ],
+);
+
 /** Product catalogue. */
 export const products = pgTable(
   "products",

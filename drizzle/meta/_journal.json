@@ -36,6 +36,13 @@
       "when": 1792155026254,
       "tag": "0004_users-must-change-password",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793095673830,
+      "tag": "0005_user-warehouse-assignments",
+      "breakpoints": true
     }
   ]
 }
