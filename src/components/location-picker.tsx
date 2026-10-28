@@ -77,11 +77,55 @@ async function reverseGeocode(lat: number, lng: number): Promise<AddressComponen
     if (!data?.address) return null;
 
     const addr = data.address;
+
+    // Helper to find the first non-empty value in a list of keys
+    const pick = (keys: string[]) => {
+      for (const key of keys) {
+        if (addr[key]) return String(addr[key]);
+      }
+      return "";
+    };
+
+    const province = pick(["state", "province", "region"]);
+    const regency = pick(["city", "city_district", "county", "regency"]);
+    
+    // In Indonesia, city_district often contains the Kecamatan
+    // But if city is empty and city_district is present, city_district might be the Regency
+    const districtKeys = ["subdistrict", "district", "town"];
+    if (regency !== addr.city_district) districtKeys.push("city_district");
+    let district = pick(districtKeys);
+
+    const villageKeys = ["village", "hamlet", "neighbourhood", "suburb", "quarter"];
+    let village = pick(villageKeys);
+
+    // Smart fallback: If district or village are still empty, try parsing display_name
+    // display_name is usually: [Road], [Village], [District], [Regency], [Province], [Postcode], [Country]
+    if (district === "" || village === "") {
+      const parts = data.display_name.split(",").map((p: string) => p.trim());
+      // Indonesia specific: usually the last 3 parts are Country, Postcode, Province
+      // So we look at parts from the end
+      if (parts.length >= 5) {
+        const countryIdx = parts.length - 1;
+        const provinceIdx = parts.length - 3;
+        const regencyIdx = parts.length - 4;
+        const districtIdx = parts.length - 5;
+        const villageIdx = parts.length - 6;
+
+        if (district === "" && districtIdx >= 0) district = parts[districtIdx];
+        if (village === "" && villageIdx >= 0) village = parts[villageIdx];
+      }
+    }
+
+    // Final check: if they are the same, try to differentiate
+    if (district === village && village !== "") {
+      village = pick(["village", "hamlet", "neighbourhood"]);
+    }
+
     return {
-      province: addr.state || addr.province || "",
-      regency: addr.city || addr.county || addr.regency || "",
-      district: addr.suburb || addr.district || addr.subdistrict || "",
-      village: addr.village || addr.neighbourhood || addr.hamlet || "",
+      province: province.toUpperCase(),
+      regency: regency.toUpperCase(),
+      district: district.toUpperCase(),
+      village: village.toUpperCase(),
       postalCode: addr.postcode || "",
       address: data.display_name || "",
       latitude: lat.toFixed(7),

@@ -3,7 +3,7 @@
 > Handoff notes for AI agents doing "vibe coding" on this repo.
 > Read this first; it captures the project context, conventions, and what has
 > already been built so you can continue without re-discovering everything.
-> Last updated: 2026-10-28 (**Optimised LocationPicker layout & map constraints** — fixed a gap issue in `compact` mode, reduced the map aspect ratio to `16:9` with `max-height: 320px`, and limited the map column width to `500px` in Warehouse and Outlet forms. This ensures the map is not too wide and remains close to the address information fields. Previously: optimised LocationPicker layout to avoid empty columns when address fields are external. Earlier: localised the whole UI to Bahasa Indonesia).
+> Last updated: 2026-10-28 (**Smart Address Parsing for Indonesia**) — implemented advanced parsing in `LocationPicker` to accurately extract Kecamatan and Kelurahan from OpenStreetMap data, including a fallback that parses the `display_name` string when standard address components are missing. Improved `normalizeWilayahName` to strip common prefixes like "KECAMATAN", "KELURAHAN", and "DESA", ensuring better matching with the Wilayah API dropdowns.
 >
 > **⚠️ RULE: always update this file after making any change.** Whenever you add
 > a table, page, action, env var, dependency, migration, or change a convention,

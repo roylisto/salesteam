@@ -50,6 +50,13 @@ function FieldError({ message }: { message?: string }) {
   return <p className="text-destructive text-xs">{message}</p>;
 }
 
+function normalizeWilayahName(name: string) {
+  return name
+    .toUpperCase()
+    .replace(/^(KABUPATEN|KOTA|KAB|ADM|KECAMATAN|KEC|KELURAHAN|KEL|DESA)\.?\s+/g, "")
+    .trim();
+}
+
 export function WarehouseForm({
   warehouse,
   areas,
@@ -164,7 +171,9 @@ export function WarehouseForm({
     let ignore = false;
 
     async function load() {
-      const code = provinces.find((item) => item.name === province)?.code;
+      const code = provinces.find(
+        (item) => normalizeWilayahName(item.name) === normalizeWilayahName(province),
+      )?.code;
       if (code === undefined) {
         if (!ignore) {
           setRegencies([]);
@@ -195,7 +204,9 @@ export function WarehouseForm({
     let ignore = false;
 
     async function load() {
-      const code = regencies.find((item) => item.name === regency)?.code;
+      const code = regencies.find(
+        (item) => normalizeWilayahName(item.name) === normalizeWilayahName(regency),
+      )?.code;
       if (code === undefined) {
         if (!ignore) {
           setDistricts([]);
@@ -226,7 +237,9 @@ export function WarehouseForm({
     let ignore = false;
 
     async function load() {
-      const code = districts.find((item) => item.name === district)?.code;
+      const code = districts.find(
+        (item) => normalizeWilayahName(item.name) === normalizeWilayahName(district),
+      )?.code;
       if (code === undefined) {
         if (!ignore) {
           setVillages([]);
@@ -456,6 +469,12 @@ export function WarehouseForm({
                 if (address.postalCode) setPostalCode(address.postalCode);
                 if (address.latitude) setLatitude(address.latitude);
                 if (address.longitude) setLongitude(address.longitude);
+
+                // Auto-select dropdowns from map click
+                if (address.province) setProvince(address.province);
+                if (address.regency) setRegency(address.regency);
+                if (address.district) setDistrict(address.district);
+                if (address.village) setVillage(address.village);
               }}
               compact
             />
@@ -503,7 +522,7 @@ export function WarehouseForm({
                     setDistricts([]);
                     setVillages([]);
                   }}
-                  disabled={!province || loadingRegency}
+                  disabled={loadingRegency}
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue
@@ -532,7 +551,7 @@ export function WarehouseForm({
                     setVillage("");
                     setVillages([]);
                   }}
-                  disabled={!regency || loadingDistrict}
+                  disabled={loadingDistrict}
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder={loadingDistrict ? "Memuat..." : "Pilih kecamatan"}>
@@ -555,7 +574,7 @@ export function WarehouseForm({
                 <Select
                   value={village}
                   onValueChange={(value) => setVillage(value ?? "")}
-                  disabled={!district || loadingVillage}
+                  disabled={loadingVillage}
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue
