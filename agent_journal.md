@@ -3,10 +3,7 @@
 > Handoff notes for AI agents doing "vibe coding" on this repo.
 > Read this first; it captures the project context, conventions, and what has
 > already been built so you can continue without re-discovering everything.
-> Last updated: 2026-10-27 (**Localised the whole UI to Bahasa Indonesia** — all
-> user-facing copy, toasts, `metadata`, server-action/Zod messages and emails are
-> now Indonesian, with `<html lang="id">`; code, keys, DB values and comments stay
-> English. Previously: reworked **Warehouses** into full create/edit **pages** — `/master-data/warehouses/new` + `/master-data/warehouses/[id]` — with address parts, lat/lng picked on an **OpenStreetMap/Leaflet** map, PIC dropdown (Back Office users only), wilayah.id cascading dropdowns (province→regency→district→village), postal code; made the **sidebar collapsible** (persisted in localStorage) showing icons only when collapsed; extracted **LocationPicker** as a shared component (`src/components/location-picker.tsx`) used by both Outlets and Warehouses. Earlier: reworked **Outlets** into full pages, **outlet types** master table/module, Team members assigned **warehouses** area-first, DB TLS CA as PEM string in `DB_SSL_CA`, migrations applied to Aiven dev DB, `.env.example` + local `.env`; Admin role option hidden for non-admin actors, Profile page + admin-only password reset).
+> Last updated: 2026-10-28 (**Optimised LocationPicker layout & map constraints** — fixed a gap issue in `compact` mode, reduced the map aspect ratio to `16:9` with `max-height: 320px`, and limited the map column width to `500px` in Warehouse and Outlet forms. This ensures the map is not too wide and remains close to the address information fields. Previously: optimised LocationPicker layout to avoid empty columns when address fields are external. Earlier: localised the whole UI to Bahasa Indonesia).
 >
 > **⚠️ RULE: always update this file after making any change.** Whenever you add
 > a table, page, action, env var, dependency, migration, or change a convention,

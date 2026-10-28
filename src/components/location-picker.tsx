@@ -290,11 +290,21 @@ export function LocationPicker({
     );
   }, []);
 
+  const showAddressFields =
+    (extProvince !== undefined && setExtProvince) ||
+    (extRegency !== undefined && setExtRegency) ||
+    (extDistrict !== undefined && setExtDistrict) ||
+    (extVillage !== undefined && setExtVillage) ||
+    (extPostalCode !== undefined && setExtPostalCode);
+
   // Compact 2-column layout
   if (compact) {
     return (
-      <div className="grid gap-4" style={{ gridTemplateColumns: "1fr 1fr" }}>
-        {/* Left: Square Map */}
+      <div
+        className={showAddressFields ? "grid gap-2" : "space-y-2"}
+        style={showAddressFields ? { gridTemplateColumns: "1fr 1fr" } : undefined}
+      >
+        {/* Left: Square Map / Main Section */}
         <div className="space-y-2">
           <div className="flex gap-2">
             <div className="relative flex-1">
@@ -330,7 +340,7 @@ export function LocationPicker({
           <div
             ref={containerRef}
             className="z-0 w-full overflow-hidden rounded-lg ring-1 ring-foreground/10 bg-muted"
-            style={{ aspectRatio: "1 / 1" }}
+            style={{ aspectRatio: "16 / 9", maxHeight: "320px" }}
           >
             {!mapReady && (
               <div className="flex h-full items-center justify-center text-muted-foreground">
@@ -345,147 +355,125 @@ export function LocationPicker({
           </p>
         </div>
 
-        {/* Right: Address Fields */}
-        <div className="space-y-3 overflow-y-auto max-h-[500px] p-2">
-          <div className="space-y-1.5">
-            <Label htmlFor="loc-lat">Lintang</Label>
-            <Input
-              id="loc-lat"
-              inputMode="decimal"
-              value={latitude}
-              onChange={(event) => onChangeRef.current(event.target.value, longitude)}
-              placeholder="-6.2000000"
-              readOnly
-            />
+        {/* Right: Address Fields (only if provided) */}
+        {showAddressFields && (
+          <div className="space-y-3 overflow-y-auto max-h-[500px] p-2">
+            {extProvince !== undefined && setExtProvince && (
+              <div className="space-y-1.5">
+                <Label>Provinsi</Label>
+                <Select
+                  value={extProvince}
+                  onValueChange={(value) => setExtProvince?.(value ?? "")}
+                  disabled={loadingProvince}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder={loadingProvince ? "Memuat..." : "Pilih provinsi"}>
+                      {extProvince}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {provinceOptions.map((item) => (
+                      <SelectItem key={String(item.code)} value={item.name}>
+                        {item.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {extRegency !== undefined && setExtRegency && (
+              <div className="space-y-1.5">
+                <Label>Kabupaten/Kota</Label>
+                <Select
+                  value={extRegency}
+                  onValueChange={(value) => {
+                    setExtRegency?.(value ?? "");
+                    setExtDistrict?.("");
+                    setExtVillage?.("");
+                  }}
+                  disabled={!extProvince || loadingRegency}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder={loadingRegency ? "Memuat..." : "Pilih kabupaten/kota"}>
+                      {extRegency}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {regencyOptions.map((item) => (
+                      <SelectItem key={String(item.code)} value={item.name}>
+                        {item.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {extDistrict !== undefined && setExtDistrict && (
+              <div className="space-y-1.5">
+                <Label>Kecamatan</Label>
+                <Select
+                  value={extDistrict}
+                  onValueChange={(value) => {
+                    setExtDistrict?.(value ?? "");
+                    setExtVillage?.("");
+                  }}
+                  disabled={!extRegency || loadingDistrict}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder={loadingDistrict ? "Memuat..." : "Pilih kecamatan"}>
+                      {extDistrict}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {districtOptions.map((item) => (
+                      <SelectItem key={String(item.code)} value={item.name}>
+                        {item.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {extVillage !== undefined && setExtVillage && (
+              <div className="space-y-1.5">
+                <Label>Kelurahan/Desa</Label>
+                <Select
+                  value={extVillage}
+                  onValueChange={(value) => setExtVillage?.(value ?? "")}
+                  disabled={!extDistrict || loadingVillage}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder={loadingVillage ? "Memuat..." : "Pilih kelurahan/desa"}>
+                      {extVillage}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {villageOptions.map((item) => (
+                      <SelectItem key={String(item.code)} value={item.name}>
+                        {item.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {extPostalCode !== undefined && setExtPostalCode && (
+              <div className="space-y-1.5">
+                <Label htmlFor="loc-postal">Kode pos</Label>
+                <Input
+                  id="loc-postal"
+                  value={extPostalCode}
+                  onChange={(event) => setExtPostalCode?.(event.target.value)}
+                  placeholder="12345"
+                />
+              </div>
+            )}
           </div>
-
-          <div className="space-y-1.5">
-            <Label htmlFor="loc-lng">Bujur</Label>
-            <Input
-              id="loc-lng"
-              inputMode="decimal"
-              value={longitude}
-              onChange={(event) => onChangeRef.current(latitude, event.target.value)}
-              placeholder="106.8166660"
-              readOnly
-            />
-          </div>
-
-          {extProvince !== undefined && setExtProvince && (
-            <div className="space-y-1.5">
-              <Label>Provinsi</Label>
-              <Select
-                value={extProvince}
-                onValueChange={(value) => setExtProvince?.(value ?? "")}
-                disabled={loadingProvince}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder={loadingProvince ? "Memuat..." : "Pilih provinsi"}>
-                    {extProvince}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {provinceOptions.map((item) => (
-                    <SelectItem key={String(item.code)} value={item.name}>
-                      {item.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
-          {extRegency !== undefined && setExtRegency && (
-            <div className="space-y-1.5">
-              <Label>Kabupaten/Kota</Label>
-              <Select
-                value={extRegency}
-                onValueChange={(value) => {
-                  setExtRegency?.(value ?? "");
-                  setExtDistrict?.("");
-                  setExtVillage?.("");
-                }}
-                disabled={!extProvince || loadingRegency}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder={loadingRegency ? "Memuat..." : "Pilih kabupaten/kota"}>
-                    {extRegency}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {regencyOptions.map((item) => (
-                    <SelectItem key={String(item.code)} value={item.name}>
-                      {item.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
-          {extDistrict !== undefined && setExtDistrict && (
-            <div className="space-y-1.5">
-              <Label>Kecamatan</Label>
-              <Select
-                value={extDistrict}
-                onValueChange={(value) => {
-                  setExtDistrict?.(value ?? "");
-                  setExtVillage?.("");
-                }}
-                disabled={!extRegency || loadingDistrict}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder={loadingDistrict ? "Memuat..." : "Pilih kecamatan"}>
-                    {extDistrict}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {districtOptions.map((item) => (
-                    <SelectItem key={String(item.code)} value={item.name}>
-                      {item.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
-          {extVillage !== undefined && setExtVillage && (
-            <div className="space-y-1.5">
-              <Label>Kelurahan/Desa</Label>
-              <Select
-                value={extVillage}
-                onValueChange={(value) => setExtVillage?.(value ?? "")}
-                disabled={!extDistrict || loadingVillage}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder={loadingVillage ? "Memuat..." : "Pilih kelurahan/desa"}>
-                    {extVillage}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {villageOptions.map((item) => (
-                    <SelectItem key={String(item.code)} value={item.name}>
-                      {item.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
-          {extPostalCode !== undefined && setExtPostalCode && (
-            <div className="space-y-1.5">
-              <Label htmlFor="loc-postal">Kode pos</Label>
-              <Input
-                id="loc-postal"
-                value={extPostalCode}
-                onChange={(event) => setExtPostalCode?.(event.target.value)}
-                placeholder="12345"
-              />
-            </div>
-          )}
-        </div>
+        )}
       </div>
     );
   }

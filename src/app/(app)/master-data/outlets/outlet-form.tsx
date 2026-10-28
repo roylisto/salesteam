@@ -448,7 +448,7 @@ export function OutletForm({
             Cari atau klik peta untuk memilih koordinat yang tepat. Wilayah (provinsi–kelurahan) dan kode pos diisi otomatis dari peta.
           </CardDescription>
         </CardHeader>
-        <CardContent className="grid gap-4 lg:grid-cols-[1fr_380px]">
+        <CardContent className="grid gap-6 lg:grid-cols-[500px_1fr]">
           <div className="lg:sticky lg:top-4 lg:self-start">
             <LocationPicker
               latitude={latitude}
