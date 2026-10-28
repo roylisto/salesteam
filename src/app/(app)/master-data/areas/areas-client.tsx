@@ -4,20 +4,14 @@ import { useMemo } from "react";
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
+  EditIcon,
   MapPinIcon,
-  MoreHorizontalIcon,
   PlusIcon,
   SearchIcon,
 } from "lucide-react";
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryState } from "nuqs";
 
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import {
   Table,
@@ -121,20 +115,16 @@ export function AreasClient({ areas }: { areas: AreaRow[] }) {
                     <TableCell className="text-muted-foreground hidden text-xs lg:table-cell">
                       {new Date(area.createdAt).toLocaleDateString()}
                     </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger className="hover:bg-muted inline-flex size-7 items-center justify-center rounded-lg transition-colors">
-                          <MoreHorizontalIcon className="size-4" />
-                          <span className="sr-only">Aksi</span>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={() => void setAreaId(area.id)}
-                          >
-                            Lihat &amp; ubah
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => void setAreaId(area.id)}
+                        aria-label="Ubah area"
+                      >
+                        <EditIcon className="size-4" />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))

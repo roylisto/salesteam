@@ -10,9 +10,16 @@ import { WarehouseForm } from "../warehouse-form";
 
 export const metadata: Metadata = { title: "Gudang baru" };
 
-export default async function NewWarehousePage() {
+interface NewWarehousePageProps {
+  searchParams: Promise<{ province?: string; city?: string }>;
+}
+
+export default async function NewWarehousePage({ searchParams }: NewWarehousePageProps) {
   const user = await requirePermission("warehouses");
   const options = await loadFormOptions(user.organization.id);
+  const params = await searchParams;
+  const defaultProvince = params.province ?? null;
+  const defaultCity = params.city ?? null;
 
   return (
     <div className="w-full">
@@ -32,6 +39,8 @@ export default async function NewWarehousePage() {
         warehouse={null}
         areas={options.areas}
         backOfficeUsers={options.backOfficeUsers}
+        defaultProvince={defaultProvince}
+        defaultCity={defaultCity}
       />
     </div>
   );

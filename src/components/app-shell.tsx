@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import {
   Building2Icon,
-  ChevronLeftIcon,
   ChevronRightIcon,
   ChevronsUpDownIcon,
   LayoutDashboardIcon,
@@ -192,7 +191,7 @@ function SidebarContent({
   );
 
   return (
-    <div className={cn("text-sidebar-foreground flex h-full flex-col gap-6 overflow-y-auto p-3", collapsed && "px-2")}>
+    <div className={cn("text-sidebar-foreground flex h-full flex-col gap-6 p-3", collapsed && "px-2")}>
       <Brand
         className="px-1.5 pt-1.5"
         name={user.organizationName}
@@ -336,14 +335,14 @@ export function AppShell({
 
   return (
     <div
-      className="lg:grid lg:min-h-svh transition-all duration-200"
+      className="lg:grid lg:h-svh transition-all duration-200"
       style={{
         gridTemplateColumns: `${sidebarWidth}rem 1fr`,
       } as React.CSSProperties}
     >
       <aside
         className={cn(
-          "bg-sidebar text-sidebar-foreground border-sidebar-border sticky top-0 hidden h-svh border-r lg:block relative transition-all duration-200",
+          "bg-sidebar text-sidebar-foreground border-sidebar-border sticky top-0 hidden h-svh border-r lg:block relative transition-all duration-200 overflow-y-auto",
         )}
         style={{ width: `${sidebarWidth}rem` }}
       >
@@ -351,8 +350,8 @@ export function AppShell({
         <CollapseButton collapsed={collapsed} onClick={() => setCollapsed((c) => !c)} />
       </aside>
 
-      <div className="flex min-h-svh flex-col">
-        <header className="bg-background/80 sticky top-0 z-30 flex h-12 items-center gap-2 border-b px-3 backdrop-blur lg:px-4">
+      <div className="flex h-svh flex-col overflow-hidden">
+        <header className="bg-background/80 sticky top-0 z-30 flex h-12 shrink-0 items-center gap-2 border-b px-3 backdrop-blur lg:px-4">
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger className="hover:bg-muted inline-flex size-8 items-center justify-center rounded-lg transition-colors lg:hidden">
               <MenuIcon className="size-4" />
@@ -388,7 +387,7 @@ export function AppShell({
           </div>
         </header>
 
-        <main className="flex-1 px-3 py-3 lg:px-4 lg:py-4">{children}</main>
+        <main className="flex-1 overflow-y-auto px-3 py-3 lg:px-4 lg:py-4">{children}</main>
       </div>
     </div>
   );

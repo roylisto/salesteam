@@ -224,8 +224,8 @@ export function OrganizationForm({
         <CardHeader>
           <CardTitle>Regional</CardTitle>
           <CardDescription>
-            Mata uang dan zona waktu yang digunakan pada pesanan, keuangan, dan
-            laporan.
+            Mata uang, zona waktu, dan lokasi default untuk peta saat menambah
+            gudang/outlet.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
@@ -267,6 +267,28 @@ export function OrganizationForm({
               </SelectContent>
             </Select>
             <FieldError message={errors.timezone} />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="org-province">Provinsi</Label>
+            <Input
+              id="org-province"
+              name="province"
+              defaultValue={organization.province ?? ""}
+              placeholder="Misal: DKI Jakarta"
+            />
+            <FieldError message={errors.province} />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="org-city">Kota/Kabupaten</Label>
+            <Input
+              id="org-city"
+              name="city"
+              defaultValue={organization.city ?? ""}
+              placeholder="Misal: Jakarta Pusat"
+            />
+            <FieldError message={errors.city} />
           </div>
         </CardContent>
       </Card>

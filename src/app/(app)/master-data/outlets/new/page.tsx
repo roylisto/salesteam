@@ -10,9 +10,16 @@ import { OutletForm } from "../outlet-form";
 
 export const metadata: Metadata = { title: "Outlet baru" };
 
-export default async function NewOutletPage() {
+interface NewOutletPageProps {
+  searchParams: Promise<{ province?: string; city?: string }>;
+}
+
+export default async function NewOutletPage({ searchParams }: NewOutletPageProps) {
   const user = await requirePermission("outlets");
   const options = await loadFormOptions(user.organization.id);
+  const params = await searchParams;
+  const defaultProvince = params.province ?? null;
+  const defaultCity = params.city ?? null;
 
   return (
     <div className="w-full">
@@ -33,6 +40,8 @@ export default async function NewOutletPage() {
         warehouses={options.warehouses}
         members={options.members}
         outletTypes={options.outletTypes}
+        defaultProvince={defaultProvince}
+        defaultCity={defaultCity}
       />
     </div>
   );

@@ -24,6 +24,8 @@ export default async function OrganizationPage() {
       logoUrl: organizations.logoUrl,
       currency: organizations.currency,
       timezone: organizations.timezone,
+      province: organizations.province,
+      city: organizations.city,
     })
     .from(organizations)
     .where(

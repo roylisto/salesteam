@@ -47,6 +47,18 @@ const OrganizationSchema = z.object({
     .max(2000)
     .optional()
     .transform((value) => (value && value.length > 0 ? value : null)),
+  province: z
+    .string()
+    .trim()
+    .max(120)
+    .optional()
+    .transform((value) => (value && value.length > 0 ? value : null)),
+  city: z
+    .string()
+    .trim()
+    .max(120)
+    .optional()
+    .transform((value) => (value && value.length > 0 ? value : null)),
   currency: z
     .string()
     .trim()
@@ -88,6 +100,8 @@ export async function updateOrganization(
     email: formData.get("email") ?? undefined,
     phone: formData.get("phone") ?? undefined,
     address: formData.get("address") ?? undefined,
+    province: formData.get("province") ?? undefined,
+    city: formData.get("city") ?? undefined,
     currency: formData.get("currency"),
     timezone: formData.get("timezone"),
   });
@@ -146,6 +160,8 @@ export async function updateOrganization(
       email: parsed.data.email ?? null,
       phone: parsed.data.phone ?? null,
       address: parsed.data.address ?? null,
+      province: parsed.data.province ?? null,
+      city: parsed.data.city ?? null,
       currency: parsed.data.currency,
       timezone: parsed.data.timezone,
       logoUrl,

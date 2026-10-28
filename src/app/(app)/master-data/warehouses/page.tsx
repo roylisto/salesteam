@@ -3,7 +3,7 @@ import { and, asc, eq } from "drizzle-orm";
 
 import { PageHeader } from "@/components/page-header";
 import { db } from "@/db";
-import { areaOffices, notDeleted, users, warehouses } from "@/db/schema";
+import { areaOffices, notDeleted, organizations, users, warehouses } from "@/db/schema";
 import { requirePermission } from "@/lib/auth";
 
 import { WarehousesClient } from "./warehouses-client";
@@ -22,6 +22,13 @@ export default async function WarehousesPage() {
       and(eq(areaOffices.organizationId, organization.id), notDeleted(areaOffices)),
     )
     .orderBy(asc(areaOffices.name));
+
+  // Fetch organization's default province/city for map centering
+  const [org] = await db
+    .select({ province: organizations.province, city: organizations.city })
+    .from(organizations)
+    .where(eq(organizations.id, organization.id))
+    .limit(1);
 
   const warehouseRows = await db
     .select({
@@ -70,6 +77,8 @@ export default async function WarehousesPage() {
       <WarehousesClient
         warehouses={warehousesList}
         areas={areas}
+        orgProvince={org?.province ?? null}
+        orgCity={org?.city ?? null}
       />
     </div>
   );

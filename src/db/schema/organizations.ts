@@ -22,6 +22,8 @@ export const organizations = pgTable(
     timezone: varchar("timezone", { length: 64 })
       .default("Asia/Jakarta")
       .notNull(),
+    province: varchar("province", { length: 120 }),
+    city: varchar("city", { length: 120 }),
     ...timestamps,
   },
   (table) => [

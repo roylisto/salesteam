@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeftIcon, Loader2Icon, Trash2Icon } from "lucide-react";
+import { Loader2Icon, Trash2Icon } from "lucide-react";
 import { toast } from "sonner";
 
 import { LocationPicker } from "@/components/location-picker";
@@ -55,10 +54,14 @@ export function WarehouseForm({
   warehouse,
   areas,
   backOfficeUsers,
+  defaultProvince,
+  defaultCity,
 }: {
   warehouse: WarehouseDetail | null;
   areas: AreaOption[];
   backOfficeUsers: BackOfficeUserOption[];
+  defaultProvince: string | null;
+  defaultCity: string | null;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -86,6 +89,8 @@ export function WarehouseForm({
   const [longitude, setLongitude] = useState(
     warehouse?.longitude != null ? String(warehouse.longitude) : "",
   );
+
+  const [mapCentered, setMapCentered] = useState(false);
 
   const [provinces, setProvinces] = useState<WilayahItem[]>([]);
   const [regencies, setRegencies] = useState<WilayahItem[]>([]);
@@ -122,6 +127,38 @@ export function WarehouseForm({
       ignore = true;
     };
   }, []);
+
+  // Geocode default province/city for new warehouses to center the map
+  useEffect(() => {
+    if (isEdit || mapCentered) return;
+    if (!defaultProvince && !defaultCity) return;
+    if (latitude.trim() !== "" && longitude.trim() !== "") return;
+
+    let ignore = false;
+
+    async function geocodeDefaultLocation() {
+      try {
+        const query = `${defaultCity ? defaultCity + ", " : ""}${defaultProvince}, Indonesia`;
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=${encodeURIComponent(query)}`,
+        );
+        const results = (await response.json()) as Array<{ lat: string; lon: string }>;
+        if (results.length > 0 && !ignore) {
+          setLatitude(results[0].lat);
+          setLongitude(results[0].lon);
+          setMapCentered(true);
+        }
+      } catch {
+        // Ignore geocoding errors
+      }
+    }
+
+    geocodeDefaultLocation();
+
+    return () => {
+      ignore = true;
+    };
+  }, [defaultProvince, defaultCity, isEdit, latitude, longitude, mapCentered]);
 
   useEffect(() => {
     let ignore = false;
@@ -274,15 +311,56 @@ export function WarehouseForm({
   return (
     <form action={handleSubmit} className="space-y-3">
       <Card size="sm">
-        <CardHeader>
-          <CardTitle>Detail gudang</CardTitle>
-          <CardDescription>
-            Setiap gudang termasuk dalam satu area. Satu area dapat menampung banyak
-            gudang.
-          </CardDescription>
+        <CardHeader className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+          <div>
+            <CardTitle>Detail gudang</CardTitle>
+            <CardDescription>
+              Setiap gudang termasuk dalam satu area. Satu area dapat menampung banyak
+              gudang.
+            </CardDescription>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            {isEdit ? (
+              confirming ? (
+                <>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => setConfirming(false)}
+                    disabled={pending}
+                  >
+                    Batal
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    onClick={handleDelete}
+                    disabled={pending}
+                  >
+                    {pending ? <Loader2Icon className="animate-spin" /> : null}
+                    Konfirmasi hapus
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onClick={() => setConfirming(true)}
+                  disabled={pending}
+                >
+                  <Trash2Icon />
+                  Hapus
+                </Button>
+              )
+            ) : null}
+            <Button type="submit" disabled={pending}>
+              {pending ? <Loader2Icon className="animate-spin" /> : null}
+              {isEdit ? "Simpan gudang" : "Buat gudang"}
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-1.5 sm:col-span-2">
+          <div className="space-y-1.5">
             <Label htmlFor="warehouse-name">Nama</Label>
             <Input
               id="warehouse-name"
@@ -325,7 +403,7 @@ export function WarehouseForm({
             <FieldError message={errors.areaOfficeId} />
           </div>
 
-          <div className="space-y-1.5 sm:col-span-2">
+          <div className="space-y-1.5">
             <Label>PIC penanggung jawab (Back Office)</Label>
             <Select
               value={picUserId}
@@ -345,267 +423,194 @@ export function WarehouseForm({
             <FieldError message={errors.picUserId} />
           </div>
 
-          <div className="flex items-center justify-between gap-4 rounded-lg border p-3 sm:col-span-2">
-            <div className="space-y-0.5">
-              <Label htmlFor="warehouse-active">Aktif</Label>
-              <p className="text-muted-foreground text-xs">
-                Gudang tidak aktif disembunyikan dari penugasan baru.
-              </p>
-            </div>
+          <div className="flex items-center justify-end sm:col-span-2">
             <Switch
               id="warehouse-active"
               checked={active}
               onCheckedChange={setActive}
             />
+            <Label htmlFor="warehouse-active" className="ml-2 text-sm">
+              Aktif
+            </Label>
           </div>
         </CardContent>
       </Card>
 
       <Card size="sm">
         <CardHeader>
-          <CardTitle>Wilayah</CardTitle>
+          <CardTitle>Wilayah & lokasi</CardTitle>
           <CardDescription>
-            Pilih provinsi sampai kelurahan/desa. Nama wilayah disimpan sebagai teks
-            biasa.
+            Pilih provinsi sampai kelurahan/desa. Cari atau klik peta untuk memilih koordinat gudang.
           </CardDescription>
         </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-1.5">
-            <Label>Provinsi</Label>
-            <Select
-              value={province}
-              onValueChange={(value) => {
-                setProvince(value ?? "");
-                setRegency("");
-                setDistrict("");
-                setVillage("");
-                setRegencies([]);
-                setDistricts([]);
-                setVillages([]);
+        <CardContent className="grid gap-4 lg:grid-cols-[1fr_380px]">
+          <div className="lg:sticky lg:top-4 lg:self-start">
+            <LocationPicker
+              latitude={latitude}
+              longitude={longitude}
+              onChange={(nextLatitude, nextLongitude) => {
+                setLatitude(nextLatitude);
+                setLongitude(nextLongitude);
               }}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder={loadingProvince ? "Memuat..." : "Pilih provinsi"}>
-                  {province}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {provinces.map((item) => (
-                  <SelectItem key={String(item.code)} value={item.name}>
-                    {item.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <FieldError message={errors.province} />
-          </div>
-
-          <div className="space-y-1.5">
-            <Label>Kabupaten/Kota</Label>
-            <Select
-              value={regency}
-              onValueChange={(value) => {
-                setRegency(value ?? "");
-                setDistrict("");
-                setVillage("");
-                setDistricts([]);
-                setVillages([]);
+              onAddressChange={(address) => {
+                if (address.postalCode) setPostalCode(address.postalCode);
+                if (address.latitude) setLatitude(address.latitude);
+                if (address.longitude) setLongitude(address.longitude);
               }}
-              disabled={!province || loadingRegency}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue
-                  placeholder={loadingRegency ? "Memuat..." : "Pilih kabupaten/kota"}
-                >
-                  {regency}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {regencies.map((item) => (
-                  <SelectItem key={String(item.code)} value={item.name}>
-                    {item.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <FieldError message={errors.regency} />
-          </div>
-
-          <div className="space-y-1.5">
-            <Label>Kecamatan</Label>
-            <Select
-              value={district}
-              onValueChange={(value) => {
-                setDistrict(value ?? "");
-                setVillage("");
-                setVillages([]);
-              }}
-              disabled={!regency || loadingDistrict}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder={loadingDistrict ? "Memuat..." : "Pilih kecamatan"}>
-                  {district}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {districts.map((item) => (
-                  <SelectItem key={String(item.code)} value={item.name}>
-                    {item.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <FieldError message={errors.district} />
-          </div>
-
-          <div className="space-y-1.5">
-            <Label>Kelurahan/Desa</Label>
-            <Select
-              value={village}
-              onValueChange={(value) => setVillage(value ?? "")}
-              disabled={!district || loadingVillage}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue
-                  placeholder={loadingVillage ? "Memuat..." : "Pilih kelurahan/desa"}
-                >
-                  {village}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {villages.map((item) => (
-                  <SelectItem key={String(item.code)} value={item.name}>
-                    {item.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <FieldError message={errors.village} />
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card size="sm">
-        <CardHeader>
-          <CardTitle>Alamat &amp; lokasi</CardTitle>
-          <CardDescription>
-            Cari atau klik peta untuk memilih koordinat gudang.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-1.5">
-            <Label htmlFor="warehouse-address">Alamat</Label>
-            <Textarea
-              id="warehouse-address"
-              value={address}
-              onChange={(event) => setAddress(event.target.value)}
-              rows={3}
-              placeholder="Nama jalan, nomor, RT/RW, patokan"
+              compact
             />
-            <FieldError message={errors.address} />
           </div>
+          <div className="space-y-4 lg:max-h-[calc(100vh-200px)] lg:overflow-y-auto lg:pr-2">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label>Provinsi</Label>
+                <Select
+                  value={province}
+                  onValueChange={(value) => {
+                    setProvince(value ?? "");
+                    setRegency("");
+                    setDistrict("");
+                    setVillage("");
+                    setRegencies([]);
+                    setDistricts([]);
+                    setVillages([]);
+                  }}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder={loadingProvince ? "Memuat..." : "Pilih provinsi"}>
+                      {province}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {provinces.map((item) => (
+                      <SelectItem key={String(item.code)} value={item.name}>
+                        {item.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FieldError message={errors.province} />
+              </div>
 
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="warehouse-postal">Kode pos</Label>
-              <Input
-                id="warehouse-postal"
-                value={postalCode}
-                onChange={(event) => setPostalCode(event.target.value)}
-                placeholder="12345"
-              />
-              <FieldError message={errors.postalCode} />
+              <div className="space-y-1.5">
+                <Label>Kabupaten/Kota</Label>
+                <Select
+                  value={regency}
+                  onValueChange={(value) => {
+                    setRegency(value ?? "");
+                    setDistrict("");
+                    setVillage("");
+                    setDistricts([]);
+                    setVillages([]);
+                  }}
+                  disabled={!province || loadingRegency}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue
+                      placeholder={loadingRegency ? "Memuat..." : "Pilih kabupaten/kota"}
+                    >
+                      {regency}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {regencies.map((item) => (
+                      <SelectItem key={String(item.code)} value={item.name}>
+                        {item.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FieldError message={errors.regency} />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>Kecamatan</Label>
+                <Select
+                  value={district}
+                  onValueChange={(value) => {
+                    setDistrict(value ?? "");
+                    setVillage("");
+                    setVillages([]);
+                  }}
+                  disabled={!regency || loadingDistrict}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder={loadingDistrict ? "Memuat..." : "Pilih kecamatan"}>
+                      {district}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {districts.map((item) => (
+                      <SelectItem key={String(item.code)} value={item.name}>
+                        {item.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FieldError message={errors.district} />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>Kelurahan/Desa</Label>
+                <Select
+                  value={village}
+                  onValueChange={(value) => setVillage(value ?? "")}
+                  disabled={!district || loadingVillage}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue
+                      placeholder={loadingVillage ? "Memuat..." : "Pilih kelurahan/desa"}
+                    >
+                      {village}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {villages.map((item) => (
+                      <SelectItem key={String(item.code)} value={item.name}>
+                        {item.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FieldError message={errors.village} />
+              </div>
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="warehouse-lat">Lintang</Label>
-              <Input
-                id="warehouse-lat"
-                inputMode="decimal"
-                value={latitude}
-                onChange={(event) => setLatitude(event.target.value)}
-                placeholder="-6.2000000"
-              />
-              <FieldError message={errors.latitude} />
-            </div>
+            <Separator />
 
             <div className="space-y-1.5">
-              <Label htmlFor="warehouse-lng">Bujur</Label>
-              <Input
-                id="warehouse-lng"
-                inputMode="decimal"
-                value={longitude}
-                onChange={(event) => setLongitude(event.target.value)}
-                placeholder="106.8166660"
+              <Label htmlFor="warehouse-address">Alamat</Label>
+              <Textarea
+                id="warehouse-address"
+                value={address}
+                onChange={(event) => setAddress(event.target.value)}
+                rows={3}
+                placeholder="Nama jalan, nomor, RT/RW, patokan"
               />
-              <FieldError message={errors.longitude} />
+              <FieldError message={errors.address} />
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="warehouse-latitude">Latitude</Label>
+                <Input
+                  id="warehouse-latitude"
+                  value={latitude}
+                  onChange={(event) => setLatitude(event.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="warehouse-longitude">Longitude</Label>
+                <Input
+                  id="warehouse-longitude"
+                  value={longitude}
+                  onChange={(event) => setLongitude(event.target.value)}
+                />
+              </div>
             </div>
           </div>
-
-          <Separator />
-
-          <LocationPicker
-            latitude={latitude}
-            longitude={longitude}
-            onChange={(nextLatitude, nextLongitude) => {
-              setLatitude(nextLatitude);
-              setLongitude(nextLongitude);
-            }}
-          />
         </CardContent>
       </Card>
-
-      <div className="bg-background/80 sticky bottom-0 flex flex-wrap items-center justify-between gap-2 rounded-xl border p-3 backdrop-blur">
-        <Button
-          render={<Link href={LIST_PATH} />}
-          nativeButton={false}
-          variant="ghost"
-        >
-          <ArrowLeftIcon />
-          Kembali
-        </Button>
-
-        <div className="flex flex-wrap items-center gap-2">
-          {isEdit ? (
-            confirming ? (
-              <>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={() => setConfirming(false)}
-                  disabled={pending}
-                >
-                  Batal
-                </Button>
-                <Button
-                  type="button"
-                  variant="destructive"
-                  onClick={handleDelete}
-                  disabled={pending}
-                >
-                  {pending ? <Loader2Icon className="animate-spin" /> : null}
-                  Konfirmasi hapus
-                </Button>
-              </>
-            ) : (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setConfirming(true)}
-                disabled={pending}
-              >
-                <Trash2Icon />
-                Hapus
-              </Button>
-            )
-          ) : null}
-
-          <Button type="submit" disabled={pending}>
-            {pending ? <Loader2Icon className="animate-spin" /> : null}
-            {isEdit ? "Simpan gudang" : "Buat gudang"}
-          </Button>
-        </div>
-      </div>
     </form>
   );
 }

@@ -46,6 +46,8 @@ export default async function EditWarehousePage({
         warehouse={warehouse}
         areas={options.areas}
         backOfficeUsers={options.backOfficeUsers}
+        defaultProvince={null}
+        defaultCity={null}
       />
     </div>
   );

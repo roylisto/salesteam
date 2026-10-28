@@ -2,24 +2,11 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
-import {
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  MoreHorizontalIcon,
-  PlusIcon,
-  SearchIcon,
-  StoreIcon,
-} from "lucide-react";
+import { ChevronLeftIcon, ChevronRightIcon, EditIcon, PlusIcon, SearchIcon, StoreIcon } from "lucide-react";
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryState } from "nuqs";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -47,9 +34,13 @@ const STATUS_OPTIONS = ["all", "active", "inactive"] as const;
 export function OutletsClient({
   outlets,
   warehouses,
+  orgProvince,
+  orgCity,
 }: {
   outlets: OutletRow[];
   warehouses: WarehouseOption[];
+  orgProvince: string | null;
+  orgCity: string | null;
 }) {
   const [query, setQuery] = useQueryState(
     "q",
@@ -158,7 +149,11 @@ export function OutletsClient({
         </Select>
 
         <Button
-          render={<Link href="/master-data/outlets/new" />}
+          render={
+            <Link
+              href={`/master-data/outlets/new?province=${encodeURIComponent(orgProvince ?? "")}&city=${encodeURIComponent(orgCity ?? "")}`}
+            />
+          }
           nativeButton={false}
         >
           <PlusIcon />
@@ -226,21 +221,12 @@ export function OutletsClient({
                         {outlet.status === "active" ? "Aktif" : "Tidak aktif"}
                       </Badge>
                     </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger className="hover:bg-muted inline-flex size-7 items-center justify-center rounded-lg transition-colors">
-                          <MoreHorizontalIcon className="size-4" />
-                          <span className="sr-only">Aksi</span>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            render={<Link href={`/master-data/outlets/${outlet.id}`} />}
-                            nativeButton={false}
-                          >
-                            Lihat &amp; ubah
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                    <TableCell className="text-right">
+                      <Link href={`/master-data/outlets/${outlet.id}`}>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Ubah outlet">
+                          <EditIcon className="size-4" />
+                        </Button>
+                      </Link>
                     </TableCell>
                   </TableRow>
                 ))

@@ -7,4 +7,6 @@ export type OrganizationDetail = {
   logoUrl: string | null;
   currency: string;
   timezone: string;
+  province: string | null;
+  city: string | null;
 };

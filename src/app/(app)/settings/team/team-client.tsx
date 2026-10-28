@@ -1,13 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import {
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  MoreHorizontalIcon,
-  SearchIcon,
-  UserPlusIcon,
-} from "lucide-react";
+import { ChevronLeftIcon, ChevronRightIcon, EditIcon, SearchIcon, UserPlusIcon } from "lucide-react";
 import {
   parseAsInteger,
   parseAsString,
@@ -17,12 +11,6 @@ import {
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -236,18 +224,16 @@ function MemberTable({
                 <TableCell>
                   <StatusBadge member={member} />
                 </TableCell>
-                <TableCell>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger className="hover:bg-muted inline-flex size-7 items-center justify-center rounded-lg transition-colors">
-                      <MoreHorizontalIcon className="size-4" />
-                      <span className="sr-only">Aksi</span>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => onSelect(member.id)}>
-                        Lihat & ubah
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                <TableCell className="text-right">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => onSelect(member.id)}
+                    aria-label="Ubah anggota"
+                  >
+                    <EditIcon className="size-4" />
+                  </Button>
                 </TableCell>
               </TableRow>
             ))}

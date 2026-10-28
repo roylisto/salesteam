@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
-  MoreHorizontalIcon,
+  EditIcon,
   PlusIcon,
   SearchIcon,
   TagsIcon,
@@ -13,12 +13,6 @@ import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryState } fr
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import {
   Table,
@@ -137,20 +131,16 @@ export function OutletTypesClient({
                     <TableCell className="text-muted-foreground hidden text-xs lg:table-cell">
                       {new Date(outletType.createdAt).toLocaleDateString()}
                     </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger className="hover:bg-muted inline-flex size-7 items-center justify-center rounded-lg transition-colors">
-                          <MoreHorizontalIcon className="size-4" />
-                          <span className="sr-only">Aksi</span>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={() => void setOutletTypeId(outletType.id)}
-                          >
-                            Lihat &amp; ubah
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => void setOutletTypeId(outletType.id)}
+                        aria-label="Ubah tipe outlet"
+                      >
+                        <EditIcon className="size-4" />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))

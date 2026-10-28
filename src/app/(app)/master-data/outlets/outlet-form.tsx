@@ -1,15 +1,13 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
-  ArrowLeftIcon,
   ImagePlusIcon,
   Loader2Icon,
   StoreIcon,
   Trash2Icon,
 } from "lucide-react";
-import Link from "next/link";
 import { toast } from "sonner";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -33,7 +31,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { LocationPicker } from "@/components/location-picker";
+import { LocationPicker, type AddressComponents } from "@/components/location-picker";
 import {
   createOutlet,
   deleteOutlet,
@@ -60,11 +58,15 @@ export function OutletForm({
   warehouses,
   members,
   outletTypes,
+  defaultProvince,
+  defaultCity,
 }: {
   outlet: OutletDetail | null;
   warehouses: WarehouseOption[];
   members: MemberOption[];
   outletTypes: OutletTypeOption[];
+  defaultProvince: string | null;
+  defaultCity: string | null;
 }) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -89,6 +91,46 @@ export function OutletForm({
   const [longitude, setLongitude] = useState(
     outlet?.longitude != null ? String(outlet.longitude) : "",
   );
+
+  const [mapCentered, setMapCentered] = useState(false);
+
+  function handleAddressChange(address: AddressComponents) {
+    if (address.latitude) setLatitude(address.latitude);
+    if (address.longitude) setLongitude(address.longitude);
+  }
+
+  // Geocode default province/city for new outlets to center the map
+  useEffect(() => {
+    if (isEdit || mapCentered) return;
+    if (!defaultProvince && !defaultCity) return;
+    if (latitude.trim() !== "" && longitude.trim() !== "") return;
+
+    let ignore = false;
+
+    async function geocodeDefaultLocation() {
+      try {
+        const query = `${defaultCity ? defaultCity + ", " : ""}${defaultProvince}, Indonesia`;
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=${encodeURIComponent(query)}`,
+        );
+        const results = (await response.json()) as Array<{ lat: string; lon: string }>;
+        if (results.length > 0 && !ignore) {
+          setLatitude(results[0].lat);
+          setLongitude(results[0].lon);
+          setMapCentered(true);
+        }
+      } catch {
+        // Ignore geocoding errors
+      }
+    }
+
+    geocodeDefaultLocation();
+
+    return () => {
+      ignore = true;
+    };
+  }, [defaultProvince, defaultCity, isEdit, latitude, longitude, mapCentered]);
+
   const [imagePreview, setImagePreview] = useState<string | null>(() =>
     toFileSrc(outlet?.imageUrl ?? null),
   );
@@ -186,12 +228,53 @@ export function OutletForm({
   return (
     <form action={handleSubmit} className="space-y-3">
       <Card size="sm">
-        <CardHeader>
-          <CardTitle>Detail outlet</CardTitle>
-          <CardDescription>
-            Nama dan kode mengidentifikasi toko; tipe, gudang, dan tenaga penjualan
-            menentukan rute dan stok.
-          </CardDescription>
+        <CardHeader className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+          <div>
+            <CardTitle>Detail outlet</CardTitle>
+            <CardDescription>
+              Nama dan kode mengidentifikasi toko; tipe, gudang, dan tenaga penjualan
+              menentukan rute dan stok.
+            </CardDescription>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            {isEdit ? (
+              confirming ? (
+                <>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => setConfirming(false)}
+                    disabled={pending}
+                  >
+                    Batal
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    onClick={handleDelete}
+                    disabled={pending}
+                  >
+                    {pending ? <Loader2Icon className="animate-spin" /> : null}
+                    Konfirmasi hapus
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onClick={() => setConfirming(true)}
+                  disabled={pending}
+                >
+                  <Trash2Icon />
+                  Hapus
+                </Button>
+              )
+            ) : null}
+            <Button type="submit" disabled={pending}>
+              {pending ? <Loader2Icon className="animate-spin" /> : null}
+              {isEdit ? "Simpan outlet" : "Buat outlet"}
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5 sm:col-span-2">
@@ -360,14 +443,26 @@ export function OutletForm({
 
       <Card size="sm">
         <CardHeader>
-          <CardTitle>Alamat</CardTitle>
+          <CardTitle>Alamat & lokasi</CardTitle>
           <CardDescription>
-            Cari atau klik peta untuk memilih koordinat yang tepat.
+            Cari atau klik peta untuk memilih koordinat yang tepat. Wilayah (provinsi–kelurahan) dan kode pos diisi otomatis dari peta.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1.5 sm:col-span-2">
+        <CardContent className="grid gap-4 lg:grid-cols-[1fr_380px]">
+          <div className="lg:sticky lg:top-4 lg:self-start">
+            <LocationPicker
+              latitude={latitude}
+              longitude={longitude}
+              onChange={(nextLatitude, nextLongitude) => {
+                setLatitude(nextLatitude);
+                setLongitude(nextLongitude);
+              }}
+              onAddressChange={handleAddressChange}
+              compact
+            />
+          </div>
+          <div className="space-y-4 lg:max-h-[calc(100vh-200px)] lg:overflow-y-auto lg:pr-2">
+            <div className="space-y-1.5">
               <Label htmlFor="outlet-address">Alamat</Label>
               <Textarea
                 id="outlet-address"
@@ -379,7 +474,7 @@ export function OutletForm({
               <FieldError message={errors.address} />
             </div>
 
-            <div className="space-y-1.5 sm:col-span-2">
+            <div className="space-y-1.5">
               <Label htmlFor="outlet-address-detail">Detail alamat</Label>
               <Input
                 id="outlet-address-detail"
@@ -388,46 +483,6 @@ export function OutletForm({
                 placeholder="Gedung, lantai, patokan"
               />
               <FieldError message={errors.addressDetail} />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="outlet-village">Kelurahan</Label>
-              <Input
-                id="outlet-village"
-                name="village"
-                defaultValue={outlet?.village ?? ""}
-              />
-              <FieldError message={errors.village} />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="outlet-district">Kecamatan</Label>
-              <Input
-                id="outlet-district"
-                name="district"
-                defaultValue={outlet?.district ?? ""}
-              />
-              <FieldError message={errors.district} />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="outlet-city">Kota/Kabupaten</Label>
-              <Input
-                id="outlet-city"
-                name="city"
-                defaultValue={outlet?.city ?? ""}
-              />
-              <FieldError message={errors.city} />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="outlet-province">Provinsi</Label>
-              <Input
-                id="outlet-province"
-                name="province"
-                defaultValue={outlet?.province ?? ""}
-              />
-              <FieldError message={errors.province} />
             </div>
 
             <div className="space-y-1.5">
@@ -440,51 +495,8 @@ export function OutletForm({
               <FieldError message={errors.country} />
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="outlet-postal">Kode pos</Label>
-              <Input
-                id="outlet-postal"
-                name="postalCode"
-                defaultValue={outlet?.postalCode ?? ""}
-              />
-              <FieldError message={errors.postalCode} />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="outlet-lat">Lintang</Label>
-              <Input
-                id="outlet-lat"
-                inputMode="decimal"
-                value={latitude}
-                onChange={(event) => setLatitude(event.target.value)}
-                placeholder="-6.2000000"
-              />
-              <FieldError message={errors.latitude} />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="outlet-lng">Bujur</Label>
-              <Input
-                id="outlet-lng"
-                inputMode="decimal"
-                value={longitude}
-                onChange={(event) => setLongitude(event.target.value)}
-                placeholder="106.8166660"
-              />
-              <FieldError message={errors.longitude} />
-            </div>
+            <Separator />
           </div>
-
-          <Separator />
-
-          <LocationPicker
-            latitude={latitude}
-            longitude={longitude}
-            onChange={(nextLatitude, nextLongitude) => {
-              setLatitude(nextLatitude);
-              setLongitude(nextLongitude);
-            }}
-          />
         </CardContent>
       </Card>
 
@@ -599,58 +611,6 @@ export function OutletForm({
           </div>
         </CardContent>
       </Card>
-
-      <div className="bg-background/80 sticky bottom-0 flex flex-wrap items-center justify-between gap-2 rounded-xl border p-3 backdrop-blur">
-        <Button
-          render={<Link href={LIST_PATH} />}
-          nativeButton={false}
-          variant="ghost"
-        >
-          <ArrowLeftIcon />
-          Kembali
-        </Button>
-
-        <div className="flex flex-wrap items-center gap-2">
-          {isEdit ? (
-            confirming ? (
-              <>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={() => setConfirming(false)}
-                  disabled={pending}
-                >
-                  Batal
-                </Button>
-                <Button
-                  type="button"
-                  variant="destructive"
-                  onClick={handleDelete}
-                  disabled={pending}
-                >
-                  {pending ? <Loader2Icon className="animate-spin" /> : null}
-                  Konfirmasi hapus
-                </Button>
-              </>
-            ) : (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setConfirming(true)}
-                disabled={pending}
-              >
-                <Trash2Icon />
-                Hapus
-              </Button>
-            )
-          ) : null}
-
-          <Button type="submit" disabled={pending}>
-            {pending ? <Loader2Icon className="animate-spin" /> : null}
-            {isEdit ? "Simpan outlet" : "Buat outlet"}
-          </Button>
-        </div>
-      </div>
     </form>
   );
 }

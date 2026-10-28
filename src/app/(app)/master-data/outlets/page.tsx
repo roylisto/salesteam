@@ -3,7 +3,7 @@ import { and, asc, eq } from "drizzle-orm";
 
 import { PageHeader } from "@/components/page-header";
 import { db } from "@/db";
-import { notDeleted, outletTypes, outlets, users, warehouses } from "@/db/schema";
+import { notDeleted, organizations, outletTypes, outlets, users, warehouses } from "@/db/schema";
 import { requirePermission } from "@/lib/auth";
 
 import { OutletsClient } from "./outlets-client";
@@ -57,6 +57,13 @@ export default async function OutletsPage() {
       .orderBy(asc(outlets.name)),
   ]);
 
+  // Fetch organization's default province/city for map centering
+  const [org] = await db
+    .select({ province: organizations.province, city: organizations.city })
+    .from(organizations)
+    .where(eq(organizations.id, organization.id))
+    .limit(1);
+
   const warehouseOptions: WarehouseOption[] = warehouseRows;
   const outletsList: OutletRow[] = outletRows.map((outlet) => ({
     ...outlet,
@@ -70,7 +77,12 @@ export default async function OutletsPage() {
         title="Outlet"
         description="Toko pelanggan yang dikunjungi tenaga penjualan, lengkap dengan penugasan gudang dan tenaga penjualannya."
       />
-      <OutletsClient outlets={outletsList} warehouses={warehouseOptions} />
+      <OutletsClient
+        outlets={outletsList}
+        warehouses={warehouseOptions}
+        orgProvince={org?.province ?? null}
+        orgCity={org?.city ?? null}
+      />
     </div>
   );
 }
