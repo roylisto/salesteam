@@ -49,46 +49,32 @@ const WarehouseSchema = z.object({
     .max(500)
     .optional()
     .transform((value) => (value ? value : null)),
-  province: z
-    .string()
-    .trim()
-    .max(120)
-    .optional()
-    .transform((value) => (value ? value : null)),
-  regency: z
-    .string()
-    .trim()
-    .max(120)
-    .optional()
-    .transform((value) => (value ? value : null)),
-  district: z
-    .string()
-    .trim()
-    .max(120)
-    .optional()
-    .transform((value) => (value ? value : null)),
-  village: z
-    .string()
-    .trim()
-    .max(120)
-    .optional()
-    .transform((value) => (value ? value : null)),
+  province: z.string().trim().min(1, "Provinsi wajib dipilih.").max(120),
+  regency: z.string().trim().min(1, "Kabupaten/kota wajib dipilih.").max(120),
+  district: z.string().trim().min(1, "Kecamatan wajib dipilih.").max(120),
+  village: z.string().trim().min(1, "Kelurahan/desa wajib dipilih.").max(120),
   postalCode: z
     .string()
     .trim()
     .max(20)
     .optional()
     .transform((value) => (value ? value : null)),
-  latitude: z.coerce
-    .number()
-    .optional()
-    .nullable()
-    .transform((value) => (value === null || Number.isNaN(value) ? null : value)),
-  longitude: z.coerce
-    .number()
-    .optional()
-    .nullable()
-    .transform((value) => (value === null || Number.isNaN(value) ? null : value)),
+  latitude: z
+    .string()
+    .trim()
+    .min(1, "Latitude wajib diisi.")
+    .transform((value) => Number(value))
+    .refine((value) => Number.isFinite(value) && value >= -90 && value <= 90, {
+      message: "Latitude tidak valid.",
+    }),
+  longitude: z
+    .string()
+    .trim()
+    .min(1, "Longitude wajib diisi.")
+    .transform((value) => Number(value))
+    .refine((value) => Number.isFinite(value) && value >= -180 && value <= 180, {
+      message: "Longitude tidak valid.",
+    }),
 });
 
 function readForm(formData: FormData) {
@@ -98,13 +84,13 @@ function readForm(formData: FormData) {
     picUserId: formData.get("picUserId"),
     depotType: formData.get("depotType"),
     address: formData.get("address"),
-    province: formData.get("province"),
-    regency: formData.get("regency"),
-    district: formData.get("district"),
-    village: formData.get("village"),
+    province: formData.get("province") ?? "",
+    regency: formData.get("regency") ?? "",
+    district: formData.get("district") ?? "",
+    village: formData.get("village") ?? "",
     postalCode: formData.get("postalCode"),
-    latitude: formData.get("latitude"),
-    longitude: formData.get("longitude"),
+    latitude: formData.get("latitude") ?? "",
+    longitude: formData.get("longitude") ?? "",
   });
 }
 

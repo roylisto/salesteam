@@ -263,7 +263,7 @@ export function WarehouseForm({
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="warehouse-type">Tipe depo</Label>
+            <Label htmlFor="warehouse-type">Tipe Gudang</Label>
             <Input
               id="warehouse-type"
               name="depotType"
@@ -361,7 +361,9 @@ export function WarehouseForm({
           <div className="space-y-4 lg:max-h-[calc(100vh-200px)] lg:overflow-y-auto lg:pr-2">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <Label>Provinsi</Label>
+                <Label>
+                  Provinsi <span className="text-destructive">*</span>
+                </Label>
                 <Select
                   value={province}
                   onValueChange={(value) => setProvince(value ?? "")}
@@ -383,7 +385,9 @@ export function WarehouseForm({
               </div>
 
               <div className="space-y-1.5">
-                <Label>Kabupaten/Kota</Label>
+                <Label>
+                  Kabupaten/Kota <span className="text-destructive">*</span>
+                </Label>
                 <Select
                   value={regency}
                   onValueChange={(value) => setRegency(value ?? "")}
@@ -408,7 +412,9 @@ export function WarehouseForm({
               </div>
 
               <div className="space-y-1.5">
-                <Label>Kecamatan</Label>
+                <Label>
+                  Kecamatan <span className="text-destructive">*</span>
+                </Label>
                 <Select
                   value={district}
                   onValueChange={(value) => setDistrict(value ?? "")}
@@ -431,7 +437,9 @@ export function WarehouseForm({
               </div>
 
               <div className="space-y-1.5">
-                <Label>Kelurahan/Desa</Label>
+                <Label>
+                  Kelurahan/Desa <span className="text-destructive">*</span>
+                </Label>
                 <Select
                   value={village}
                   onValueChange={(value) => setVillage(value ?? "")}
@@ -472,20 +480,28 @@ export function WarehouseForm({
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <Label htmlFor="warehouse-latitude">Latitude</Label>
+                <Label htmlFor="warehouse-latitude">
+                  Latitude <span className="text-destructive">*</span>
+                </Label>
                 <Input
                   id="warehouse-latitude"
                   value={latitude}
                   onChange={(event) => setLatitude(event.target.value)}
+                  required
                 />
+                <FieldError message={errors.latitude} />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="warehouse-longitude">Longitude</Label>
+                <Label htmlFor="warehouse-longitude">
+                  Longitude <span className="text-destructive">*</span>
+                </Label>
                 <Input
                   id="warehouse-longitude"
                   value={longitude}
                   onChange={(event) => setLongitude(event.target.value)}
+                  required
                 />
+                <FieldError message={errors.longitude} />
               </div>
             </div>
           </div>
