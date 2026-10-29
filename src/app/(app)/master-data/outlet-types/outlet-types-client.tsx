@@ -14,6 +14,7 @@ import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryState } fr
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SortableHead, useTableSort, type SortColumn } from "@/components/table-sort";
 import {
   Table,
   TableBody,
@@ -27,6 +28,12 @@ import { OutletTypeDialog } from "./outlet-type-dialog";
 import type { OutletTypeRow } from "./types";
 
 const PAGE_SIZE = 10;
+
+const SORT_COLUMNS: SortColumn<OutletTypeRow>[] = [
+  { key: "name", getValue: (outletType) => outletType.name },
+  { key: "status", getValue: (outletType) => (outletType.isActive ? 1 : 0) },
+  { key: "createdAt", getValue: (outletType) => outletType.createdAt },
+];
 
 export function OutletTypesClient({
   outletTypes,
@@ -60,10 +67,12 @@ export function OutletTypesClient({
     );
   }, [outletTypes, query]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const { sortedRows, sortKey, sortDir, toggleSort } = useTableSort(filtered, SORT_COLUMNS);
+
+  const totalPages = Math.max(1, Math.ceil(sortedRows.length / PAGE_SIZE));
   const currentPage = Math.min(Math.max(page, 1), totalPages);
   const start = (currentPage - 1) * PAGE_SIZE;
-  const visible = filtered.slice(start, start + PAGE_SIZE);
+  const visible = sortedRows.slice(start, start + PAGE_SIZE);
 
   return (
     <div className="space-y-3">
@@ -92,9 +101,28 @@ export function OutletTypesClient({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Tipe outlet</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="hidden lg:table-cell">Dibuat</TableHead>
+                <SortableHead
+                  label="Tipe outlet"
+                  columnKey="name"
+                  sortKey={sortKey}
+                  sortDir={sortDir}
+                  onSort={toggleSort}
+                />
+                <SortableHead
+                  label="Status"
+                  columnKey="status"
+                  sortKey={sortKey}
+                  sortDir={sortDir}
+                  onSort={toggleSort}
+                />
+                <SortableHead
+                  label="Dibuat"
+                  columnKey="createdAt"
+                  sortKey={sortKey}
+                  sortDir={sortDir}
+                  onSort={toggleSort}
+                  className="hidden lg:table-cell"
+                />
                 <TableHead className="w-10" />
               </TableRow>
             </TableHeader>
@@ -152,9 +180,9 @@ export function OutletTypesClient({
 
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-muted-foreground text-xs">
-          {filtered.length === 0
+          {sortedRows.length === 0
             ? "Tidak ada hasil"
-            : `Menampilkan ${start + 1}–${Math.min(start + PAGE_SIZE, filtered.length)} dari ${filtered.length}`}
+            : `Menampilkan ${start + 1}–${Math.min(start + PAGE_SIZE, sortedRows.length)} dari ${sortedRows.length}`}
         </p>
         <div className="flex items-center gap-2">
           <Button

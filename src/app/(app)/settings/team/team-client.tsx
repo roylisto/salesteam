@@ -15,6 +15,12 @@ import { Button } from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
 import { Input } from "@/components/ui/input";
 import {
+  SortableHead,
+  useTableSort,
+  type SortColumn,
+  type SortDirection,
+} from "@/components/table-sort";
+import {
   Table,
   TableBody,
   TableCell,
@@ -39,6 +45,19 @@ const STATUS_FILTER_OPTIONS = [
   { value: "inactive", label: "Tidak aktif" },
 ];
 const PAGE_SIZE = 10;
+
+const SORT_COLUMNS: SortColumn<MemberRow>[] = [
+  { key: "name", getValue: (member) => member.name },
+  { key: "type", getValue: (member) => (member.userType === "sales" ? "Sales" : "Back Office") },
+  { key: "role", getValue: (member) => member.roleName ?? null },
+  { key: "reportsTo", getValue: (member) => member.reportsToName ?? null },
+  {
+    key: "area",
+    getValue: (member) =>
+      member.areaNames.length > 0 ? member.areaNames.join(", ") : null,
+  },
+  { key: "status", getValue: (member) => (member.isActive ? 1 : 0) },
+];
 
 type TabValue = string;
 const ALL_TAB = "all";
@@ -156,9 +175,15 @@ function HierarchyBranch({
 function MemberTable({
   rows,
   onSelect,
+  sortKey,
+  sortDir,
+  onSort,
 }: {
   rows: MemberRow[];
   onSelect: (id: number) => void;
+  sortKey: string | null;
+  sortDir: SortDirection | null;
+  onSort: (key: string) => void;
 }) {
   if (rows.length === 0) {
     return (
@@ -173,12 +198,54 @@ function MemberTable({
         <Table className="table-fixed w-full">
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[28%] min-w-[220px]">Anggota</TableHead>
-              <TableHead className="hidden w-[12%] md:table-cell">Tipe</TableHead>
-              <TableHead className="hidden w-[16%] lg:table-cell">Peran</TableHead>
-              <TableHead className="hidden w-[14%] xl:table-cell">Atasan</TableHead>
-              <TableHead className="hidden w-[18%] 2xl:table-cell">Area</TableHead>
-              <TableHead className="w-[12%] whitespace-nowrap">Status</TableHead>
+              <SortableHead
+                label="Anggota"
+                columnKey="name"
+                sortKey={sortKey}
+                sortDir={sortDir}
+                onSort={onSort}
+                className="w-[28%] min-w-[220px]"
+              />
+              <SortableHead
+                label="Tipe"
+                columnKey="type"
+                sortKey={sortKey}
+                sortDir={sortDir}
+                onSort={onSort}
+                className="hidden w-[12%] md:table-cell"
+              />
+              <SortableHead
+                label="Peran"
+                columnKey="role"
+                sortKey={sortKey}
+                sortDir={sortDir}
+                onSort={onSort}
+                className="hidden w-[16%] lg:table-cell"
+              />
+              <SortableHead
+                label="Atasan"
+                columnKey="reportsTo"
+                sortKey={sortKey}
+                sortDir={sortDir}
+                onSort={onSort}
+                className="hidden w-[14%] xl:table-cell"
+              />
+              <SortableHead
+                label="Area"
+                columnKey="area"
+                sortKey={sortKey}
+                sortDir={sortDir}
+                onSort={onSort}
+                className="hidden w-[18%] 2xl:table-cell"
+              />
+              <SortableHead
+                label="Status"
+                columnKey="status"
+                sortKey={sortKey}
+                sortDir={sortDir}
+                onSort={onSort}
+                className="w-[12%] whitespace-nowrap"
+              />
               <TableHead className="w-10" />
             </TableRow>
           </TableHeader>
@@ -326,10 +393,12 @@ export function TeamClient({
     });
   }, [members, query, status, activeTab]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const { sortedRows, sortKey, sortDir, toggleSort } = useTableSort(filtered, SORT_COLUMNS);
+
+  const totalPages = Math.max(1, Math.ceil(sortedRows.length / PAGE_SIZE));
   const currentPage = Math.min(Math.max(page, 1), totalPages);
   const start = (currentPage - 1) * PAGE_SIZE;
-  const visible = filtered.slice(start, start + PAGE_SIZE);
+  const visible = sortedRows.slice(start, start + PAGE_SIZE);
 
   const grouped = useMemo(() => {
     if (activeTab !== ALL_TAB) return null;
@@ -469,13 +538,25 @@ export function TeamClient({
                     {group.rows.length} anggota
                   </span>
                 </h2>
-                <MemberTable rows={group.rows} onSelect={(id) => void setMemberId(id)} />
+                <MemberTable
+                  rows={group.rows}
+                  onSelect={(id) => void setMemberId(id)}
+                  sortKey={sortKey}
+                  sortDir={sortDir}
+                  onSort={toggleSort}
+                />
               </section>
             ))
           )}
         </div>
       ) : (
-        <MemberTable rows={visible} onSelect={(id) => void setMemberId(id)} />
+        <MemberTable
+          rows={visible}
+          onSelect={(id) => void setMemberId(id)}
+          sortKey={sortKey}
+          sortDir={sortDir}
+          onSort={toggleSort}
+        />
       )}
 
       {activeTab !== HIERARCHY_TAB && !(activeTab === ALL_TAB && grouped) ? (

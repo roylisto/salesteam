@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
 import { Input } from "@/components/ui/input";
+import { SortableHead, useTableSort, type SortColumn } from "@/components/table-sort";
 import {
   Table,
   TableBody,
@@ -22,6 +23,13 @@ import type { AreaOption, WarehouseRow } from "./types";
 
 const PAGE_SIZE = 10;
 const ALL_AREAS = "all";
+
+const SORT_COLUMNS: SortColumn<WarehouseRow>[] = [
+  { key: "name", getValue: (warehouse) => warehouse.name },
+  { key: "area", getValue: (warehouse) => warehouse.areaName ?? null },
+  { key: "type", getValue: (warehouse) => warehouse.depotType ?? null },
+  { key: "status", getValue: (warehouse) => (warehouse.isActive ? 1 : 0) },
+];
 
 export function WarehousesClient({
   warehouses,
@@ -55,10 +63,12 @@ export function WarehousesClient({
     });
   }, [warehouses, query, areaFilter]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const { sortedRows, sortKey, sortDir, toggleSort } = useTableSort(filtered, SORT_COLUMNS);
+
+  const totalPages = Math.max(1, Math.ceil(sortedRows.length / PAGE_SIZE));
   const currentPage = Math.min(Math.max(page, 1), totalPages);
   const start = (currentPage - 1) * PAGE_SIZE;
-  const visible = filtered.slice(start, start + PAGE_SIZE);
+  const visible = sortedRows.slice(start, start + PAGE_SIZE);
 
   const areaOptions = useMemo(
     () => [
@@ -109,10 +119,35 @@ export function WarehousesClient({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Gudang</TableHead>
-                <TableHead>Area</TableHead>
-                <TableHead className="hidden lg:table-cell">Tipe</TableHead>
-                <TableHead>Status</TableHead>
+                <SortableHead
+                  label="Gudang"
+                  columnKey="name"
+                  sortKey={sortKey}
+                  sortDir={sortDir}
+                  onSort={toggleSort}
+                />
+                <SortableHead
+                  label="Area"
+                  columnKey="area"
+                  sortKey={sortKey}
+                  sortDir={sortDir}
+                  onSort={toggleSort}
+                />
+                <SortableHead
+                  label="Tipe"
+                  columnKey="type"
+                  sortKey={sortKey}
+                  sortDir={sortDir}
+                  onSort={toggleSort}
+                  className="hidden lg:table-cell"
+                />
+                <SortableHead
+                  label="Status"
+                  columnKey="status"
+                  sortKey={sortKey}
+                  sortDir={sortDir}
+                  onSort={toggleSort}
+                />
                 <TableHead className="w-10" />
               </TableRow>
             </TableHeader>
@@ -168,9 +203,9 @@ export function WarehousesClient({
 
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-muted-foreground text-xs">
-          {filtered.length === 0
+          {sortedRows.length === 0
             ? "Tidak ada hasil"
-            : `Menampilkan ${start + 1}–${Math.min(start + PAGE_SIZE, filtered.length)} dari ${filtered.length}`}
+            : `Menampilkan ${start + 1}–${Math.min(start + PAGE_SIZE, sortedRows.length)} dari ${sortedRows.length}`}
         </p>
         <div className="flex items-center gap-2">
           <Button

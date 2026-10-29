@@ -3,7 +3,9 @@
 > Handoff notes for AI agents doing "vibe coding" on this repo.
 > Read this first; it captures the project context, conventions, and what has
 > already been built so you can continue without re-discovering everything.
-> Last updated: 2026-10-29 (**Team org structure**) — renamed the team tab "Hierarki" to **Struktur Organisasi** and made the recursive tree node cards expand/collapse (chevron toggle) so the page is not long; roots start expanded, deeper levels start collapsed.
+> Last updated: 2026-10-29 (**Sortable table columns**) — added `src/components/table-sort.tsx` (`useTableSort` + `SortableHead`) and wired click-to-sort headers (with asc/desc icons + `aria-sort`) into every data table: Areas, Outlet types, Warehouses, Outlets, and the Team `MemberTable`. The active column/direction live in the URL (`sort`, `dir`).
+>
+> Previous: 2026-10-29 (**Team org structure**) — renamed the team tab "Hierarki" to **Struktur Organisasi** and made the recursive tree node cards expand/collapse (chevron toggle) so the page is not long; roots start expanded, deeper levels start collapsed.
 >
 > Previous: 2026-10-29 (**Searchable option fields (Combobox) — all dropdowns**) — added `src/components/ui/combobox.tsx`, a searchable single-select built on Base UI `Combobox`, and swapped **every** `Select` dropdown across the app for it (warehouse form, outlet form, organization form, shared `location-picker` wilayah selects, plus the area/warehouse/status list filters and team member dialog selects) so long lists can be filtered by typing. `ui/select.tsx` is kept but no longer used in feature code.
 >
@@ -494,6 +496,10 @@ Defined in `src/db/schema/*` and re-exported from `index.ts`.
     (server action also rejects them). Members change their own from `/profile`.
   - Subtree visibility + area-subset enforcement for non-admins.
 - **Soft delete** across all tables (schema + migration + actions + reads).
+- **Sortable list tables**: every data table (Areas, Outlet types, Warehouses,
+  Outlets, Team members) has click-to-sort column headers via
+  `components/table-sort.tsx` — asc/desc toggle with an indicator icon; the
+  active `sort`/`dir` live in the URL.
 - **Dashboard** (`/dashboard`): member + role counts (soft-delete aware).
 
 ### Not built yet (domain tables exist, no UI/actions)
@@ -583,6 +589,8 @@ src/components/
   ui/*                         shadcn/ui primitives (base-ui + radix)
   ui/combobox.tsx              searchable single-select (Base UI Combobox); now used
                                for all feature dropdowns in place of `ui/select`
+  table-sort.tsx               `useTableSort` (URL `sort`/`dir`, client-side) +
+                               `SortableHead` column header used by all list tables
 
 src/proxy.ts                   optimistic auth guard
 ```
@@ -623,7 +631,18 @@ src/proxy.ts                   optimistic auth guard
 - **Reads in pages** are direct Drizzle queries (server components); wrap
   tenant filters with `eq(table.organizationId, organization.id)` **and**
   `notDeleted(table)`.
-- **Client URL state** uses `nuqs` (`tab`, `q`, `status`, `page`, `user`, `action`).
+- **Client URL state** uses `nuqs` (`tab`, `q`, `status`, `page`, `user`, `action`,
+  and now `sort`/`dir` for table sorting).
+- **Sortable table columns**: every list table sorts client-side via
+  `src/components/table-sort.tsx`. Declare a `SortColumn<T>[]`
+  (`{ key, getValue }`) at module level, call
+  `const { sortedRows, sortKey, sortDir, toggleSort } = useTableSort(filtered, columns)`,
+  slice pages from `sortedRows`, and render each sortable header as
+  `<SortableHead label=... columnKey=... sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />`
+  (keep a plain `TableHead` for the action column). The active column/direction
+  persist in the URL (`sort`, `dir`) so sorted views are shareable; numbers
+  compare numerically, text uses an Indonesian number-aware `localeCompare`, and
+  empty values always sort last.
 - **UI**: compose from `src/components/ui/*`; use `cn()`; icons from
   `lucide-react`.
 - **Searchable dropdowns**: use `ui/combobox.tsx` (`Combobox`) instead of

@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
 import { Input } from "@/components/ui/input";
+import { SortableHead, useTableSort, type SortColumn } from "@/components/table-sort";
 import {
   Table,
   TableBody,
@@ -28,6 +29,14 @@ const STATUS_FILTER_OPTIONS = [
   { value: "all", label: "Semua status" },
   { value: "active", label: "Aktif" },
   { value: "inactive", label: "Tidak aktif" },
+];
+
+const SORT_COLUMNS: SortColumn<OutletRow>[] = [
+  { key: "name", getValue: (outlet) => outlet.name ?? null },
+  { key: "type", getValue: (outlet) => outlet.outletTypeName ?? null },
+  { key: "warehouse", getValue: (outlet) => outlet.warehouseName ?? null },
+  { key: "sales", getValue: (outlet) => outlet.salesName ?? null },
+  { key: "status", getValue: (outlet) => outlet.status },
 ];
 
 export function OutletsClient({
@@ -76,10 +85,12 @@ export function OutletsClient({
     });
   }, [outlets, query, warehouseFilter, status]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const { sortedRows, sortKey, sortDir, toggleSort } = useTableSort(filtered, SORT_COLUMNS);
+
+  const totalPages = Math.max(1, Math.ceil(sortedRows.length / PAGE_SIZE));
   const currentPage = Math.min(Math.max(page, 1), totalPages);
   const start = (currentPage - 1) * PAGE_SIZE;
-  const visible = filtered.slice(start, start + PAGE_SIZE);
+  const visible = sortedRows.slice(start, start + PAGE_SIZE);
 
   const warehouseFilterOptions = useMemo(
     () => [
@@ -152,11 +163,44 @@ export function OutletsClient({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Outlet</TableHead>
-                <TableHead className="hidden md:table-cell">Tipe</TableHead>
-                <TableHead className="hidden lg:table-cell">Gudang</TableHead>
-                <TableHead className="hidden lg:table-cell">Tenaga penjualan</TableHead>
-                <TableHead>Status</TableHead>
+                <SortableHead
+                  label="Outlet"
+                  columnKey="name"
+                  sortKey={sortKey}
+                  sortDir={sortDir}
+                  onSort={toggleSort}
+                />
+                <SortableHead
+                  label="Tipe"
+                  columnKey="type"
+                  sortKey={sortKey}
+                  sortDir={sortDir}
+                  onSort={toggleSort}
+                  className="hidden md:table-cell"
+                />
+                <SortableHead
+                  label="Gudang"
+                  columnKey="warehouse"
+                  sortKey={sortKey}
+                  sortDir={sortDir}
+                  onSort={toggleSort}
+                  className="hidden lg:table-cell"
+                />
+                <SortableHead
+                  label="Tenaga penjualan"
+                  columnKey="sales"
+                  sortKey={sortKey}
+                  sortDir={sortDir}
+                  onSort={toggleSort}
+                  className="hidden lg:table-cell"
+                />
+                <SortableHead
+                  label="Status"
+                  columnKey="status"
+                  sortKey={sortKey}
+                  sortDir={sortDir}
+                  onSort={toggleSort}
+                />
                 <TableHead className="w-10" />
               </TableRow>
             </TableHeader>
@@ -224,9 +268,9 @@ export function OutletsClient({
 
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-muted-foreground text-xs">
-          {filtered.length === 0
+          {sortedRows.length === 0
             ? "Tidak ada hasil"
-            : `Menampilkan ${start + 1}–${Math.min(start + PAGE_SIZE, filtered.length)} dari ${filtered.length}`}
+            : `Menampilkan ${start + 1}–${Math.min(start + PAGE_SIZE, sortedRows.length)} dari ${sortedRows.length}`}
         </p>
         <div className="flex items-center gap-2">
           <Button
