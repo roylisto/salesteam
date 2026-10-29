@@ -3,7 +3,7 @@
 > Handoff notes for AI agents doing "vibe coding" on this repo.
 > Read this first; it captures the project context, conventions, and what has
 > already been built so you can continue without re-discovering everything.
-> Last updated: 2026-10-28 (**Smart Address Parsing for Indonesia**) — implemented advanced parsing in `LocationPicker` to accurately extract Kecamatan and Kelurahan from OpenStreetMap data, including a fallback that parses the `display_name` string when standard address components are missing. Improved `normalizeWilayahName` to strip common prefixes like "KECAMATAN", "KELURAHAN", and "DESA", ensuring better matching with the Wilayah API dropdowns.
+> Last updated: 2026-10-28 (**Robust Address Sync Engine**) — implemented a `pendingSync` queue mechanism to handle the asynchronous nature of cascading address dropdowns. Map results are now queued and processed as each level of the Wilayah API loads, preventing race conditions and ensuring that choices like Palembang or other regions sync correctly. Also improved OSM parsing to ignore numeric noise (like "03") and added automatic cleanup if a map result has no corresponding entry in the official dropdown.
 >
 > **⚠️ RULE: always update this file after making any change.** Whenever you add
 > a table, page, action, env var, dependency, migration, or change a convention,

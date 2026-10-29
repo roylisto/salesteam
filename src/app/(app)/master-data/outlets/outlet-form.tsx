@@ -32,6 +32,7 @@ import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { LocationPicker, type AddressComponents } from "@/components/location-picker";
+import { useWilayahCascade } from "@/components/use-wilayah-cascade";
 import {
   createOutlet,
   deleteOutlet,
@@ -91,12 +92,46 @@ export function OutletForm({
   const [longitude, setLongitude] = useState(
     outlet?.longitude != null ? String(outlet.longitude) : "",
   );
+  const [postalCode, setPostalCode] = useState(outlet?.postalCode ?? "");
 
   const [mapCentered, setMapCentered] = useState(false);
+
+  const {
+    province,
+    regency,
+    district,
+    village,
+    provinces,
+    regencies,
+    districts,
+    villages,
+    loadingProvince,
+    loadingRegency,
+    loadingDistrict,
+    loadingVillage,
+    setProvince,
+    setRegency,
+    setDistrict,
+    setVillage,
+    syncFromAddress,
+  } = useWilayahCascade({
+    province: outlet?.province ?? "",
+    regency: outlet?.city ?? "",
+    district: outlet?.district ?? "",
+    village: outlet?.village ?? "",
+  });
 
   function handleAddressChange(address: AddressComponents) {
     if (address.latitude) setLatitude(address.latitude);
     if (address.longitude) setLongitude(address.longitude);
+    if (address.postalCode) setPostalCode(address.postalCode);
+
+    syncFromAddress({
+      province: address.province,
+      regency: address.regency,
+      district: address.district,
+      village: address.village,
+    });
   }
 
   // Geocode default province/city for new outlets to center the map
@@ -181,6 +216,11 @@ export function OutletForm({
     formData.set("outletTypeId", outletTypeId);
     formData.set("latitude", latitude);
     formData.set("longitude", longitude);
+    formData.set("province", province);
+    formData.set("city", regency);
+    formData.set("district", district);
+    formData.set("village", village);
+    formData.set("postalCode", postalCode);
     if (imageRemoved) formData.set("removeImage", "true");
 
     startTransition(async () => {
@@ -462,6 +502,105 @@ export function OutletForm({
             />
           </div>
           <div className="space-y-4 lg:max-h-[calc(100vh-200px)] lg:overflow-y-auto lg:pr-2">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label>Provinsi</Label>
+                <Select
+                  value={province}
+                  onValueChange={(value) => setProvince(value ?? "")}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue
+                      placeholder={loadingProvince ? "Memuat..." : "Pilih provinsi"}
+                    >
+                      {province}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {provinces.map((item) => (
+                      <SelectItem key={item.kode} value={item.nama}>
+                        {item.nama}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FieldError message={errors.province} />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>Kabupaten/Kota</Label>
+                <Select
+                  value={regency}
+                  onValueChange={(value) => setRegency(value ?? "")}
+                  disabled={loadingRegency}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue
+                      placeholder={loadingRegency ? "Memuat..." : "Pilih kabupaten/kota"}
+                    >
+                      {regency}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {regencies.map((item) => (
+                      <SelectItem key={item.kode} value={item.nama}>
+                        {item.nama}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FieldError message={errors.city} />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>Kecamatan</Label>
+                <Select
+                  value={district}
+                  onValueChange={(value) => setDistrict(value ?? "")}
+                  disabled={loadingDistrict}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder={loadingDistrict ? "Memuat..." : "Pilih kecamatan"}>
+                      {district}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {districts.map((item) => (
+                      <SelectItem key={item.kode} value={item.nama}>
+                        {item.nama}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FieldError message={errors.district} />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>Kelurahan/Desa</Label>
+                <Select
+                  value={village}
+                  onValueChange={(value) => setVillage(value ?? "")}
+                  disabled={loadingVillage}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue
+                      placeholder={loadingVillage ? "Memuat..." : "Pilih kelurahan/desa"}
+                    >
+                      {village}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {villages.map((item) => (
+                      <SelectItem key={item.kode} value={item.nama}>
+                        {item.nama}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FieldError message={errors.village} />
+              </div>
+            </div>
+
             <div className="space-y-1.5">
               <Label htmlFor="outlet-address">Alamat</Label>
               <Textarea
@@ -483,6 +622,17 @@ export function OutletForm({
                 placeholder="Gedung, lantai, patokan"
               />
               <FieldError message={errors.addressDetail} />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="outlet-postal-code">Kode pos</Label>
+              <Input
+                id="outlet-postal-code"
+                value={postalCode}
+                onChange={(event) => setPostalCode(event.target.value)}
+                placeholder="Otomatis dari peta"
+              />
+              <FieldError message={errors.postalCode} />
             </div>
 
             <div className="space-y-1.5">

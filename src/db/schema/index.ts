@@ -8,3 +8,4 @@ export * from "./orders";
 export * from "./visits";
 export * from "./payments";
 export * from "./system";
+export * from "./regions";

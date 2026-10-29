@@ -81,25 +81,46 @@ async function reverseGeocode(lat: number, lng: number): Promise<AddressComponen
     // Helper to find the first non-empty value in a list of keys
     const pick = (keys: string[]) => {
       for (const key of keys) {
-        if (addr[key]) return String(addr[key]);
+        const val = addr[key];
+        if (val && typeof val === "string") {
+          // Ignore purely numeric values for names (often house numbers or noise)
+          if (/^\d+$/.test(val.trim())) continue;
+          return val;
+        }
       }
       return "";
     };
 
-    const province = pick(["state", "province", "region"]);
-    const regency = pick(["city", "city_district", "county", "regency"]);
+    let province = pick(["state", "province", "region"]);
+    let regency = pick(["city", "city_district", "county", "regency"]);
     
+    // Special handling for Jakarta: Nominatim often puts "DKI Jakarta" in 'city'
+    // and specific areas like "Jakarta Pusat" in 'city_district' or 'suburb'.
+    if (regency.toUpperCase().includes("JAKARTA") && province === "") {
+      // If regency contains Jakarta and province is empty, shift it up
+      province = regency;
+      // Try to find a more specific area for regency
+      regency = pick(["city_district", "county", "town"]);
+      if (regency === province) regency = "";
+    }
+
     // In Indonesia, city_district often contains the Kecamatan
     // But if city is empty and city_district is present, city_district might be the Regency
     const districtKeys = ["subdistrict", "district", "town"];
-    if (regency !== addr.city_district) districtKeys.push("city_district");
+    if (regency !== addr.city_district && province !== addr.city_district) {
+      districtKeys.push("city_district");
+    }
     let district = pick(districtKeys);
 
     const villageKeys = ["village", "hamlet", "neighbourhood", "suburb", "quarter"];
     let village = pick(villageKeys);
 
-    // Smart fallback: If district or village are still empty, try parsing display_name
-    // display_name is usually: [Road], [Village], [District], [Regency], [Province], [Postcode], [Country]
+    // If district or village is still empty, and we have a city_district that wasn't used
+    if (district === "" && addr.city_district && addr.city_district !== regency && addr.city_district !== province) {
+      district = addr.city_district;
+    }
+
+    // Fallback parsing from display_name if needed
     if (district === "" || village === "") {
       const parts = data.display_name.split(",").map((p: string) => p.trim());
       // Indonesia specific: usually the last 3 parts are Country, Postcode, Province

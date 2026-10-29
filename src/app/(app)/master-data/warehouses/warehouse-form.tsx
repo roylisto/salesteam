@@ -26,6 +26,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { useWilayahCascade } from "@/components/use-wilayah-cascade";
 import {
   createWarehouse,
   deleteWarehouse,
@@ -35,26 +36,10 @@ import {
 import type { AreaOption, BackOfficeUserOption, WarehouseDetail } from "./types";
 
 const LIST_PATH = "/master-data/warehouses";
-const WILAYAH_API = "https://api.kodewilayah.web.id";
-
-type WilayahItem = { code: number | string; name: string };
-
-async function fetchWilayah(path: string): Promise<WilayahItem[]> {
-  const response = await fetch(`${WILAYAH_API}${path}`);
-  const json = (await response.json()) as { data?: WilayahItem[] };
-  return Array.isArray(json?.data) ? json.data : [];
-}
 
 function FieldError({ message }: { message?: string }) {
   if (!message) return null;
   return <p className="text-destructive text-xs">{message}</p>;
-}
-
-function normalizeWilayahName(name: string) {
-  return name
-    .toUpperCase()
-    .replace(/^(KABUPATEN|KOTA|KAB|ADM|KECAMATAN|KEC|KELURAHAN|KEL|DESA)\.?\s+/g, "")
-    .trim();
 }
 
 export function WarehouseForm({
@@ -85,10 +70,6 @@ export function WarehouseForm({
   );
   const [active, setActive] = useState(warehouse?.isActive ?? true);
   const [address, setAddress] = useState(warehouse?.address ?? "");
-  const [province, setProvince] = useState(warehouse?.province ?? "");
-  const [regency, setRegency] = useState(warehouse?.regency ?? "");
-  const [district, setDistrict] = useState(warehouse?.district ?? "");
-  const [village, setVillage] = useState(warehouse?.village ?? "");
   const [postalCode, setPostalCode] = useState(warehouse?.postalCode ?? "");
   const [latitude, setLatitude] = useState(
     warehouse?.latitude != null ? String(warehouse.latitude) : "",
@@ -99,41 +80,36 @@ export function WarehouseForm({
 
   const [mapCentered, setMapCentered] = useState(false);
 
-  const [provinces, setProvinces] = useState<WilayahItem[]>([]);
-  const [regencies, setRegencies] = useState<WilayahItem[]>([]);
-  const [districts, setDistricts] = useState<WilayahItem[]>([]);
-  const [villages, setVillages] = useState<WilayahItem[]>([]);
-  const [loadingProvince, setLoadingProvince] = useState(false);
-  const [loadingRegency, setLoadingRegency] = useState(false);
-  const [loadingDistrict, setLoadingDistrict] = useState(false);
-  const [loadingVillage, setLoadingVillage] = useState(false);
+  const wilayah = useWilayahCascade({
+    province: warehouse?.province ?? "",
+    regency: warehouse?.regency ?? "",
+    district: warehouse?.district ?? "",
+    village: warehouse?.village ?? "",
+  });
+  const {
+    province,
+    regency,
+    district,
+    village,
+    provinces,
+    regencies,
+    districts,
+    villages,
+    loadingProvince,
+    loadingRegency,
+    loadingDistrict,
+    loadingVillage,
+    setProvince,
+    setRegency,
+    setDistrict,
+    setVillage,
+    syncFromAddress,
+  } = wilayah;
 
   const selectedAreaName =
     areas.find((area) => String(area.id) === areaOfficeId)?.name ?? undefined;
   const selectedPicName =
     backOfficeUsers.find((user) => String(user.id) === picUserId)?.name ?? undefined;
-
-  useEffect(() => {
-    let ignore = false;
-
-    async function load() {
-      try {
-        if (!ignore) setLoadingProvince(true);
-        const data = await fetchWilayah("/provinces");
-        if (!ignore) setProvinces(data);
-      } catch {
-        if (!ignore) setProvinces([]);
-      } finally {
-        if (!ignore) setLoadingProvince(false);
-      }
-    }
-
-    load();
-
-    return () => {
-      ignore = true;
-    };
-  }, []);
 
   // Geocode default province/city for new warehouses to center the map
   useEffect(() => {
@@ -166,105 +142,6 @@ export function WarehouseForm({
       ignore = true;
     };
   }, [defaultProvince, defaultCity, isEdit, latitude, longitude, mapCentered]);
-
-  useEffect(() => {
-    let ignore = false;
-
-    async function load() {
-      const code = provinces.find(
-        (item) => normalizeWilayahName(item.name) === normalizeWilayahName(province),
-      )?.code;
-      if (code === undefined) {
-        if (!ignore) {
-          setRegencies([]);
-          setLoadingRegency(false);
-        }
-        return;
-      }
-
-      try {
-        if (!ignore) setLoadingRegency(true);
-        const data = await fetchWilayah(`/regencies/${code}`);
-        if (!ignore) setRegencies(data);
-      } catch {
-        if (!ignore) setRegencies([]);
-      } finally {
-        if (!ignore) setLoadingRegency(false);
-      }
-    }
-
-    load();
-
-    return () => {
-      ignore = true;
-    };
-  }, [province, provinces]);
-
-  useEffect(() => {
-    let ignore = false;
-
-    async function load() {
-      const code = regencies.find(
-        (item) => normalizeWilayahName(item.name) === normalizeWilayahName(regency),
-      )?.code;
-      if (code === undefined) {
-        if (!ignore) {
-          setDistricts([]);
-          setLoadingDistrict(false);
-        }
-        return;
-      }
-
-      try {
-        if (!ignore) setLoadingDistrict(true);
-        const data = await fetchWilayah(`/districts/${code}`);
-        if (!ignore) setDistricts(data);
-      } catch {
-        if (!ignore) setDistricts([]);
-      } finally {
-        if (!ignore) setLoadingDistrict(false);
-      }
-    }
-
-    load();
-
-    return () => {
-      ignore = true;
-    };
-  }, [regency, regencies]);
-
-  useEffect(() => {
-    let ignore = false;
-
-    async function load() {
-      const code = districts.find(
-        (item) => normalizeWilayahName(item.name) === normalizeWilayahName(district),
-      )?.code;
-      if (code === undefined) {
-        if (!ignore) {
-          setVillages([]);
-          setLoadingVillage(false);
-        }
-        return;
-      }
-
-      try {
-        if (!ignore) setLoadingVillage(true);
-        const data = await fetchWilayah(`/villages/${code}`);
-        if (!ignore) setVillages(data);
-      } catch {
-        if (!ignore) setVillages([]);
-      } finally {
-        if (!ignore) setLoadingVillage(false);
-      }
-    }
-
-    load();
-
-    return () => {
-      ignore = true;
-    };
-  }, [district, districts]);
 
   function handleSubmit(formData: FormData) {
     if (warehouse) formData.set("id", String(warehouse.id));
@@ -470,11 +347,12 @@ export function WarehouseForm({
                 if (address.latitude) setLatitude(address.latitude);
                 if (address.longitude) setLongitude(address.longitude);
 
-                // Auto-select dropdowns from map click
-                if (address.province) setProvince(address.province);
-                if (address.regency) setRegency(address.regency);
-                if (address.district) setDistrict(address.district);
-                if (address.village) setVillage(address.village);
+                syncFromAddress({
+                  province: address.province,
+                  regency: address.regency,
+                  district: address.district,
+                  village: address.village,
+                });
               }}
               compact
             />
@@ -485,15 +363,7 @@ export function WarehouseForm({
                 <Label>Provinsi</Label>
                 <Select
                   value={province}
-                  onValueChange={(value) => {
-                    setProvince(value ?? "");
-                    setRegency("");
-                    setDistrict("");
-                    setVillage("");
-                    setRegencies([]);
-                    setDistricts([]);
-                    setVillages([]);
-                  }}
+                  onValueChange={(value) => setProvince(value ?? "")}
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder={loadingProvince ? "Memuat..." : "Pilih provinsi"}>
@@ -502,8 +372,8 @@ export function WarehouseForm({
                   </SelectTrigger>
                   <SelectContent>
                     {provinces.map((item) => (
-                      <SelectItem key={String(item.code)} value={item.name}>
-                        {item.name}
+                      <SelectItem key={item.kode} value={item.nama}>
+                        {item.nama}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -515,13 +385,7 @@ export function WarehouseForm({
                 <Label>Kabupaten/Kota</Label>
                 <Select
                   value={regency}
-                  onValueChange={(value) => {
-                    setRegency(value ?? "");
-                    setDistrict("");
-                    setVillage("");
-                    setDistricts([]);
-                    setVillages([]);
-                  }}
+                  onValueChange={(value) => setRegency(value ?? "")}
                   disabled={loadingRegency}
                 >
                   <SelectTrigger className="w-full">
@@ -533,8 +397,8 @@ export function WarehouseForm({
                   </SelectTrigger>
                   <SelectContent>
                     {regencies.map((item) => (
-                      <SelectItem key={String(item.code)} value={item.name}>
-                        {item.name}
+                      <SelectItem key={item.kode} value={item.nama}>
+                        {item.nama}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -546,11 +410,7 @@ export function WarehouseForm({
                 <Label>Kecamatan</Label>
                 <Select
                   value={district}
-                  onValueChange={(value) => {
-                    setDistrict(value ?? "");
-                    setVillage("");
-                    setVillages([]);
-                  }}
+                  onValueChange={(value) => setDistrict(value ?? "")}
                   disabled={loadingDistrict}
                 >
                   <SelectTrigger className="w-full">
@@ -560,8 +420,8 @@ export function WarehouseForm({
                   </SelectTrigger>
                   <SelectContent>
                     {districts.map((item) => (
-                      <SelectItem key={String(item.code)} value={item.name}>
-                        {item.name}
+                      <SelectItem key={item.kode} value={item.nama}>
+                        {item.nama}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -585,8 +445,8 @@ export function WarehouseForm({
                   </SelectTrigger>
                   <SelectContent>
                     {villages.map((item) => (
-                      <SelectItem key={String(item.code)} value={item.name}>
-                        {item.name}
+                      <SelectItem key={item.kode} value={item.nama}>
+                        {item.nama}
                       </SelectItem>
                     ))}
                   </SelectContent>
