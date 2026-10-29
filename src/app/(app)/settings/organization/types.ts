@@ -9,4 +9,8 @@ export type OrganizationDetail = {
   timezone: string;
   province: string | null;
   city: string | null;
+  district: string | null;
+  village: string | null;
+  latitude: number | null;
+  longitude: number | null;
 };

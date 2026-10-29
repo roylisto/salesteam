@@ -26,6 +26,10 @@ export default async function OrganizationPage() {
       timezone: organizations.timezone,
       province: organizations.province,
       city: organizations.city,
+      district: organizations.district,
+      village: organizations.village,
+      latitude: organizations.latitude,
+      longitude: organizations.longitude,
     })
     .from(organizations)
     .where(
@@ -53,7 +57,7 @@ export default async function OrganizationPage() {
         title="Organisasi"
         description="Profil perusahaan, logo branding, dan pengaturan regional."
       />
-      <div className="max-w-3xl">
+      <div className="w-full">
         <OrganizationForm organization={organization} />
       </div>
     </div>

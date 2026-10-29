@@ -1,5 +1,12 @@
 import { isNull } from "drizzle-orm";
-import { index, pgTable, text, uniqueIndex, varchar } from "drizzle-orm/pg-core";
+import {
+  doublePrecision,
+  index,
+  pgTable,
+  text,
+  uniqueIndex,
+  varchar,
+} from "drizzle-orm/pg-core";
 
 import { primaryId, timestamps } from "./_shared";
 
@@ -24,6 +31,10 @@ export const organizations = pgTable(
       .notNull(),
     province: varchar("province", { length: 120 }),
     city: varchar("city", { length: 120 }),
+    district: varchar("district", { length: 120 }),
+    village: varchar("village", { length: 120 }),
+    latitude: doublePrecision("latitude"),
+    longitude: doublePrecision("longitude"),
     ...timestamps,
   },
   (table) => [

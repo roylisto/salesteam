@@ -50,15 +50,39 @@ const OrganizationSchema = z.object({
   province: z
     .string()
     .trim()
-    .max(120)
-    .optional()
-    .transform((value) => (value && value.length > 0 ? value : null)),
+    .min(1, "Provinsi wajib dipilih.")
+    .max(120),
   city: z
     .string()
     .trim()
-    .max(120)
-    .optional()
-    .transform((value) => (value && value.length > 0 ? value : null)),
+    .min(1, "Kabupaten/kota wajib dipilih.")
+    .max(120),
+  district: z
+    .string()
+    .trim()
+    .min(1, "Kecamatan wajib dipilih.")
+    .max(120),
+  village: z
+    .string()
+    .trim()
+    .min(1, "Kelurahan/desa wajib dipilih.")
+    .max(120),
+  latitude: z
+    .string()
+    .trim()
+    .min(1, "Latitude wajib diisi.")
+    .transform((value) => Number(value))
+    .refine((value) => Number.isFinite(value) && value >= -90 && value <= 90, {
+      message: "Latitude tidak valid.",
+    }),
+  longitude: z
+    .string()
+    .trim()
+    .min(1, "Longitude wajib diisi.")
+    .transform((value) => Number(value))
+    .refine((value) => Number.isFinite(value) && value >= -180 && value <= 180, {
+      message: "Longitude tidak valid.",
+    }),
   currency: z
     .string()
     .trim()
@@ -100,8 +124,12 @@ export async function updateOrganization(
     email: formData.get("email") ?? undefined,
     phone: formData.get("phone") ?? undefined,
     address: formData.get("address") ?? undefined,
-    province: formData.get("province") ?? undefined,
-    city: formData.get("city") ?? undefined,
+    province: formData.get("province") ?? "",
+    city: formData.get("city") ?? "",
+    district: formData.get("district") ?? "",
+    village: formData.get("village") ?? "",
+    latitude: formData.get("latitude") ?? "",
+    longitude: formData.get("longitude") ?? "",
     currency: formData.get("currency"),
     timezone: formData.get("timezone"),
   });
@@ -160,8 +188,12 @@ export async function updateOrganization(
       email: parsed.data.email ?? null,
       phone: parsed.data.phone ?? null,
       address: parsed.data.address ?? null,
-      province: parsed.data.province ?? null,
-      city: parsed.data.city ?? null,
+      province: parsed.data.province,
+      city: parsed.data.city,
+      district: parsed.data.district,
+      village: parsed.data.village,
+      latitude: parsed.data.latitude,
+      longitude: parsed.data.longitude,
       currency: parsed.data.currency,
       timezone: parsed.data.timezone,
       logoUrl,
