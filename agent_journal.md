@@ -3,7 +3,9 @@
 > Handoff notes for AI agents doing "vibe coding" on this repo.
 > Read this first; it captures the project context, conventions, and what has
 > already been built so you can continue without re-discovering everything.
-> Last updated: 2026-10-28 (**Robust Address Sync Engine**) — implemented a `pendingSync` queue mechanism to handle the asynchronous nature of cascading address dropdowns. Map results are now queued and processed as each level of the Wilayah API loads, preventing race conditions and ensuring that choices like Palembang or other regions sync correctly. Also improved OSM parsing to ignore numeric noise (like "03") and added automatic cleanup if a map result has no corresponding entry in the official dropdown.
+> Last updated: 2026-10-29 (**Searchable option fields (Combobox)**) — added `src/components/ui/combobox.tsx`, a searchable single-select built on Base UI `Combobox`, and swapped every option field on the warehouse form (Area, PIC, Provinsi, Kabupaten/Kota, Kecamatan, Kelurahan) from `Select` to it so long lists can be filtered by typing.
+>
+> Previous: 2026-10-28 (**Robust Address Sync Engine**) — implemented a `pendingSync` queue mechanism to handle the asynchronous nature of cascading address dropdowns. Map results are now queued and processed as each level of the Wilayah API loads, preventing race conditions and ensuring that choices like Palembang or other regions sync correctly. Also improved OSM parsing to ignore numeric noise (like "03") and added automatic cleanup if a map result has no corresponding entry in the official dropdown.
 >
 > **⚠️ RULE: always update this file after making any change.** Whenever you add
 > a table, page, action, env var, dependency, migration, or change a convention,
@@ -436,7 +438,9 @@ Defined in `src/db/schema/*` and re-exported from `index.ts`.
   OpenStreetMap (Leaflet) map** (search via Nominatim + "my location" + click/drag
   pin). List has search (name) + area filter + pagination. Gated by the
   `warehouses` permission. All queries scoped by org + soft-delete aware;
-  assignments validated to belong to the org.
+  assignments validated to belong to the org. **Every option field on the form
+  (Area, PIC, Provinsi, Kabupaten/Kota, Kecamatan, Kelurahan) is a searchable
+  `Combobox`** (`ui/combobox.tsx`) — type to filter instead of scrolling.
 - **Outlet management** (`/master-data/outlets`): CRUD (soft delete) for
   customer stores, using **full create/edit pages** (`/new`, `/[id]`) instead of
   a dialog. Fields: name + per-org unique optional `code`, `status`
@@ -563,7 +567,10 @@ src/components/
   app-shell.tsx                sidebar/header, permission-filtered nav
   page-header.tsx, brand.tsx
   location-picker.tsx          shared OpenStreetMap/Leaflet lat-lng picker (used by Outlets & Warehouses)
+  use-wilayah-cascade.ts       province→village cascading state + map (OSM) sync
   ui/*                         shadcn/ui primitives (base-ui + radix)
+  ui/combobox.tsx              searchable single-select (Base UI Combobox); use it
+                               instead of `ui/select` when options are many
 
 src/proxy.ts                   optimistic auth guard
 ```
@@ -607,6 +614,12 @@ src/proxy.ts                   optimistic auth guard
 - **Client URL state** uses `nuqs` (`tab`, `q`, `status`, `page`, `user`, `action`).
 - **UI**: compose from `src/components/ui/*`; use `cn()`; icons from
   `lucide-react`.
+- **Searchable dropdowns**: use `ui/combobox.tsx` (`Combobox`) instead of
+  `ui/select.tsx` whenever the option list is long (wilayah, PIC, …). Its
+  `options` are `{ value, label }` objects — build them with `useMemo` so the
+  array identity stays stable across keystrokes (Base UI matches items by
+  `Object.is`), and drive selection with `value: string` +
+  `onValueChange: (value: string) => void`.
 
 ---
 

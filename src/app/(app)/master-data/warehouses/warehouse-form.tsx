@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2Icon, Trash2Icon } from "lucide-react";
 import { toast } from "sonner";
@@ -14,15 +14,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Combobox } from "@/components/ui/combobox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
@@ -106,10 +100,30 @@ export function WarehouseForm({
     syncFromAddress,
   } = wilayah;
 
-  const selectedAreaName =
-    areas.find((area) => String(area.id) === areaOfficeId)?.name ?? undefined;
-  const selectedPicName =
-    backOfficeUsers.find((user) => String(user.id) === picUserId)?.name ?? undefined;
+  const areaOptions = useMemo(
+    () => areas.map((area) => ({ value: String(area.id), label: area.name })),
+    [areas],
+  );
+  const picOptions = useMemo(
+    () => backOfficeUsers.map((user) => ({ value: String(user.id), label: user.name })),
+    [backOfficeUsers],
+  );
+  const provinceOptions = useMemo(
+    () => provinces.map((item) => ({ value: item.nama, label: item.nama })),
+    [provinces],
+  );
+  const regencyOptions = useMemo(
+    () => regencies.map((item) => ({ value: item.nama, label: item.nama })),
+    [regencies],
+  );
+  const districtOptions = useMemo(
+    () => districts.map((item) => ({ value: item.nama, label: item.nama })),
+    [districts],
+  );
+  const villageOptions = useMemo(
+    () => villages.map((item) => ({ value: item.nama, label: item.nama })),
+    [villages],
+  );
 
   // Geocode default province/city for new warehouses to center the map
   useEffect(() => {
@@ -274,42 +288,28 @@ export function WarehouseForm({
           </div>
 
           <div className="space-y-1.5">
-            <Label>Area</Label>
-            <Select
+            <Label htmlFor="warehouse-area">Area</Label>
+            <Combobox
+              id="warehouse-area"
+              options={areaOptions}
               value={areaOfficeId}
-              onValueChange={(value) => setAreaOfficeId(value ?? "")}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Pilih area">{selectedAreaName}</SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {areas.map((area) => (
-                  <SelectItem key={area.id} value={String(area.id)}>
-                    {area.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              onValueChange={setAreaOfficeId}
+              placeholder="Pilih area"
+              emptyText="Area tidak ditemukan."
+            />
             <FieldError message={errors.areaOfficeId} />
           </div>
 
           <div className="space-y-1.5">
-            <Label>PIC penanggung jawab (Back Office)</Label>
-            <Select
+            <Label htmlFor="warehouse-pic">PIC penanggung jawab (Back Office)</Label>
+            <Combobox
+              id="warehouse-pic"
+              options={picOptions}
               value={picUserId}
-              onValueChange={(value) => setPicUserId(value ?? "")}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Pilih PIC">{selectedPicName}</SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {backOfficeUsers.map((user) => (
-                  <SelectItem key={user.id} value={String(user.id)}>
-                    {user.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              onValueChange={setPicUserId}
+              placeholder="Pilih PIC"
+              emptyText="PIC tidak ditemukan."
+            />
             <FieldError message={errors.picUserId} />
           </div>
 
@@ -361,105 +361,65 @@ export function WarehouseForm({
           <div className="space-y-4 lg:max-h-[calc(100vh-200px)] lg:overflow-y-auto lg:pr-2">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <Label>
+                <Label htmlFor="warehouse-province">
                   Provinsi <span className="text-destructive">*</span>
                 </Label>
-                <Select
+                <Combobox
+                  id="warehouse-province"
+                  options={provinceOptions}
                   value={province}
-                  onValueChange={(value) => setProvince(value ?? "")}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder={loadingProvince ? "Memuat..." : "Pilih provinsi"}>
-                      {province}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {provinces.map((item) => (
-                      <SelectItem key={item.kode} value={item.nama}>
-                        {item.nama}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  onValueChange={setProvince}
+                  placeholder={loadingProvince ? "Memuat..." : "Cari provinsi"}
+                  emptyText="Provinsi tidak ditemukan."
+                />
                 <FieldError message={errors.province} />
               </div>
 
               <div className="space-y-1.5">
-                <Label>
+                <Label htmlFor="warehouse-regency">
                   Kabupaten/Kota <span className="text-destructive">*</span>
                 </Label>
-                <Select
+                <Combobox
+                  id="warehouse-regency"
+                  options={regencyOptions}
                   value={regency}
-                  onValueChange={(value) => setRegency(value ?? "")}
+                  onValueChange={setRegency}
+                  placeholder={loadingRegency ? "Memuat..." : "Cari kabupaten/kota"}
+                  emptyText="Kabupaten/kota tidak ditemukan."
                   disabled={loadingRegency}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue
-                      placeholder={loadingRegency ? "Memuat..." : "Pilih kabupaten/kota"}
-                    >
-                      {regency}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {regencies.map((item) => (
-                      <SelectItem key={item.kode} value={item.nama}>
-                        {item.nama}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                />
                 <FieldError message={errors.regency} />
               </div>
 
               <div className="space-y-1.5">
-                <Label>
+                <Label htmlFor="warehouse-district">
                   Kecamatan <span className="text-destructive">*</span>
                 </Label>
-                <Select
+                <Combobox
+                  id="warehouse-district"
+                  options={districtOptions}
                   value={district}
-                  onValueChange={(value) => setDistrict(value ?? "")}
+                  onValueChange={setDistrict}
+                  placeholder={loadingDistrict ? "Memuat..." : "Cari kecamatan"}
+                  emptyText="Kecamatan tidak ditemukan."
                   disabled={loadingDistrict}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder={loadingDistrict ? "Memuat..." : "Pilih kecamatan"}>
-                      {district}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {districts.map((item) => (
-                      <SelectItem key={item.kode} value={item.nama}>
-                        {item.nama}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                />
                 <FieldError message={errors.district} />
               </div>
 
               <div className="space-y-1.5">
-                <Label>
+                <Label htmlFor="warehouse-village">
                   Kelurahan/Desa <span className="text-destructive">*</span>
                 </Label>
-                <Select
+                <Combobox
+                  id="warehouse-village"
+                  options={villageOptions}
                   value={village}
-                  onValueChange={(value) => setVillage(value ?? "")}
+                  onValueChange={setVillage}
+                  placeholder={loadingVillage ? "Memuat..." : "Cari kelurahan/desa"}
+                  emptyText="Kelurahan/desa tidak ditemukan."
                   disabled={loadingVillage}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue
-                      placeholder={loadingVillage ? "Memuat..." : "Pilih kelurahan/desa"}
-                    >
-                      {village}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {villages.map((item) => (
-                      <SelectItem key={item.kode} value={item.nama}>
-                        {item.nama}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                />
                 <FieldError message={errors.village} />
               </div>
             </div>
