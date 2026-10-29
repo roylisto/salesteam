@@ -188,10 +188,46 @@ export function LocationPicker({
   const focusRef = useRef<((lat: number, lng: number) => void) | null>(null);
   const onChangeRef = useRef(onChange);
   const onAddressChangeRef = useRef(onAddressChange);
+  const syncAddressRef = useRef<(lat: number, lng: number) => Promise<void>>(
+    async () => {},
+  );
   useEffect(() => {
     onChangeRef.current = onChange;
     onAddressChangeRef.current = onAddressChange;
   }, [onChange, onAddressChange]);
+
+  // Reverse geocode a point and push the address components to the form.
+  useEffect(() => {
+    syncAddressRef.current = async (lat: number, lng: number) => {
+      const addressData = await reverseGeocode(lat, lng);
+      if (!addressData) return;
+
+      onAddressChangeRef.current?.(addressData);
+
+      // Also call external setters if provided (for cascading selects)
+      if (addressData.province && setExtProvince) {
+        setExtProvince(addressData.province);
+      }
+      if (addressData.regency && setExtRegency) {
+        setExtRegency(addressData.regency);
+      }
+      if (addressData.district && setExtDistrict) {
+        setExtDistrict(addressData.district);
+      }
+      if (addressData.village && setExtVillage) {
+        setExtVillage(addressData.village);
+      }
+      if (addressData.postalCode && setExtPostalCode) {
+        setExtPostalCode(addressData.postalCode);
+      }
+    };
+  }, [
+    setExtProvince,
+    setExtRegency,
+    setExtDistrict,
+    setExtVillage,
+    setExtPostalCode,
+  ]);
 
   const [query, setQuery] = useState("");
   const [busy, setBusy] = useState(false);
@@ -236,6 +272,7 @@ export function LocationPicker({
               position.lat.toFixed(7),
               position.lng.toFixed(7),
             );
+            void syncAddressRef.current(position.lat, position.lng);
           });
           markerRef.current = marker;
         }
@@ -256,26 +293,7 @@ export function LocationPicker({
         onChangeRef.current(lat.toFixed(7), lng.toFixed(7));
 
         // Reverse geocode to get address components
-        const addressData = await reverseGeocode(lat, lng);
-        if (addressData) {
-          onAddressChangeRef.current?.(addressData);
-          // Also call external setters if provided (for warehouse form cascading selects)
-          if (addressData.province && setExtProvince) {
-            setExtProvince(addressData.province);
-          }
-          if (addressData.regency && setExtRegency) {
-            setExtRegency(addressData.regency);
-          }
-          if (addressData.district && setExtDistrict) {
-            setExtDistrict(addressData.district);
-          }
-          if (addressData.village && setExtVillage) {
-            setExtVillage(addressData.village);
-          }
-          if (addressData.postalCode && setExtPostalCode) {
-            setExtPostalCode(addressData.postalCode);
-          }
-        }
+        await syncAddressRef.current(lat, lng);
       });
 
       mapRef.current = map;
@@ -290,15 +308,7 @@ export function LocationPicker({
       markerRef.current = null;
       focusRef.current = null;
     };
-  }, [
-    latitude,
-    longitude,
-    setExtProvince,
-    setExtRegency,
-    setExtDistrict,
-    setExtVillage,
-    setExtPostalCode,
-  ]);
+  }, [latitude, longitude]);
 
   const handleSearch = useCallback(async () => {
     const value = query.trim();
@@ -321,21 +331,13 @@ export function LocationPicker({
       onChangeRef.current(lat.toFixed(7), lng.toFixed(7));
 
       // Also reverse geocode the search result
-      const addressData = await reverseGeocode(lat, lng);
-      if (addressData) {
-        onAddressChangeRef.current?.(addressData);
-        if (addressData.province && setExtProvince) setExtProvince(addressData.province);
-        if (addressData.regency && setExtRegency) setExtRegency(addressData.regency);
-        if (addressData.district && setExtDistrict) setExtDistrict(addressData.district);
-        if (addressData.village && setExtVillage) setExtVillage(addressData.village);
-        if (addressData.postalCode && setExtPostalCode) setExtPostalCode(addressData.postalCode);
-      }
+      await syncAddressRef.current(lat, lng);
     } catch {
       setMessage("Pencarian gagal. Periksa koneksi Anda dan coba lagi.");
     } finally {
       setBusy(false);
     }
-  }, [query, setExtProvince, setExtRegency, setExtDistrict, setExtVillage, setExtPostalCode]);
+  }, [query]);
 
   const handleLocate = useCallback(() => {
     if (!navigator.geolocation) {
@@ -343,14 +345,22 @@ export function LocationPicker({
       return;
     }
     setMessage(null);
+    setBusy(true);
     navigator.geolocation.getCurrentPosition(
-      (position) => {
-        focusRef.current?.(
-          position.coords.latitude,
-          position.coords.longitude,
-        );
+      async (position) => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        focusRef.current?.(lat, lng);
+        try {
+          await syncAddressRef.current(lat, lng);
+        } finally {
+          setBusy(false);
+        }
       },
-      () => setMessage("Tidak dapat membaca lokasi Anda saat ini."),
+      () => {
+        setBusy(false);
+        setMessage("Tidak dapat membaca lokasi Anda saat ini.");
+      },
       { enableHighAccuracy: true, timeout: 10000 },
     );
   }, []);
@@ -396,7 +406,7 @@ export function LocationPicker({
               {busy ? <Loader2Icon className="animate-spin" /> : <SearchIcon />}
               Cari
             </Button>
-            <Button type="button" variant="outline" onClick={handleLocate}>
+            <Button type="button" variant="outline" onClick={handleLocate} disabled={busy}>
               <LocateFixedIcon />
               Lokasi saya
             </Button>
@@ -571,7 +581,7 @@ export function LocationPicker({
           {busy ? <Loader2Icon className="animate-spin" /> : <SearchIcon />}
           Cari
         </Button>
-        <Button type="button" variant="outline" onClick={handleLocate}>
+        <Button type="button" variant="outline" onClick={handleLocate} disabled={busy}>
           <LocateFixedIcon />
           Lokasi saya
         </Button>
