@@ -3,7 +3,9 @@
 > Handoff notes for AI agents doing "vibe coding" on this repo.
 > Read this first; it captures the project context, conventions, and what has
 > already been built so you can continue without re-discovering everything.
-> Last updated: 2026-10-29 (**Searchable option fields (Combobox)**) — added `src/components/ui/combobox.tsx`, a searchable single-select built on Base UI `Combobox`, and swapped every option field on the warehouse form (Area, PIC, Provinsi, Kabupaten/Kota, Kecamatan, Kelurahan) from `Select` to it so long lists can be filtered by typing.
+> Last updated: 2026-10-29 (**Searchable option fields (Combobox) — all dropdowns**) — added `src/components/ui/combobox.tsx`, a searchable single-select built on Base UI `Combobox`, and swapped **every** `Select` dropdown across the app for it (warehouse form, outlet form, organization form, shared `location-picker` wilayah selects, plus the area/warehouse/status list filters and team member dialog selects) so long lists can be filtered by typing. `ui/select.tsx` is kept but no longer used in feature code.
+>
+> Previous: 2026-10-29 (**Searchable option fields (Combobox) — warehouse form**) — introduced `ui/combobox.tsx` and converted every option field on the warehouse form (Area, PIC, Provinsi, Kabupaten/Kota, Kecamatan, Kelurahan) from `Select` to it.
 >
 > Previous: 2026-10-28 (**Robust Address Sync Engine**) — implemented a `pendingSync` queue mechanism to handle the asynchronous nature of cascading address dropdowns. Map results are now queued and processed as each level of the Wilayah API loads, preventing race conditions and ensuring that choices like Palembang or other regions sync correctly. Also improved OSM parsing to ignore numeric noise (like "03") and added automatic cleanup if a map result has no corresponding entry in the official dropdown.
 >
@@ -428,7 +430,8 @@ Defined in `src/db/schema/*` and re-exported from `index.ts`.
   cannot delete a role still assigned to members.
 - **Organization settings** (`/settings/organization`): profile, currency,
   timezone, logo upload to S3 (with old-logo cleanup), private-file serving via
-  `/api/files`.
+  `/api/files`. Currency, timezone and the wilayah fields are searchable
+  `Combobox`es.
 - **Area management** (`/master-data/areas`): CRUD (soft delete).
 - **Warehouse management** (`/master-data/warehouses`): **full create/edit pages**
   (`/new`, `/[id]`) instead of a dialog. Fields: name, depot type, active flag,
@@ -452,6 +455,8 @@ Defined in `src/db/schema/*` and re-exported from `index.ts`.
   ownerAddress, phone, email) and KYC/legal ids (nationalId, familyCardNumber,
   taxId, businessId) + notes. List has search (name/code) + warehouse filter
   (incl. "No warehouse") + status filter + pagination, and links into the pages.
+  All dropdowns (type, warehouse, sales, wilayah) are searchable `Combobox`es,
+  as are the list's warehouse/status filters.
   Gated by the `outlets` permission. All queries scoped by org + soft-delete
   aware; assignments validated to belong to the org.
 - **Outlet types** (`/master-data/outlet-types`): CRUD (soft delete) master data
@@ -464,7 +469,9 @@ Defined in `src/db/schema/*` and re-exported from `index.ts`.
   - **All** tab: members grouped by role, each group in its own table.
   - Search (name/email/code), status filter, pagination, member detail dialog.
   - Create/edit member: role dropdown (Admin shown by default option +
-    org roles), reporting line dropdown, multi-area select.
+    org roles), reporting line dropdown, multi-area select. The user-type, role
+    and reporting-line dropdowns, plus the list's status filter, are searchable
+    `Combobox`es.
   - **Warehouse assignment (area-first)**: after picking areas, a warehouse
     checklist appears grouped/separated by area (only for the selected areas).
     A member can hold multiple warehouses across multiple areas; deselecting an
@@ -569,8 +576,8 @@ src/components/
   location-picker.tsx          shared OpenStreetMap/Leaflet lat-lng picker (used by Outlets & Warehouses)
   use-wilayah-cascade.ts       province→village cascading state + map (OSM) sync
   ui/*                         shadcn/ui primitives (base-ui + radix)
-  ui/combobox.tsx              searchable single-select (Base UI Combobox); use it
-                               instead of `ui/select` when options are many
+  ui/combobox.tsx              searchable single-select (Base UI Combobox); now used
+                               for all feature dropdowns in place of `ui/select`
 
 src/proxy.ts                   optimistic auth guard
 ```
@@ -615,11 +622,14 @@ src/proxy.ts                   optimistic auth guard
 - **UI**: compose from `src/components/ui/*`; use `cn()`; icons from
   `lucide-react`.
 - **Searchable dropdowns**: use `ui/combobox.tsx` (`Combobox`) instead of
-  `ui/select.tsx` whenever the option list is long (wilayah, PIC, …). Its
-  `options` are `{ value, label }` objects — build them with `useMemo` so the
+  `ui/select.tsx` for feature dropdowns — all forms and filters now use it
+  (long lists like wilayah, PIC, outlets, and short ones like status/user type).
+  Its `options` are `{ value, label }` objects — build them with `useMemo` so the
   array identity stays stable across keystrokes (Base UI matches items by
   `Object.is`), and drive selection with `value: string` +
-  `onValueChange: (value: string) => void`.
+  `onValueChange: (value: string) => void`. Use `""` for an empty/"none" option.
+  `autoHighlight` is set so Enter picks the best match instead of submitting the
+  surrounding `<form>`.
 
 ---
 

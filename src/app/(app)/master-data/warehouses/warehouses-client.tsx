@@ -7,14 +7,8 @@ import { parseAsInteger, parseAsString, useQueryState } from "nuqs";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Combobox } from "@/components/ui/combobox";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -66,10 +60,13 @@ export function WarehousesClient({
   const start = (currentPage - 1) * PAGE_SIZE;
   const visible = filtered.slice(start, start + PAGE_SIZE);
 
-  const areaFilterName =
-    areaFilter === ALL_AREAS
-      ? undefined
-      : (areas.find((area) => String(area.id) === areaFilter)?.name ?? undefined);
+  const areaOptions = useMemo(
+    () => [
+      { value: ALL_AREAS, label: "Semua area" },
+      ...areas.map((area) => ({ value: String(area.id), label: area.name })),
+    ],
+    [areas],
+  );
 
   return (
     <div className="space-y-3">
@@ -87,25 +84,17 @@ export function WarehousesClient({
           />
         </div>
 
-        <Select
+        <Combobox
+          options={areaOptions}
           value={areaFilter}
           onValueChange={(value) => {
-            void setAreaFilter(value ?? ALL_AREAS);
+            void setAreaFilter(value || ALL_AREAS);
             void setPage(1);
           }}
-        >
-          <SelectTrigger className="w-44">
-            <SelectValue placeholder="Semua area">{areaFilterName}</SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL_AREAS}>Semua area</SelectItem>
-            {areas.map((area) => (
-              <SelectItem key={area.id} value={String(area.id)}>
-                {area.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          placeholder="Semua area"
+          emptyText="Area tidak ditemukan."
+          className="w-44"
+        />
 
         <Link href={`/master-data/warehouses/new?province=${encodeURIComponent(orgProvince ?? "")}&city=${encodeURIComponent(orgCity ?? "")}`}>
           <Button>

@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Combobox, type ComboboxOption } from "@/components/ui/combobox";
 import {
   Dialog,
   DialogContent,
@@ -18,13 +19,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -89,6 +83,11 @@ function useAllowedAreas(
   }, [areas, assignableAreas, members, reportsTo, actorIsAdmin]);
 }
 
+const USER_TYPE_OPTIONS: ComboboxOption[] = [
+  { value: "back_office", label: "Back Office" },
+  { value: "sales", label: "Sales" },
+];
+
 function UserTypeSelect({
   value,
   onChange,
@@ -98,21 +97,14 @@ function UserTypeSelect({
   onChange: (value: "back_office" | "sales") => void;
   disabled?: boolean;
 }) {
-  const label = value === "sales" ? "Sales" : "Back Office";
   return (
-    <Select
+    <Combobox
+      options={USER_TYPE_OPTIONS}
       value={value}
-      onValueChange={(v) => onChange((v as "back_office" | "sales") ?? "back_office")}
+      onValueChange={(next) => onChange(next === "sales" ? "sales" : "back_office")}
+      placeholder="Pilih tipe pengguna"
       disabled={disabled}
-    >
-      <SelectTrigger className="w-full">
-        <SelectValue placeholder="Pilih tipe pengguna">{label}</SelectValue>
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="back_office">Back Office</SelectItem>
-        <SelectItem value="sales">Sales</SelectItem>
-      </SelectContent>
-    </Select>
+    />
   );
 }
 
@@ -129,29 +121,28 @@ function RoleSelect({
   actorIsAdmin: boolean;
   disabled?: boolean;
 }) {
-  const showAdminOption = actorIsAdmin;
-  const selectedName =
-    value === SYSTEM_ADMIN_ROLE_VALUE
-      ? "Admin (sistem)"
-      : (roles.find((r) => String(r.id) === value)?.name ?? undefined);
+  const options = useMemo(() => {
+    const list: ComboboxOption[] = roles.map((role) => ({
+      value: String(role.id),
+      label: role.name,
+    }));
+    // Admin is virtual: only offered to Admins, but kept visible when it is
+    // already the member's role.
+    if (actorIsAdmin || value === SYSTEM_ADMIN_ROLE_VALUE) {
+      list.unshift({ value: SYSTEM_ADMIN_ROLE_VALUE, label: "Admin (sistem)" });
+    }
+    return list;
+  }, [roles, actorIsAdmin, value]);
+
   return (
-    <Select value={value} onValueChange={(v) => onChange(v ?? "")} disabled={disabled}>
-      <SelectTrigger className="w-full">
-        <SelectValue placeholder={selectedName ?? "Pilih peran"} />
-      </SelectTrigger>
-      <SelectContent>
-        {showAdminOption ? (
-          <SelectItem value={SYSTEM_ADMIN_ROLE_VALUE}>
-            Admin (sistem)
-          </SelectItem>
-        ) : null}
-        {roles.map((role) => (
-          <SelectItem key={role.id} value={String(role.id)}>
-            {role.name}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <Combobox
+      options={options}
+      value={value}
+      onValueChange={onChange}
+      placeholder="Pilih peran"
+      emptyText="Peran tidak ditemukan."
+      disabled={disabled}
+    />
   );
 }
 
@@ -168,27 +159,28 @@ function ReportingSelect({
   excludeId?: number;
   idPrefix: string;
 }) {
-  const options = members.filter((m) => m.id !== excludeId);
-  const selectedName =
-    value === ""
-      ? "Tanpa garis atasan"
-      : (options.find((m) => String(m.id) === value)?.name ?? undefined);
+  const options = useMemo(
+    () => [
+      { value: "", label: "Tanpa garis atasan" },
+      ...members
+        .filter((member) => member.id !== excludeId)
+        .map((member) => ({
+          value: String(member.id),
+          label: `${member.name} · ${member.roleName ?? "Belum ditugaskan"}`,
+        })),
+    ],
+    [members, excludeId],
+  );
+
   return (
-    <Select value={value} onValueChange={(v) => onChange(v ?? "")}>
-      <SelectTrigger id={idPrefix} className="w-full">
-        <SelectValue placeholder="Pilih atasan">
-          {selectedName}
-        </SelectValue>
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="">Tanpa garis atasan</SelectItem>
-        {options.map((member) => (
-          <SelectItem key={member.id} value={String(member.id)}>
-            {member.name} · {member.roleName ?? "Belum ditugaskan"}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <Combobox
+      id={idPrefix}
+      options={options}
+      value={value}
+      onValueChange={onChange}
+      placeholder="Pilih atasan"
+      emptyText="Anggota tidak ditemukan."
+    />
   );
 }
 

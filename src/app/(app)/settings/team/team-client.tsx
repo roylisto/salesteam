@@ -11,14 +11,8 @@ import {
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Combobox } from "@/components/ui/combobox";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -38,6 +32,11 @@ import type {
 } from "./types";
 
 const STATUS_OPTIONS = ["all", "active", "inactive"] as const;
+const STATUS_FILTER_OPTIONS = [
+  { value: "all", label: "Semua status" },
+  { value: "active", label: "Aktif" },
+  { value: "inactive", label: "Tidak aktif" },
+];
 const PAGE_SIZE = 10;
 
 type TabValue = string;
@@ -348,9 +347,6 @@ export function TeamClient({
     return byParent.get(null) ?? [];
   }, [members]);
 
-  const selectedStatusName =
-    status === "all" ? "Semua status" : status === "active" ? "Aktif" : "Tidak aktif";
-
   return (
     <div className="space-y-3">
       <Tabs
@@ -393,22 +389,17 @@ export function TeamClient({
           />
         </div>
 
-        <Select
+        <Combobox
+          options={STATUS_FILTER_OPTIONS}
           value={status}
           onValueChange={(value) => {
-            void setStatus((value as (typeof STATUS_OPTIONS)[number]) ?? "all");
+            void setStatus((value || "all") as (typeof STATUS_OPTIONS)[number]);
             void setPage(1);
           }}
-        >
-          <SelectTrigger className="w-36">
-            <SelectValue>{selectedStatusName}</SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Semua status</SelectItem>
-            <SelectItem value="active">Aktif</SelectItem>
-            <SelectItem value="inactive">Tidak aktif</SelectItem>
-          </SelectContent>
-        </Select>
+          placeholder="Semua status"
+          emptyText="Status tidak ditemukan."
+          className="w-36"
+        />
 
         <Button onClick={() => void setAction("create")}>
           <UserPlusIcon />

@@ -45,6 +45,9 @@ function Combobox({
       onValueChange={(next) => onValueChange(next ? next.value : "")}
       disabled={disabled}
       itemToStringLabel={(option: ComboboxOption) => option.label}
+      // Keep the best match highlighted so Enter selects it instead of
+      // submitting the surrounding form.
+      autoHighlight
     >
       <div className="relative">
         <ComboboxPrimitive.Input

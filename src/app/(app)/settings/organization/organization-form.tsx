@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useMemo, useRef, useState, useTransition } from "react";
 import { Building2Icon, ImagePlusIcon, Loader2Icon, Trash2Icon } from "lucide-react";
 import { toast } from "sonner";
 
@@ -9,14 +9,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Combobox } from "@/components/ui/combobox";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useWilayahCascade } from "@/components/use-wilayah-cascade";
 import { updateOrganization } from "@/lib/actions/organization";
@@ -79,6 +73,31 @@ export function OrganizationForm({
     district: organization.district ?? "",
     village: organization.village ?? "",
   });
+
+  const currencyOptions = useMemo(
+    () => CURRENCIES.map((code) => ({ value: code, label: code })),
+    [],
+  );
+  const timezoneOptions = useMemo(
+    () => TIMEZONES.map((zone) => ({ value: zone, label: zone })),
+    [],
+  );
+  const provinceOptions = useMemo(
+    () => provinces.map((item) => ({ value: item.nama, label: item.nama })),
+    [provinces],
+  );
+  const regencyOptions = useMemo(
+    () => regencies.map((item) => ({ value: item.nama, label: item.nama })),
+    [regencies],
+  );
+  const districtOptions = useMemo(
+    () => districts.map((item) => ({ value: item.nama, label: item.nama })),
+    [districts],
+  );
+  const villageOptions = useMemo(
+    () => villages.map((item) => ({ value: item.nama, label: item.nama })),
+    [villages],
+  );
 
   function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -262,41 +281,25 @@ export function OrganizationForm({
             <CardContent className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label>Mata uang</Label>
-                <Select
+                <Combobox
+                  options={currencyOptions}
                   value={currency}
-                  onValueChange={(value) => setCurrency(value ?? "IDR")}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue>{currency}</SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CURRENCIES.map((code) => (
-                      <SelectItem key={code} value={code}>
-                        {code}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  onValueChange={(value) => setCurrency(value || "IDR")}
+                  placeholder="Pilih mata uang"
+                  emptyText="Mata uang tidak ditemukan."
+                />
                 <FieldError message={errors.currency} />
               </div>
 
               <div className="space-y-1.5">
                 <Label>Zona waktu</Label>
-                <Select
+                <Combobox
+                  options={timezoneOptions}
                   value={timezone}
-                  onValueChange={(value) => setTimezone(value ?? "Asia/Jakarta")}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue>{timezone}</SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {TIMEZONES.map((zone) => (
-                      <SelectItem key={zone} value={zone}>
-                        {zone}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  onValueChange={(value) => setTimezone(value || "Asia/Jakarta")}
+                  placeholder="Pilih zona waktu"
+                  emptyText="Zona waktu tidak ditemukan."
+                />
                 <FieldError message={errors.timezone} />
               </div>
             </CardContent>
@@ -339,25 +342,14 @@ export function OrganizationForm({
                   <Label>
                     Provinsi <span className="text-destructive">*</span>
                   </Label>
-                  <Select
+                  <Combobox
+                    options={provinceOptions}
                     value={province}
-                    onValueChange={(value) => setProvince(value ?? "")}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue
-                        placeholder={loadingProvince ? "Memuat..." : "Pilih provinsi"}
-                      >
-                        {province}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {provinces.map((item) => (
-                        <SelectItem key={item.kode} value={item.nama}>
-                          {item.nama}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    onValueChange={setProvince}
+                    placeholder={loadingProvince ? "Memuat..." : "Cari provinsi"}
+                    emptyText="Provinsi tidak ditemukan."
+                    disabled={loadingProvince}
+                  />
                   <FieldError message={errors.province} />
                 </div>
 
@@ -365,26 +357,14 @@ export function OrganizationForm({
                   <Label>
                     Kabupaten/Kota <span className="text-destructive">*</span>
                   </Label>
-                  <Select
+                  <Combobox
+                    options={regencyOptions}
                     value={regency}
-                    onValueChange={(value) => setRegency(value ?? "")}
+                    onValueChange={setRegency}
+                    placeholder={loadingRegency ? "Memuat..." : "Cari kabupaten/kota"}
+                    emptyText="Kabupaten/kota tidak ditemukan."
                     disabled={loadingRegency}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue
-                        placeholder={loadingRegency ? "Memuat..." : "Pilih kabupaten/kota"}
-                      >
-                        {regency}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {regencies.map((item) => (
-                        <SelectItem key={item.kode} value={item.nama}>
-                          {item.nama}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  />
                   <FieldError message={errors.city} />
                 </div>
 
@@ -392,26 +372,14 @@ export function OrganizationForm({
                   <Label>
                     Kecamatan <span className="text-destructive">*</span>
                   </Label>
-                  <Select
+                  <Combobox
+                    options={districtOptions}
                     value={district}
-                    onValueChange={(value) => setDistrict(value ?? "")}
+                    onValueChange={setDistrict}
+                    placeholder={loadingDistrict ? "Memuat..." : "Cari kecamatan"}
+                    emptyText="Kecamatan tidak ditemukan."
                     disabled={loadingDistrict}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue
-                        placeholder={loadingDistrict ? "Memuat..." : "Pilih kecamatan"}
-                      >
-                        {district}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {districts.map((item) => (
-                        <SelectItem key={item.kode} value={item.nama}>
-                          {item.nama}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  />
                   <FieldError message={errors.district} />
                 </div>
 
@@ -419,26 +387,14 @@ export function OrganizationForm({
                   <Label>
                     Kelurahan/Desa <span className="text-destructive">*</span>
                   </Label>
-                  <Select
+                  <Combobox
+                    options={villageOptions}
                     value={village}
-                    onValueChange={(value) => setVillage(value ?? "")}
+                    onValueChange={setVillage}
+                    placeholder={loadingVillage ? "Memuat..." : "Cari kelurahan/desa"}
+                    emptyText="Kelurahan/desa tidak ditemukan."
                     disabled={loadingVillage}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue
-                        placeholder={loadingVillage ? "Memuat..." : "Pilih kelurahan/desa"}
-                      >
-                        {village}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {villages.map((item) => (
-                        <SelectItem key={item.kode} value={item.nama}>
-                          {item.nama}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  />
                   <FieldError message={errors.village} />
                 </div>
               </div>

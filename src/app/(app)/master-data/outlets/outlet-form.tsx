@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   ImagePlusIcon,
@@ -19,15 +19,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Combobox } from "@/components/ui/combobox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
@@ -174,18 +168,46 @@ export function OutletForm({
   const [imageRemoved, setImageRemoved] = useState(false);
   const [confirming, setConfirming] = useState(false);
 
-  const selectedWarehouse =
-    warehouseId === ""
-      ? "Tanpa gudang"
-      : warehouses.find((row) => String(row.id) === warehouseId)?.name;
-  const selectedSales =
-    salesId === ""
-      ? "Belum ditugaskan"
-      : members.find((row) => String(row.id) === salesId)?.name;
-  const selectedOutletType =
-    outletTypeId === ""
-      ? "Belum diatur"
-      : outletTypes.find((row) => String(row.id) === outletTypeId)?.name;
+  const outletTypeOptions = useMemo(
+    () => [
+      { value: "", label: "Belum diatur" },
+      ...outletTypes.map((type) => ({ value: String(type.id), label: type.name })),
+    ],
+    [outletTypes],
+  );
+  const warehouseOptions = useMemo(
+    () => [
+      { value: "", label: "Tanpa gudang" },
+      ...warehouses.map((warehouse) => ({
+        value: String(warehouse.id),
+        label: warehouse.name,
+      })),
+    ],
+    [warehouses],
+  );
+  const salesOptions = useMemo(
+    () => [
+      { value: "", label: "Belum ditugaskan" },
+      ...members.map((member) => ({ value: String(member.id), label: member.name })),
+    ],
+    [members],
+  );
+  const provinceOptions = useMemo(
+    () => provinces.map((item) => ({ value: item.nama, label: item.nama })),
+    [provinces],
+  );
+  const regencyOptions = useMemo(
+    () => regencies.map((item) => ({ value: item.nama, label: item.nama })),
+    [regencies],
+  );
+  const districtOptions = useMemo(
+    () => districts.map((item) => ({ value: item.nama, label: item.nama })),
+    [districts],
+  );
+  const villageOptions = useMemo(
+    () => villages.map((item) => ({ value: item.nama, label: item.nama })),
+    [villages],
+  );
 
   function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -344,64 +366,37 @@ export function OutletForm({
 
           <div className="space-y-1.5">
             <Label>Tipe outlet</Label>
-            <Select
+            <Combobox
+              options={outletTypeOptions}
               value={outletTypeId}
-              onValueChange={(value) => setOutletTypeId(value ?? "")}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue>{selectedOutletType}</SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">Belum diatur</SelectItem>
-                {outletTypes.map((outletType) => (
-                  <SelectItem key={outletType.id} value={String(outletType.id)}>
-                    {outletType.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              onValueChange={setOutletTypeId}
+              placeholder="Pilih tipe outlet"
+              emptyText="Tipe outlet tidak ditemukan."
+            />
             <FieldError message={errors.outletTypeId} />
           </div>
 
           <div className="space-y-1.5">
             <Label>Gudang</Label>
-            <Select
+            <Combobox
+              options={warehouseOptions}
               value={warehouseId}
-              onValueChange={(value) => setWarehouseId(value ?? "")}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue>{selectedWarehouse}</SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">Tanpa gudang</SelectItem>
-                {warehouses.map((warehouse) => (
-                  <SelectItem key={warehouse.id} value={String(warehouse.id)}>
-                    {warehouse.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              onValueChange={setWarehouseId}
+              placeholder="Pilih gudang"
+              emptyText="Gudang tidak ditemukan."
+            />
             <FieldError message={errors.warehouseId} />
           </div>
 
           <div className="space-y-1.5">
             <Label>Tenaga penjualan</Label>
-            <Select
+            <Combobox
+              options={salesOptions}
               value={salesId}
-              onValueChange={(value) => setSalesId(value ?? "")}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue>{selectedSales}</SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">Belum ditugaskan</SelectItem>
-                {members.map((member) => (
-                  <SelectItem key={member.id} value={String(member.id)}>
-                    {member.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              onValueChange={setSalesId}
+              placeholder="Pilih tenaga penjualan"
+              emptyText="Tenaga penjualan tidak ditemukan."
+            />
             <FieldError message={errors.salesId} />
           </div>
 
@@ -507,98 +502,53 @@ export function OutletForm({
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label>Provinsi</Label>
-                <Select
+                <Combobox
+                  options={provinceOptions}
                   value={province}
-                  onValueChange={(value) => setProvince(value ?? "")}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue
-                      placeholder={loadingProvince ? "Memuat..." : "Pilih provinsi"}
-                    >
-                      {province}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {provinces.map((item) => (
-                      <SelectItem key={item.kode} value={item.nama}>
-                        {item.nama}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  onValueChange={setProvince}
+                  placeholder={loadingProvince ? "Memuat..." : "Cari provinsi"}
+                  emptyText="Provinsi tidak ditemukan."
+                  disabled={loadingProvince}
+                />
                 <FieldError message={errors.province} />
               </div>
 
               <div className="space-y-1.5">
                 <Label>Kabupaten/Kota</Label>
-                <Select
+                <Combobox
+                  options={regencyOptions}
                   value={regency}
-                  onValueChange={(value) => setRegency(value ?? "")}
+                  onValueChange={setRegency}
+                  placeholder={loadingRegency ? "Memuat..." : "Cari kabupaten/kota"}
+                  emptyText="Kabupaten/kota tidak ditemukan."
                   disabled={loadingRegency}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue
-                      placeholder={loadingRegency ? "Memuat..." : "Pilih kabupaten/kota"}
-                    >
-                      {regency}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {regencies.map((item) => (
-                      <SelectItem key={item.kode} value={item.nama}>
-                        {item.nama}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                />
                 <FieldError message={errors.city} />
               </div>
 
               <div className="space-y-1.5">
                 <Label>Kecamatan</Label>
-                <Select
+                <Combobox
+                  options={districtOptions}
                   value={district}
-                  onValueChange={(value) => setDistrict(value ?? "")}
+                  onValueChange={setDistrict}
+                  placeholder={loadingDistrict ? "Memuat..." : "Cari kecamatan"}
+                  emptyText="Kecamatan tidak ditemukan."
                   disabled={loadingDistrict}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder={loadingDistrict ? "Memuat..." : "Pilih kecamatan"}>
-                      {district}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {districts.map((item) => (
-                      <SelectItem key={item.kode} value={item.nama}>
-                        {item.nama}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                />
                 <FieldError message={errors.district} />
               </div>
 
               <div className="space-y-1.5">
                 <Label>Kelurahan/Desa</Label>
-                <Select
+                <Combobox
+                  options={villageOptions}
                   value={village}
-                  onValueChange={(value) => setVillage(value ?? "")}
+                  onValueChange={setVillage}
+                  placeholder={loadingVillage ? "Memuat..." : "Cari kelurahan/desa"}
+                  emptyText="Kelurahan/desa tidak ditemukan."
                   disabled={loadingVillage}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue
-                      placeholder={loadingVillage ? "Memuat..." : "Pilih kelurahan/desa"}
-                    >
-                      {village}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {villages.map((item) => (
-                      <SelectItem key={item.kode} value={item.nama}>
-                        {item.nama}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                />
                 <FieldError message={errors.village} />
               </div>
             </div>

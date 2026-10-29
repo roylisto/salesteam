@@ -1,21 +1,15 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { Loader2Icon, LocateFixedIcon, SearchIcon } from "lucide-react";
 
 import "leaflet/dist/leaflet.css";
 import type { LeafletMouseEvent, Map as LeafletMap, Marker } from "leaflet";
 
 import { Button } from "@/components/ui/button";
+import { Combobox } from "@/components/ui/combobox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 const DEFAULT_CENTER: [number, number] = [-6.2, 106.816666];
 
@@ -365,6 +359,23 @@ export function LocationPicker({
     );
   }, []);
 
+  const provinceSelectOptions = useMemo(
+    () => provinceOptions.map((item) => ({ value: item.name, label: item.name })),
+    [provinceOptions],
+  );
+  const regencySelectOptions = useMemo(
+    () => regencyOptions.map((item) => ({ value: item.name, label: item.name })),
+    [regencyOptions],
+  );
+  const districtSelectOptions = useMemo(
+    () => districtOptions.map((item) => ({ value: item.name, label: item.name })),
+    [districtOptions],
+  );
+  const villageSelectOptions = useMemo(
+    () => villageOptions.map((item) => ({ value: item.name, label: item.name })),
+    [villageOptions],
+  );
+
   const showAddressFields =
     (extProvince !== undefined && setExtProvince) ||
     (extRegency !== undefined && setExtRegency) ||
@@ -436,103 +447,63 @@ export function LocationPicker({
             {extProvince !== undefined && setExtProvince && (
               <div className="space-y-1.5">
                 <Label>Provinsi</Label>
-                <Select
+                <Combobox
+                  options={provinceSelectOptions}
                   value={extProvince}
-                  onValueChange={(value) => setExtProvince?.(value ?? "")}
+                  onValueChange={(value) => setExtProvince?.(value)}
+                  placeholder={loadingProvince ? "Memuat..." : "Cari provinsi"}
+                  emptyText="Provinsi tidak ditemukan."
                   disabled={loadingProvince}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder={loadingProvince ? "Memuat..." : "Pilih provinsi"}>
-                      {extProvince}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {provinceOptions.map((item) => (
-                      <SelectItem key={String(item.code)} value={item.name}>
-                        {item.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                />
               </div>
             )}
 
             {extRegency !== undefined && setExtRegency && (
               <div className="space-y-1.5">
                 <Label>Kabupaten/Kota</Label>
-                <Select
+                <Combobox
+                  options={regencySelectOptions}
                   value={extRegency}
                   onValueChange={(value) => {
-                    setExtRegency?.(value ?? "");
+                    setExtRegency?.(value);
                     setExtDistrict?.("");
                     setExtVillage?.("");
                   }}
+                  placeholder={loadingRegency ? "Memuat..." : "Cari kabupaten/kota"}
+                  emptyText="Kabupaten/kota tidak ditemukan."
                   disabled={!extProvince || loadingRegency}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder={loadingRegency ? "Memuat..." : "Pilih kabupaten/kota"}>
-                      {extRegency}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {regencyOptions.map((item) => (
-                      <SelectItem key={String(item.code)} value={item.name}>
-                        {item.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                />
               </div>
             )}
 
             {extDistrict !== undefined && setExtDistrict && (
               <div className="space-y-1.5">
                 <Label>Kecamatan</Label>
-                <Select
+                <Combobox
+                  options={districtSelectOptions}
                   value={extDistrict}
                   onValueChange={(value) => {
-                    setExtDistrict?.(value ?? "");
+                    setExtDistrict?.(value);
                     setExtVillage?.("");
                   }}
+                  placeholder={loadingDistrict ? "Memuat..." : "Cari kecamatan"}
+                  emptyText="Kecamatan tidak ditemukan."
                   disabled={!extRegency || loadingDistrict}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder={loadingDistrict ? "Memuat..." : "Pilih kecamatan"}>
-                      {extDistrict}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {districtOptions.map((item) => (
-                      <SelectItem key={String(item.code)} value={item.name}>
-                        {item.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                />
               </div>
             )}
 
             {extVillage !== undefined && setExtVillage && (
               <div className="space-y-1.5">
                 <Label>Kelurahan/Desa</Label>
-                <Select
+                <Combobox
+                  options={villageSelectOptions}
                   value={extVillage}
-                  onValueChange={(value) => setExtVillage?.(value ?? "")}
+                  onValueChange={(value) => setExtVillage?.(value)}
+                  placeholder={loadingVillage ? "Memuat..." : "Cari kelurahan/desa"}
+                  emptyText="Kelurahan/desa tidak ditemukan."
                   disabled={!extDistrict || loadingVillage}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder={loadingVillage ? "Memuat..." : "Pilih kelurahan/desa"}>
-                      {extVillage}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {villageOptions.map((item) => (
-                      <SelectItem key={String(item.code)} value={item.name}>
-                        {item.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                />
               </div>
             )}
 

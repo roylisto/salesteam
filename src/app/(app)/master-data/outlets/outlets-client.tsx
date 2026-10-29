@@ -7,14 +7,8 @@ import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryState } fr
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Combobox } from "@/components/ui/combobox";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -30,6 +24,11 @@ const PAGE_SIZE = 10;
 const ALL_WAREHOUSES = "all";
 const NO_WAREHOUSE = "none";
 const STATUS_OPTIONS = ["all", "active", "inactive"] as const;
+const STATUS_FILTER_OPTIONS = [
+  { value: "all", label: "Semua status" },
+  { value: "active", label: "Aktif" },
+  { value: "inactive", label: "Tidak aktif" },
+];
 
 export function OutletsClient({
   outlets,
@@ -82,15 +81,18 @@ export function OutletsClient({
   const start = (currentPage - 1) * PAGE_SIZE;
   const visible = filtered.slice(start, start + PAGE_SIZE);
 
-  const warehouseFilterName =
-    warehouseFilter === ALL_WAREHOUSES
-      ? undefined
-      : warehouseFilter === NO_WAREHOUSE
-        ? "Tanpa gudang"
-        : (warehouses.find((w) => String(w.id) === warehouseFilter)?.name ??
-          undefined);
-  const statusName =
-    status === "all" ? "Semua status" : status === "active" ? "Aktif" : "Tidak aktif";
+  const warehouseFilterOptions = useMemo(
+    () => [
+      { value: ALL_WAREHOUSES, label: "Semua gudang" },
+      { value: NO_WAREHOUSE, label: "Tanpa gudang" },
+      ...warehouses.map((warehouse) => ({
+        value: String(warehouse.id),
+        label: warehouse.name,
+      })),
+    ],
+    [warehouses],
+  );
+  const statusOptions = STATUS_FILTER_OPTIONS;
 
   return (
     <div className="space-y-3">
@@ -108,45 +110,29 @@ export function OutletsClient({
           />
         </div>
 
-        <Select
+        <Combobox
+          options={warehouseFilterOptions}
           value={warehouseFilter}
           onValueChange={(value) => {
-            void setWarehouseFilter(value ?? ALL_WAREHOUSES);
+            void setWarehouseFilter(value || ALL_WAREHOUSES);
             void setPage(1);
           }}
-        >
-          <SelectTrigger className="w-44">
-            <SelectValue placeholder="Semua gudang">
-              {warehouseFilterName}
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL_WAREHOUSES}>Semua gudang</SelectItem>
-            <SelectItem value={NO_WAREHOUSE}>Tanpa gudang</SelectItem>
-            {warehouses.map((warehouse) => (
-              <SelectItem key={warehouse.id} value={String(warehouse.id)}>
-                {warehouse.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          placeholder="Semua gudang"
+          emptyText="Gudang tidak ditemukan."
+          className="w-44"
+        />
 
-        <Select
+        <Combobox
+          options={statusOptions}
           value={status}
           onValueChange={(value) => {
-            void setStatus((value as (typeof STATUS_OPTIONS)[number]) ?? "all");
+            void setStatus((value || "all") as (typeof STATUS_OPTIONS)[number]);
             void setPage(1);
           }}
-        >
-          <SelectTrigger className="w-36">
-            <SelectValue>{statusName}</SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Semua status</SelectItem>
-            <SelectItem value="active">Aktif</SelectItem>
-            <SelectItem value="inactive">Tidak aktif</SelectItem>
-          </SelectContent>
-        </Select>
+          placeholder="Semua status"
+          emptyText="Status tidak ditemukan."
+          className="w-36"
+        />
 
         <Button
           render={
