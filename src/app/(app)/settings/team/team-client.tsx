@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { ChevronLeftIcon, ChevronRightIcon, EditIcon, SearchIcon, UserPlusIcon } from "lucide-react";
 import {
   parseAsInteger,
@@ -8,6 +8,7 @@ import {
   parseAsStringLiteral,
   useQueryState,
 } from "nuqs";
+import { cn } from "cn";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -70,54 +71,6 @@ function typeTabOf(member: MemberRow): string {
   return member.userType === "sales" ? SALES_TAB : BACK_OFFICE_TAB;
 }
 
-function HierarchyNode({
-  member,
-  children,
-  depth,
-  onSelect,
-}: {
-  member: MemberRow;
-  children: MemberRow[];
-  depth: number;
-  onSelect: (id: number) => void;
-}) {
-  return (
-    <div className={depth > 0 ? "ml-4 border-l pl-4 sm:ml-6" : ""}>
-      <button
-        type="button"
-        onClick={() => onSelect(member.id)}
-        className="hover:border-foreground/20 w-full rounded-xl border bg-card p-3 text-left shadow-xs transition-colors"
-      >
-        <span className="flex flex-wrap items-center gap-2">
-          <span className="text-sm font-medium">{member.name}</span>
-          <Badge variant="secondary">{member.roleName ?? "Belum ditugaskan"}</Badge>
-          {member.isOrganizationOwner ? <Badge variant="outline">Pemilik</Badge> : null}
-        </span>
-        <span className="text-muted-foreground mt-1 block text-xs">
-          {member.areaNames.length > 0
-            ? member.areaNames.join(" · ")
-            : "Belum ada area yang ditugaskan"}
-          {children.length > 0
-            ? ` · ${children.length} bawahan langsung`
-            : ""}
-        </span>
-      </button>
-      {children.length > 0 ? (
-        <div className="mt-2 space-y-2">
-          {children.map((child) => (
-            <HierarchyBranch
-              key={child.id}
-              memberId={child.id}
-              depth={depth + 1}
-              onSelect={onSelect}
-            />
-          ))}
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
 // Indirection via module-level map keeps the recursive tree simple.
 let childrenByParent: Map<number | null, MemberRow[]> = new Map();
 let memberById: Map<number, MemberRow> = new Map();
@@ -125,21 +78,78 @@ let memberById: Map<number, MemberRow> = new Map();
 function HierarchyBranch({
   memberId,
   depth,
+  expandedIds,
+  onToggle,
   onSelect,
 }: {
   memberId: number;
   depth: number;
+  expandedIds: Set<number>;
+  onToggle: (id: number) => void;
   onSelect: (id: number) => void;
 }) {
   const member = memberById.get(memberId);
   if (!member) return null;
+
+  const children = childrenByParent.get(memberId) ?? [];
+  const hasChildren = children.length > 0;
+  const isExpanded = expandedIds.has(memberId);
+
   return (
-    <HierarchyNode
-      member={member}
-      children={childrenByParent.get(memberId) ?? []}
-      depth={depth}
-      onSelect={onSelect}
-    />
+    <div className={depth > 0 ? "ml-4 border-l pl-4 sm:ml-6" : ""}>
+      <div className="hover:border-foreground/20 flex w-full items-center gap-1 rounded-xl border bg-card p-1.5 shadow-xs transition-colors">
+        {hasChildren ? (
+          <button
+            type="button"
+            onClick={() => onToggle(memberId)}
+            aria-expanded={isExpanded}
+            aria-label={
+              isExpanded
+                ? `Tutup bawahan ${member.name}`
+                : `Buka bawahan ${member.name}`
+            }
+            className="text-muted-foreground hover:bg-accent flex size-7 shrink-0 items-center justify-center rounded-md transition-colors"
+          >
+            <ChevronRightIcon
+              className={cn("size-4 transition-transform", isExpanded && "rotate-90")}
+            />
+          </button>
+        ) : (
+          <span aria-hidden className="size-7 shrink-0" />
+        )}
+        <button
+          type="button"
+          onClick={() => onSelect(member.id)}
+          className="flex-1 rounded-lg px-2 py-1 text-left"
+        >
+          <span className="flex flex-wrap items-center gap-2">
+            <span className="text-sm font-medium">{member.name}</span>
+            <Badge variant="secondary">{member.roleName ?? "Belum ditugaskan"}</Badge>
+            {member.isOrganizationOwner ? <Badge variant="outline">Pemilik</Badge> : null}
+          </span>
+          <span className="text-muted-foreground mt-1 block text-xs">
+            {member.areaNames.length > 0
+              ? member.areaNames.join(" · ")
+              : "Belum ada area yang ditugaskan"}
+            {hasChildren ? ` · ${children.length} bawahan langsung` : ""}
+          </span>
+        </button>
+      </div>
+      {hasChildren && isExpanded ? (
+        <div className="mt-2 space-y-2">
+          {children.map((child) => (
+            <HierarchyBranch
+              key={child.id}
+              memberId={child.id}
+              depth={depth + 1}
+              expandedIds={expandedIds}
+              onToggle={onToggle}
+              onSelect={onSelect}
+            />
+          ))}
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -279,7 +289,7 @@ export function TeamClient({
   const tabs = useMemo(() => {
     const list: { value: string; label: string; count: number }[] = [
       { value: ALL_TAB, label: "Semua", count: members.length },
-      { value: HIERARCHY_TAB, label: "Hierarki", count: members.length },
+      { value: HIERARCHY_TAB, label: "Struktur Organisasi", count: members.length },
       {
         value: BACK_OFFICE_TAB,
         label: "Back Office",
@@ -346,6 +356,24 @@ export function TeamClient({
     memberById = byId;
     return byParent.get(null) ?? [];
   }, [members]);
+
+  // Root members start expanded so the top level of the structure is visible;
+  // deeper levels stay collapsed to keep the page compact.
+  const [expandedIds, setExpandedIds] = useState<Set<number>>(
+    () => new Set(roots.map((root) => root.id)),
+  );
+
+  function toggleNode(id: number) {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }
 
   return (
     <div className="space-y-3">
@@ -415,11 +443,12 @@ export function TeamClient({
             </p>
           ) : (
             roots.map((root) => (
-              <HierarchyNode
+              <HierarchyBranch
                 key={root.id}
-                member={root}
-                children={childrenByParent.get(root.id) ?? []}
+                memberId={root.id}
                 depth={0}
+                expandedIds={expandedIds}
+                onToggle={toggleNode}
                 onSelect={(id) => void setMemberId(id)}
               />
             ))

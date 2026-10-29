@@ -3,7 +3,9 @@
 > Handoff notes for AI agents doing "vibe coding" on this repo.
 > Read this first; it captures the project context, conventions, and what has
 > already been built so you can continue without re-discovering everything.
-> Last updated: 2026-10-29 (**Searchable option fields (Combobox) — all dropdowns**) — added `src/components/ui/combobox.tsx`, a searchable single-select built on Base UI `Combobox`, and swapped **every** `Select` dropdown across the app for it (warehouse form, outlet form, organization form, shared `location-picker` wilayah selects, plus the area/warehouse/status list filters and team member dialog selects) so long lists can be filtered by typing. `ui/select.tsx` is kept but no longer used in feature code.
+> Last updated: 2026-10-29 (**Team org structure**) — renamed the team tab "Hierarki" to **Struktur Organisasi** and made the recursive tree node cards expand/collapse (chevron toggle) so the page is not long; roots start expanded, deeper levels start collapsed.
+>
+> Previous: 2026-10-29 (**Searchable option fields (Combobox) — all dropdowns**) — added `src/components/ui/combobox.tsx`, a searchable single-select built on Base UI `Combobox`, and swapped **every** `Select` dropdown across the app for it (warehouse form, outlet form, organization form, shared `location-picker` wilayah selects, plus the area/warehouse/status list filters and team member dialog selects) so long lists can be filtered by typing. `ui/select.tsx` is kept but no longer used in feature code.
 >
 > Previous: 2026-10-29 (**Searchable option fields (Combobox) — warehouse form**) — introduced `ui/combobox.tsx` and converted every option field on the warehouse form (Area, PIC, Provinsi, Kabupaten/Kota, Kecamatan, Kelurahan) from `Select` to it.
 >
@@ -464,8 +466,11 @@ Defined in `src/db/schema/*` and re-exported from `index.ts`.
   partial-unique name. Gated by the `outlet_types` permission. Feeds the outlet
   form's type dropdown.
 - **Team** (`/settings/team`):
-  - Tabs: **All**, **Hierarchy**, **Admin**, one tab per role, **Unassigned**.
-  - **Hierarchy** tab: recursive indented diagram (member cards → direct reports).
+  - Tabs: **Semua**, **Struktur Organisasi**, **Back Office**, **Sales**.
+  - **Struktur Organisasi** tab: recursive indented diagram (member cards →
+    direct reports). Each node with subordinates is expand/collapse (chevron);
+    root members start expanded and deeper levels start collapsed so the page
+    stays compact.
   - **All** tab: members grouped by role, each group in its own table.
   - Search (name/email/code), status filter, pagination, member detail dialog.
   - Create/edit member: role dropdown (Admin shown by default option +
