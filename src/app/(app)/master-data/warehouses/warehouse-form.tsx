@@ -342,16 +342,17 @@ export function WarehouseForm({
                 setLatitude(nextLatitude);
                 setLongitude(nextLongitude);
               }}
-              onAddressChange={(address) => {
-                if (address.postalCode) setPostalCode(address.postalCode);
-                if (address.latitude) setLatitude(address.latitude);
-                if (address.longitude) setLongitude(address.longitude);
+              onAddressChange={(result) => {
+                if (result.address) setAddress(result.address);
+                if (result.postalCode) setPostalCode(result.postalCode);
+                if (result.latitude) setLatitude(result.latitude);
+                if (result.longitude) setLongitude(result.longitude);
 
                 syncFromAddress({
-                  province: address.province,
-                  regency: address.regency,
-                  district: address.district,
-                  village: address.village,
+                  province: result.province,
+                  regency: result.regency,
+                  district: result.district,
+                  village: result.village,
                 });
               }}
               compact

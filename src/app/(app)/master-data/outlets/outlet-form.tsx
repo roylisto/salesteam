@@ -93,6 +93,7 @@ export function OutletForm({
     outlet?.longitude != null ? String(outlet.longitude) : "",
   );
   const [postalCode, setPostalCode] = useState(outlet?.postalCode ?? "");
+  const [address, setAddress] = useState(outlet?.address ?? "");
 
   const [mapCentered, setMapCentered] = useState(false);
 
@@ -121,16 +122,17 @@ export function OutletForm({
     village: outlet?.village ?? "",
   });
 
-  function handleAddressChange(address: AddressComponents) {
-    if (address.latitude) setLatitude(address.latitude);
-    if (address.longitude) setLongitude(address.longitude);
-    if (address.postalCode) setPostalCode(address.postalCode);
+  function handleAddressChange(result: AddressComponents) {
+    if (result.address) setAddress(result.address);
+    if (result.latitude) setLatitude(result.latitude);
+    if (result.longitude) setLongitude(result.longitude);
+    if (result.postalCode) setPostalCode(result.postalCode);
 
     syncFromAddress({
-      province: address.province,
-      regency: address.regency,
-      district: address.district,
-      village: address.village,
+      province: result.province,
+      regency: result.regency,
+      district: result.district,
+      village: result.village,
     });
   }
 
@@ -606,7 +608,8 @@ export function OutletForm({
               <Textarea
                 id="outlet-address"
                 name="address"
-                defaultValue={outlet?.address ?? ""}
+                value={address}
+                onChange={(event) => setAddress(event.target.value)}
                 rows={2}
                 placeholder="Jalan, nomor"
               />
