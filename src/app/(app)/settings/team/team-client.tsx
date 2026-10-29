@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { ChevronLeftIcon, ChevronRightIcon, EditIcon, SearchIcon, UserPlusIcon } from "lucide-react";
 import {
@@ -30,13 +31,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-import { CreateMemberDialog, MemberDetailDialog } from "./member-dialog";
-import type {
-  AreaOption,
-  MemberRow,
-  RoleOption,
-  WarehouseOption,
-} from "./types";
+import type { MemberRow } from "./types";
 
 const STATUS_OPTIONS = ["all", "active", "inactive"] as const;
 const STATUS_FILTER_OPTIONS = [
@@ -48,6 +43,7 @@ const PAGE_SIZE = 10;
 
 const SORT_COLUMNS: SortColumn<MemberRow>[] = [
   { key: "name", getValue: (member) => member.name },
+  { key: "code", getValue: (member) => member.code ?? null },
   { key: "type", getValue: (member) => (member.userType === "sales" ? "Sales" : "Back Office") },
   { key: "role", getValue: (member) => member.roleName ?? null },
   { key: "reportsTo", getValue: (member) => member.reportsToName ?? null },
@@ -99,13 +95,11 @@ function HierarchyBranch({
   depth,
   expandedIds,
   onToggle,
-  onSelect,
 }: {
   memberId: number;
   depth: number;
   expandedIds: Set<number>;
   onToggle: (id: number) => void;
-  onSelect: (id: number) => void;
 }) {
   const member = memberById.get(memberId);
   if (!member) return null;
@@ -136,9 +130,8 @@ function HierarchyBranch({
         ) : (
           <span aria-hidden className="size-7 shrink-0" />
         )}
-        <button
-          type="button"
-          onClick={() => onSelect(member.id)}
+        <Link
+          href={`/settings/team/${member.id}`}
           className="flex-1 rounded-lg px-2 py-1 text-left"
         >
           <span className="flex flex-wrap items-center gap-2">
@@ -152,7 +145,7 @@ function HierarchyBranch({
               : "Belum ada area yang ditugaskan"}
             {hasChildren ? ` · ${children.length} bawahan langsung` : ""}
           </span>
-        </button>
+        </Link>
       </div>
       {hasChildren && isExpanded ? (
         <div className="mt-2 space-y-2">
@@ -163,7 +156,6 @@ function HierarchyBranch({
               depth={depth + 1}
               expandedIds={expandedIds}
               onToggle={onToggle}
-              onSelect={onSelect}
             />
           ))}
         </div>
@@ -174,13 +166,11 @@ function HierarchyBranch({
 
 function MemberTable({
   rows,
-  onSelect,
   sortKey,
   sortDir,
   onSort,
 }: {
   rows: MemberRow[];
-  onSelect: (id: number) => void;
   sortKey: string | null;
   sortDir: SortDirection | null;
   onSort: (key: string) => void;
@@ -204,7 +194,15 @@ function MemberTable({
                 sortKey={sortKey}
                 sortDir={sortDir}
                 onSort={onSort}
-                className="w-[28%] min-w-[220px]"
+                className="w-[26%] min-w-[220px]"
+              />
+              <SortableHead
+                label="Kode pegawai"
+                columnKey="code"
+                sortKey={sortKey}
+                sortDir={sortDir}
+                onSort={onSort}
+                className="hidden w-[10%] md:table-cell"
               />
               <SortableHead
                 label="Tipe"
@@ -212,7 +210,7 @@ function MemberTable({
                 sortKey={sortKey}
                 sortDir={sortDir}
                 onSort={onSort}
-                className="hidden w-[12%] md:table-cell"
+                className="hidden w-[11%] md:table-cell"
               />
               <SortableHead
                 label="Peran"
@@ -220,7 +218,7 @@ function MemberTable({
                 sortKey={sortKey}
                 sortDir={sortDir}
                 onSort={onSort}
-                className="hidden w-[16%] lg:table-cell"
+                className="hidden w-[15%] lg:table-cell"
               />
               <SortableHead
                 label="Atasan"
@@ -228,7 +226,7 @@ function MemberTable({
                 sortKey={sortKey}
                 sortDir={sortDir}
                 onSort={onSort}
-                className="hidden w-[14%] xl:table-cell"
+                className="hidden w-[13%] xl:table-cell"
               />
               <SortableHead
                 label="Area"
@@ -236,7 +234,7 @@ function MemberTable({
                 sortKey={sortKey}
                 sortDir={sortDir}
                 onSort={onSort}
-                className="hidden w-[18%] 2xl:table-cell"
+                className="hidden w-[13%] 2xl:table-cell"
               />
               <SortableHead
                 label="Status"
@@ -253,16 +251,18 @@ function MemberTable({
             {rows.map((member) => (
               <TableRow key={member.id}>
                 <TableCell>
-                  <button
-                    type="button"
-                    onClick={() => onSelect(member.id)}
-                    className="text-left"
+                  <Link
+                    href={`/settings/team/${member.id}`}
+                    className="block text-left"
                   >
                     <span className="block truncate text-sm font-medium">{member.name}</span>
                     <span className="text-muted-foreground block truncate text-xs">
                       {member.email}
                     </span>
-                  </button>
+                  </Link>
+                </TableCell>
+                <TableCell className="text-muted-foreground hidden truncate text-xs md:table-cell">
+                  {member.code ?? "—"}
                 </TableCell>
                 <TableCell className="hidden md:table-cell">
                   <UserTypeBadge userType={member.userType} />
@@ -302,10 +302,11 @@ function MemberTable({
                 </TableCell>
                 <TableCell className="text-right">
                   <Button
+                    render={<Link href={`/settings/team/${member.id}`} />}
+                    nativeButton={false}
                     variant="ghost"
                     size="icon"
                     className="h-7 w-7"
-                    onClick={() => onSelect(member.id)}
                     aria-label="Ubah anggota"
                   >
                     <EditIcon className="size-4" />
@@ -320,23 +321,7 @@ function MemberTable({
   );
 }
 
-export function TeamClient({
-  members,
-  roles,
-  areas,
-  warehouses,
-  assignableAreas,
-  currentUserId,
-  isAdmin,
-}: {
-  members: MemberRow[];
-  roles: RoleOption[];
-  areas: AreaOption[];
-  warehouses: WarehouseOption[];
-  assignableAreas: AreaOption[];
-  currentUserId: number;
-  isAdmin: boolean;
-}) {
+export function TeamClient({ members }: { members: MemberRow[] }) {
   const [tab, setTab] = useQueryState("tab", parseAsString.withDefault(ALL_TAB));
   const [query, setQuery] = useQueryState(
     "q",
@@ -347,11 +332,6 @@ export function TeamClient({
     parseAsStringLiteral(STATUS_OPTIONS).withDefault("all"),
   );
   const [page, setPage] = useQueryState("page", parseAsInteger.withDefault(1));
-  const [memberId, setMemberId] = useQueryState("user", parseAsInteger);
-  const [action, setAction] = useQueryState(
-    "action",
-    parseAsStringLiteral(["create"] as const),
-  );
 
   const tabs = useMemo(() => {
     const list: { value: string; label: string; count: number }[] = [
@@ -372,11 +352,6 @@ export function TeamClient({
   }, [members]);
 
   const activeTab: TabValue = tabs.some((t) => t.value === tab) ? tab : ALL_TAB;
-
-  const selected = useMemo(
-    () => members.find((member) => member.id === memberId) ?? null,
-    [members, memberId],
-  );
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -498,7 +473,10 @@ export function TeamClient({
           className="w-36"
         />
 
-        <Button onClick={() => void setAction("create")}>
+        <Button
+          render={<Link href="/settings/team/new" />}
+          nativeButton={false}
+        >
           <UserPlusIcon />
           Tambah anggota
         </Button>
@@ -518,7 +496,6 @@ export function TeamClient({
                 depth={0}
                 expandedIds={expandedIds}
                 onToggle={toggleNode}
-                onSelect={(id) => void setMemberId(id)}
               />
             ))
           )}
@@ -540,7 +517,6 @@ export function TeamClient({
                 </h2>
                 <MemberTable
                   rows={group.rows}
-                  onSelect={(id) => void setMemberId(id)}
                   sortKey={sortKey}
                   sortDir={sortDir}
                   onSort={toggleSort}
@@ -552,7 +528,6 @@ export function TeamClient({
       ) : (
         <MemberTable
           rows={visible}
-          onSelect={(id) => void setMemberId(id)}
           sortKey={sortKey}
           sortDir={sortDir}
           onSort={toggleSort}
@@ -590,36 +565,6 @@ export function TeamClient({
             </Button>
           </div>
         </div>
-      ) : null}
-
-      <CreateMemberDialog
-        open={action === "create"}
-        onOpenChange={(open) => void setAction(open ? "create" : null)}
-        roles={roles}
-        areas={areas}
-        warehouses={warehouses}
-        assignableAreas={assignableAreas}
-        members={members}
-        currentUserId={currentUserId}
-        isAdmin={isAdmin}
-      />
-
-      {selected ? (
-        <MemberDetailDialog
-          key={selected.id}
-          member={selected}
-          roles={roles}
-          areas={areas}
-          warehouses={warehouses}
-          assignableAreas={assignableAreas}
-          members={members}
-          currentUserId={currentUserId}
-          isAdmin={isAdmin}
-          open
-          onOpenChange={(open) => {
-            if (!open) void setMemberId(null);
-          }}
-        />
       ) : null}
     </div>
   );

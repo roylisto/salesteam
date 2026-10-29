@@ -3,7 +3,9 @@
 > Handoff notes for AI agents doing "vibe coding" on this repo.
 > Read this first; it captures the project context, conventions, and what has
 > already been built so you can continue without re-discovering everything.
-> Last updated: 2026-10-29 (**Sortable table columns**) — added `src/components/table-sort.tsx` (`useTableSort` + `SortableHead`) and wired click-to-sort headers (with asc/desc icons + `aria-sort`) into every data table: Areas, Outlet types, Warehouses, Outlets, and the Team `MemberTable`. The active column/direction live in the URL (`sort`, `dir`).
+> Last updated: 2026-10-29 (**Team member pages**) — adding **and** editing a team member are now full pages (`/settings/team/new`, `/settings/team/[id]`) instead of dialogs; the team table list shows the **Kode pegawai** column, and rows (plus org-tree nodes) link to the edit page. Shared member form fields live in `member-fields.tsx`; team data loading is in `data.ts` (used by the list, new, and edit pages). Both forms share the same compact 2-column layout (no card header, `lg:grid-cols-2`): **personal data on the left**, **Area & Gudang on the right**.
+>
+> Previous: 2026-10-29 (**Sortable table columns**) — added `src/components/table-sort.tsx` (`useTableSort` + `SortableHead`) and wired click-to-sort headers (with asc/desc icons + `aria-sort`) into every data table: Areas, Outlet types, Warehouses, Outlets, and the Team `MemberTable`. The active column/direction live in the URL (`sort`, `dir`).
 >
 > Previous: 2026-10-29 (**Team org structure**) — renamed the team tab "Hierarki" to **Struktur Organisasi** and made the recursive tree node cards expand/collapse (chevron toggle) so the page is not long; roots start expanded, deeper levels start collapsed.
 >
@@ -314,7 +316,7 @@ When adding a team member the admin **never types a password**:
   min 8 chars, confirm match, then clears `mustChangePassword`.
 - **Changing your own password** is always allowed (profile page).
 - **Changing someone else's password is Admin-only.** The "Reset password"
-  block in the team member detail dialog is rendered only when
+  block on the member edit page (`/settings/team/[id]`) is rendered only when
   `canResetPassword = actorIsAdmin && member.id !== currentUserId`, and
   `resetMemberPassword` (`account.ts`) re-checks `isAdmin(manager)` server-side
   and returns `"Only an Admin can reset another member's password."` otherwise.
@@ -474,7 +476,9 @@ Defined in `src/db/schema/*` and re-exported from `index.ts`.
     root members start expanded and deeper levels start collapsed so the page
     stays compact.
   - **All** tab: members grouped by role, each group in its own table.
-  - Search (name/email/code), status filter, pagination, member detail dialog.
+  - Search (name/email/code), status filter, pagination, sortable columns
+    (incl. a **Kode pegawai** column). Rows (and the tree nodes) link to the
+    member's edit page.
   - Create/edit member: role dropdown (Admin shown by default option +
     org roles), reporting line dropdown, multi-area select. The user-type, role
     and reporting-line dropdowns, plus the list's status filter, are searchable
@@ -486,12 +490,18 @@ Defined in `src/db/schema/*` and re-exported from `index.ts`.
     validated server-side (warehouses must fall within the selected areas).
   - **Admin (system) role option is Admin-only**: `RoleSelect` renders it only
     when the actor is an Admin (or the member already holds it), and the create
-    dialog only pre-selects it for an Admin actor. Server-side
+    form only pre-selects it for an Admin actor. Server-side
     `createMember`/`updateMember` also reject a non-admin trying to grant it
     ("Only an Admin can grant the Admin role.").
-  - **Add member**: no manual password field — the system generates the
-    password, emails it once to the new member (non-expiring), and shows it on
-    a credentials screen with a copy button (fallback if the email fails).
+  - **Add member** (`/settings/team/new`) and **edit member**
+    (`/settings/team/[id]`) are both **full pages** (not dialogs), sharing the
+    same compact 2-column layout (**personal data on the left**, **Area & Gudang
+    on the right**; `lg:grid-cols-2`). Create has no manual password field — the
+    system generates the password, emails it once to the new member
+    (non-expiring), and shows it on a credentials screen with a copy button
+    (fallback if the email fails). Edit adds the "Aktif" switch plus
+    reset-password and delete cards, and 404s for members outside the actor's
+    subtree.
   - **Reset password**: Admin-only — non-admin managers never see the control
     (server action also rejects them). Members change their own from `/profile`.
   - Subtree visibility + area-subset enforcement for non-admins.
@@ -580,6 +590,20 @@ src/app/(app)/master-data/outlet-types/
   outlet-types-client.tsx      search + paginated table + dialog opener
   outlet-type-dialog.tsx       create/edit/delete dialog (name + active)
   types.ts                     OutletTypeRow
+
+src/app/(app)/settings/team/
+  page.tsx                     team list (server: loads shared team data)
+  team-client.tsx              tabs (Semua/Struktur Organisasi/Back Office/Sales),
+                               grouped tables, filters, sorting; rows link to edit
+  new/page.tsx                 create member page (server: loads shared team data)
+  [id]/page.tsx                edit member page (server: loads shared team data)
+  member-form.tsx              full-page create-member form (roles, atasan, areas,
+                               warehouses, system-generated credentials)
+  member-edit-form.tsx         full-page edit form (+ reset pw / delete cards)
+  member-fields.tsx            shared member form fields + hooks (RoleSelect,
+                               ReportingSelect, AreaChecklist, WarehouseChecklist)
+  data.ts                      loadTeamData (options + visible members)
+  types.ts                     RoleOption, AreaOption, WarehouseOption, MemberRow
 
 src/components/
   app-shell.tsx                sidebar/header, permission-filtered nav
