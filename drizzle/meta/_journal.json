@@ -127,6 +127,13 @@
       "when": 1794066822043,
       "tag": "0017_warehouse-type-appearance",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1794068510061,
+      "tag": "0018_outlet-type-appearance",
+      "breakpoints": true
     }
   ]
 }

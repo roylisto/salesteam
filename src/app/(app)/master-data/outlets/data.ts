@@ -68,6 +68,8 @@ export async function loadOutletDetail(
       salesName: users.name,
       outletTypeId: outlets.outletTypeId,
       outletTypeName: outletTypes.name,
+      outletTypeColor: outletTypes.color,
+      outletTypeIcon: outletTypes.icon,
       city: outlets.city,
       province: outlets.province,
       imageUrl: outlets.imageUrl,

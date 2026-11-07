@@ -24,6 +24,8 @@ export type OutletRow = {
   salesName: string | null;
   outletTypeId: number | null;
   outletTypeName: string | null;
+  outletTypeColor: string | null;
+  outletTypeIcon: string | null;
   city: string | null;
   province: string | null;
   createdAt: string;

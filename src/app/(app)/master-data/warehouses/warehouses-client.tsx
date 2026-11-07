@@ -125,8 +125,8 @@ export function WarehousesClient({
 
       <Tabs value={tab} onValueChange={(value) => void setTab(value === "map" ? "map" : "list")}>
         <TabsList aria-label="Tampilan gudang">
-          <TabsTrigger value="list"><ListIcon />Daftar Gudang</TabsTrigger>
-          <TabsTrigger value="map"><MapIcon />Peta Gudang</TabsTrigger>
+          <TabsTrigger value="list" className="data-active:bg-primary data-active:text-white data-active:hover:text-white dark:data-active:hover:text-white dark:data-active:bg-primary dark:data-active:text-white"><ListIcon />Daftar Gudang</TabsTrigger>
+          <TabsTrigger value="map" className="data-active:bg-primary data-active:text-white data-active:hover:text-white dark:data-active:hover:text-white dark:data-active:bg-primary dark:data-active:text-white"><MapIcon />Peta Gudang</TabsTrigger>
         </TabsList>
         <TabsContent value="map">
           {tab === "map" && <WarehousesMap warehouses={filtered} headOffice={headOffice} />}

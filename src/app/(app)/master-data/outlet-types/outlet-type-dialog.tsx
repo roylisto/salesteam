@@ -18,6 +18,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
+import { OutletTypeSymbol, OUTLET_ICONS } from "@/components/outlet-type-symbol";
+import { DEFAULT_OUTLET_COLOR, DEFAULT_OUTLET_ICON, OUTLET_COLORS, OUTLET_ICON_KEYS } from "@/lib/outlet-appearance";
+import { cn } from "@/lib/utils";
 import {
   createOutletType,
   deleteOutletType,
@@ -46,11 +49,16 @@ export function OutletTypeDialog({
   const [confirming, setConfirming] = useState(false);
   const [active, setActive] = useState(outletType?.isActive ?? true);
 
+  const [color, setColor] = useState(outletType?.color ?? DEFAULT_OUTLET_COLOR);
+  const [icon, setIcon] = useState(outletType?.icon ?? DEFAULT_OUTLET_ICON);
+
   const isEdit = outletType !== null;
 
   function handleSubmit(formData: FormData) {
     if (outletType) formData.set("id", String(outletType.id));
     formData.set("isActive", active ? "true" : "false");
+    formData.set("color", color);
+    formData.set("icon", icon);
 
     startTransition(async () => {
       const result = outletType
@@ -92,7 +100,7 @@ export function OutletTypeDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="max-h-[90svh] overflow-y-auto sm:max-w-md">
         <DialogHeader>
           <DialogTitle>
             {isEdit ? "Ubah tipe outlet" : "Tipe outlet baru"}
@@ -113,6 +121,57 @@ export function OutletTypeDialog({
               required
             />
             <FieldError message={errors.name} />
+          </div>
+
+          <fieldset className="space-y-2">
+            <legend className="text-sm font-medium">Warna</legend>
+            <div className="flex flex-wrap gap-2">
+              {OUTLET_COLORS.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  aria-label={option.label}
+                  aria-pressed={color === option.value}
+                  title={option.label}
+                  onClick={() => setColor(option.value)}
+                  className={cn("size-8 rounded-full border-2 border-background outline-offset-2 focus-visible:outline-2", color === option.value && "ring-2 ring-foreground")}
+                  style={{ backgroundColor: option.value }}
+                />
+              ))}
+            </div>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="outlet-type-color">Warna khusus</Label>
+              <input id="outlet-type-color" type="color" value={color} onChange={(event) => setColor(event.target.value)} className="h-8 w-10 cursor-pointer rounded border p-0.5" />
+              <span className="text-muted-foreground text-xs">{color}</span>
+            </div>
+            <FieldError message={errors.color} />
+          </fieldset>
+
+          <fieldset className="space-y-2">
+            <legend className="text-sm font-medium">Ikon</legend>
+            <div className="grid grid-cols-3 gap-2">
+              {OUTLET_ICON_KEYS.map((key) => (
+                <button
+                  key={key}
+                  type="button"
+                  aria-pressed={icon === key}
+                  onClick={() => setIcon(key)}
+                  className={cn("flex flex-col items-center gap-1 rounded-lg border p-2 text-xs focus-visible:outline-2 focus-visible:outline-offset-2", icon === key ? "border-primary bg-primary/5 ring-1 ring-primary" : "hover:bg-muted")}
+                >
+                  <OutletTypeSymbol icon={key} color={color} />
+                  {OUTLET_ICONS[key].label}
+                </button>
+              ))}
+            </div>
+            <FieldError message={errors.icon} />
+          </fieldset>
+
+          <div className="flex items-center gap-3 rounded-lg border p-3">
+            <OutletTypeSymbol icon={icon} color={color} className="size-10" />
+            <div>
+              <p className="text-sm font-medium">Pratinjau penanda outlet</p>
+              <p className="text-muted-foreground text-xs">Warna dan ikon ini menjadi identitas tipe outlet.</p>
+            </div>
           </div>
 
           <div className="flex items-center justify-between gap-4 rounded-lg border p-3">

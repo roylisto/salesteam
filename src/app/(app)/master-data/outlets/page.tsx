@@ -38,6 +38,8 @@ export default async function OutletsPage() {
         salesName: users.name,
         outletTypeId: outlets.outletTypeId,
         outletTypeName: outletTypes.name,
+      outletTypeColor: outletTypes.color,
+      outletTypeIcon: outletTypes.icon,
         city: outlets.city,
         province: outlets.province,
         createdAt: outlets.createdAt,

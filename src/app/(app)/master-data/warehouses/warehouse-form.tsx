@@ -48,6 +48,7 @@ export function WarehouseForm({
   backOfficeUsers,
   defaultProvince,
   defaultCity,
+  defaultLocation = null,
 }: {
   warehouse: WarehouseDetail | null;
   areas: AreaOption[];
@@ -55,6 +56,7 @@ export function WarehouseForm({
   backOfficeUsers: BackOfficeUserOption[];
   defaultProvince: string | null;
   defaultCity: string | null;
+  defaultLocation?: { latitude: number; longitude: number } | null;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -76,10 +78,10 @@ export function WarehouseForm({
   const [address, setAddress] = useState(warehouse?.address ?? "");
   const [postalCode, setPostalCode] = useState(warehouse?.postalCode ?? "");
   const [latitude, setLatitude] = useState(
-    warehouse?.latitude != null ? String(warehouse.latitude) : "",
+    warehouse ? (warehouse.latitude != null ? String(warehouse.latitude) : "") : defaultLocation ? String(defaultLocation.latitude) : "",
   );
   const [longitude, setLongitude] = useState(
-    warehouse?.longitude != null ? String(warehouse.longitude) : "",
+    warehouse ? (warehouse.longitude != null ? String(warehouse.longitude) : "") : defaultLocation ? String(defaultLocation.longitude) : "",
   );
 
   const [mapCentered, setMapCentered] = useState(false);

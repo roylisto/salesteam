@@ -2,7 +2,9 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
-import { ChevronLeftIcon, ChevronRightIcon, EditIcon, PlusIcon, SearchIcon, StoreIcon } from "lucide-react";
+import { OutletTypeSymbol } from "@/components/outlet-type-symbol";
+import { DEFAULT_OUTLET_ICON, DEFAULT_OUTLET_COLOR } from "@/lib/outlet-appearance";
+import { ChevronLeftIcon, ChevronRightIcon, EditIcon, PlusIcon, SearchIcon } from "lucide-react";
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryState } from "nuqs";
 
 import { Badge } from "@/components/ui/badge";
@@ -222,7 +224,7 @@ export function OutletsClient({
                         href={`/master-data/outlets/${outlet.id}`}
                         className="flex items-center gap-2 text-left"
                       >
-                        <StoreIcon className="text-muted-foreground size-4 shrink-0" />
+                        <OutletTypeSymbol icon={outlet.outletTypeIcon ?? DEFAULT_OUTLET_ICON} color={outlet.outletTypeColor ?? DEFAULT_OUTLET_COLOR} />
                         <span className="block">
                           <span className="block text-sm font-medium">
                             {outlet.name ?? "Outlet tanpa nama"}

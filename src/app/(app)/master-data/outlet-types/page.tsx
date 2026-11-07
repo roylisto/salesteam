@@ -19,6 +19,8 @@ export default async function OutletTypesPage() {
     .select({
       id: outletTypes.id,
       name: outletTypes.name,
+      color: outletTypes.color,
+      icon: outletTypes.icon,
       isActive: outletTypes.isActive,
       createdAt: outletTypes.createdAt,
       updatedAt: outletTypes.updatedAt,

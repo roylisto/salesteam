@@ -7,6 +7,7 @@ import { z } from "zod";
 import { db } from "@/db";
 import { notDeleted, outletTypes } from "@/db/schema";
 import { can, getCurrentUser } from "@/lib/auth";
+import { OUTLET_ICON_KEYS } from "@/lib/outlet-appearance";
 import { toFieldErrors } from "@/lib/validation";
 
 export type OutletTypeFormState = {
@@ -26,11 +27,15 @@ async function requireOutletTypeManager() {
 const OutletTypeSchema = z.object({
   name: z.string().trim().min(2, "Gunakan minimal 2 karakter.").max(150),
   isActive: z.boolean(),
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Pilih warna yang valid.").transform((value) => value.toLowerCase()),
+  icon: z.enum(OUTLET_ICON_KEYS, { error: "Pilih ikon outlet yang tersedia." }),
 });
 
 function readForm(formData: FormData) {
   return OutletTypeSchema.safeParse({
     name: formData.get("name"),
+    color: formData.get("color"),
+    icon: formData.get("icon"),
     isActive: formData.get("isActive") === "true",
   });
 }
@@ -66,10 +71,13 @@ export async function createOutletType(
   await db.insert(outletTypes).values({
     organizationId: manager.organization.id,
     name: parsed.data.name,
+    color: parsed.data.color,
+    icon: parsed.data.icon,
     isActive: parsed.data.isActive,
   });
 
   revalidatePath(OUTLET_TYPES_PATH);
+  revalidatePath("/master-data/outlets");
   return { ok: true };
 }
 
@@ -121,7 +129,7 @@ export async function updateOutletType(
 
   await db
     .update(outletTypes)
-    .set({ name: parsed.data.name, isActive: parsed.data.isActive })
+    .set(parsed.data)
     .where(
       and(
         eq(outletTypes.id, id),
@@ -130,6 +138,7 @@ export async function updateOutletType(
     );
 
   revalidatePath(OUTLET_TYPES_PATH);
+  revalidatePath("/master-data/outlets");
   return { ok: true };
 }
 
@@ -170,5 +179,6 @@ export async function deleteOutletType(
     );
 
   revalidatePath(OUTLET_TYPES_PATH);
+  revalidatePath("/master-data/outlets");
   return { ok: true };
 }

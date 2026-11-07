@@ -3,7 +3,13 @@
 > Handoff notes for AI agents doing "vibe coding" on this repo.
 > Read this first; it captures the project context, conventions, and what has
 > already been built so you can continue without re-discovering everything.
-> Last updated: 2026-11-07 (**Warehouse overview map**) — warehouse list icons now use each type’s saved color/icon. `/master-data/warehouses` has URL-backed **Daftar Gudang** / **Peta Gudang** tabs (`tab=list|map`). The lazy client-only Leaflet overview renders all filtered warehouses (not only the current table page), colored icon pins, safe DOM-built detail popups with edit links, type legend, fit-to-all control, responsive sizing, and missing-coordinate notices. A distinct **Kantor Pusat (Head Office)** pin uses the organization’s saved coordinates/address and remains visible regardless of warehouse filters. Type/area/PIC joins now enforce organization and soft-delete filters. No new schema or migration.
+> Last updated: 2026-11-07 (**Outlet navigation and type appearance; tab hover fix**) — sidebar groups **Manajemen Outlet** into **Daftar Outlet** and **Tipe Outlet**, using the same permission-aware expandable group / collapsed dropdown as warehouses. Outlet types now save `color` (hex) and allowlisted `icon`, with eight color presets, custom color, six retail/business icons and live preview. Both type and outlet lists display the saved symbol; existing types default to indigo/store. Shared configuration/rendering: `src/lib/outlet-appearance.ts`, `src/components/outlet-type-symbol.tsx`. Migration `0018_outlet-type-appearance` applied. Warehouse active tabs explicitly retain white text on hover in light/dark themes.
+>
+> Previous: 2026-11-07 (**Map pin React lifecycle fix and active tabs**) — warehouse map pin icons now render through React portals owned by the map component instead of independent `createRoot` roots. Cleanup only disposes Leaflet/ResizeObserver; React handles portal unmounting, avoiding the synchronous-root-unmount warning when switching tabs or rebuilding markers. Active warehouse list/map tabs use the primary color and contrasting foreground in light/dark themes.
+>
+> Previous: 2026-11-07 (**New warehouse location default**) — new warehouse pages load Head Office coordinates directly from the signed-in organization and initialize the form/map pin at that position. Works when opening `/master-data/warehouses/new` directly. Valid Head Office coordinates take precedence over province/city geocoding; when unavailable, the existing region-based fallback remains. Edit pages retain their warehouse coordinates.
+>
+> Previous: 2026-11-07 (**Warehouse overview map**) — warehouse list icons now use each type’s saved color/icon. `/master-data/warehouses` has URL-backed **Daftar Gudang** / **Peta Gudang** tabs (`tab=list|map`). The lazy client-only Leaflet overview renders all filtered warehouses (not only the current table page), colored icon pins, safe DOM-built detail popups with edit links, type legend, fit-to-all control, responsive sizing, and missing-coordinate notices. A distinct **Kantor Pusat (Head Office)** pin uses the organization’s saved coordinates/address and remains visible regardless of warehouse filters. Type/area/PIC joins now enforce organization and soft-delete filters. No new schema or migration.
 >
 > Previous: 2026-11-07 (**Warehouse type appearance**) — warehouse types now store a hex `color` and an allowlisted `icon` key. Create/edit dialogs offer eight color presets, a custom color picker, six warehouse/logistics icons, and a live symbol preview. The type list displays the saved colored symbol. Existing types default to indigo (`#4f46e5`) and `warehouse`. Shared keys/palette live in `src/lib/warehouse-appearance.ts`; rendering and icon labels live in `src/components/warehouse-type-symbol.tsx`, ready for future warehouse map markers. Server actions validate both fields. Migration `0017_warehouse-type-appearance` applied successfully. TypeScript and targeted ESLint passed. The overall warehouse map remains future work.
 >
@@ -387,6 +393,8 @@ Defined in `src/db/schema/*` and re-exported from `index.ts`.
 6. Run `npm run db:generate -- --name <change>` then `npm run db:migrate`.
 
 ### Migration history
+
+- `0018_outlet-type-appearance.sql` — adds non-null `outlet_types.color` and `icon` with defaults for existing rows. **Applied.**
 
 - `0017_warehouse-type-appearance.sql` — adds non-null `warehouse_types.color` and `icon` with defaults for existing rows. **Applied.**
 

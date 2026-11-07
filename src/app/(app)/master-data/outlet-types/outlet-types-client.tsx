@@ -7,7 +7,6 @@ import {
   EditIcon,
   PlusIcon,
   SearchIcon,
-  TagsIcon,
 } from "lucide-react";
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryState } from "nuqs";
 
@@ -24,6 +23,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
+import { OutletTypeSymbol } from "@/components/outlet-type-symbol";
 import { OutletTypeDialog } from "./outlet-type-dialog";
 import type { OutletTypeRow } from "./types";
 
@@ -145,7 +145,7 @@ export function OutletTypesClient({
                         onClick={() => void setOutletTypeId(outletType.id)}
                         className="flex items-center gap-2 text-left"
                       >
-                        <TagsIcon className="text-muted-foreground size-4 shrink-0" />
+                        <OutletTypeSymbol icon={outletType.icon} color={outletType.color} />
                         <span className="block text-sm font-medium">
                           {outletType.name}
                         </span>

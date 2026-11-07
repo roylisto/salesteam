@@ -90,16 +90,14 @@ const MASTER_NAV: NavItem[] = [
     ],
   },
   {
-    label: "Outlet",
+    label: "Manajemen Outlet",
     href: "/master-data/outlets",
     icon: StoreIcon,
     permission: "outlets",
-  },
-  {
-    label: "Tipe Outlet",
-    href: "/master-data/outlet-types",
-    icon: TagsIcon,
-    permission: "outlet_types",
+    children: [
+      { label: "Daftar Outlet", href: "/master-data/outlets", icon: StoreIcon, permission: "outlets" },
+      { label: "Tipe Outlet", href: "/master-data/outlet-types", icon: TagsIcon, permission: "outlet_types" },
+    ],
   },
 ];
 
