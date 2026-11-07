@@ -3,6 +3,8 @@ export type WarehouseRow = {
   name: string;
   warehouseTypeId: number | null;
   warehouseTypeName: string | null;
+  warehouseTypeColor: string | null;
+  warehouseTypeIcon: string | null;
   isActive: boolean;
   areaOfficeId: number | null;
   areaName: string | null;
@@ -18,6 +20,13 @@ export type WarehouseRow = {
   longitude: number | null;
   createdAt: string;
   updatedAt: string;
+};
+
+export type HeadOfficeLocation = {
+  name: string;
+  address: string | null;
+  latitude: number | null;
+  longitude: number | null;
 };
 
 export type WarehouseDetail = {

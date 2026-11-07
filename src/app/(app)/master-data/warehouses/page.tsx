@@ -32,9 +32,9 @@ export default async function WarehousesPage() {
 
   // Fetch organization's default province/city for map centering
   const [org] = await db
-    .select({ province: organizations.province, city: organizations.city })
+    .select({ province: organizations.province, city: organizations.city, name: organizations.name, address: organizations.address, latitude: organizations.latitude, longitude: organizations.longitude })
     .from(organizations)
-    .where(eq(organizations.id, organization.id))
+    .where(and(eq(organizations.id, organization.id), notDeleted(organizations)))
     .limit(1);
 
   const warehouseRows = await db
@@ -43,6 +43,8 @@ export default async function WarehousesPage() {
       name: warehouses.name,
       warehouseTypeId: warehouses.warehouseTypeId,
       warehouseTypeName: warehouseTypes.name,
+      warehouseTypeColor: warehouseTypes.color,
+      warehouseTypeIcon: warehouseTypes.icon,
       isActive: warehouses.isActive,
       areaOfficeId: warehouses.areaOfficeId,
       areaName: areaOffices.name,
@@ -60,9 +62,9 @@ export default async function WarehousesPage() {
       updatedAt: warehouses.updatedAt,
     })
     .from(warehouses)
-    .leftJoin(areaOffices, eq(warehouses.areaOfficeId, areaOffices.id))
-    .leftJoin(users, eq(warehouses.picUserId, users.id))
-    .leftJoin(warehouseTypes, eq(warehouses.warehouseTypeId, warehouseTypes.id))
+    .leftJoin(areaOffices, and(eq(warehouses.areaOfficeId, areaOffices.id), eq(areaOffices.organizationId, organization.id), notDeleted(areaOffices)))
+    .leftJoin(users, and(eq(warehouses.picUserId, users.id), eq(users.organizationId, organization.id), notDeleted(users)))
+    .leftJoin(warehouseTypes, and(eq(warehouses.warehouseTypeId, warehouseTypes.id), eq(warehouseTypes.organizationId, organization.id), notDeleted(warehouseTypes)))
     .where(
       and(eq(warehouses.organizationId, organization.id), notDeleted(warehouses)),
     )
@@ -84,6 +86,7 @@ export default async function WarehousesPage() {
         description="Depo yang menyimpan stok, dikelompokkan di bawah setiap area."
       />
       <WarehousesClient
+        headOffice={org ?? { name: organization.name, address: null, latitude: null, longitude: null }}
         warehouses={warehousesList}
         areas={areas}
         orgProvince={org?.province ?? null}

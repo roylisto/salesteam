@@ -1,9 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useMemo } from "react";
-import { ChevronLeftIcon, ChevronRightIcon, EditIcon, PlusIcon, SearchIcon, WarehouseIcon } from "lucide-react";
-import { parseAsInteger, parseAsString, useQueryState } from "nuqs";
+import { ChevronLeftIcon, ChevronRightIcon, EditIcon, PlusIcon, SearchIcon, MapIcon, ListIcon } from "lucide-react";
+import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryState } from "nuqs";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { WarehouseTypeSymbol } from "@/components/warehouse-type-symbol";
+import { DEFAULT_WAREHOUSE_COLOR, DEFAULT_WAREHOUSE_ICON } from "@/lib/warehouse-appearance";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,10 +23,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-import type { AreaOption, WarehouseRow } from "./types";
+import type { AreaOption, WarehouseRow, HeadOfficeLocation } from "./types";
 
 const PAGE_SIZE = 10;
 const ALL_AREAS = "all";
+const WarehousesMap = dynamic(() => import("./warehouses-map").then((module) => module.WarehousesMap), {
+  ssr: false,
+  loading: () => <p className="text-muted-foreground py-8 text-sm">Memuat peta…</p>,
+});
 
 const SORT_COLUMNS: SortColumn<WarehouseRow>[] = [
   { key: "name", getValue: (warehouse) => warehouse.name },
@@ -36,12 +44,15 @@ export function WarehousesClient({
   areas,
   orgProvince,
   orgCity,
+  headOffice,
 }: {
   warehouses: WarehouseRow[];
   areas: AreaOption[];
   orgProvince: string | null;
   orgCity: string | null;
+  headOffice: HeadOfficeLocation;
 }) {
+  const [tab, setTab] = useQueryState("tab", parseAsStringLiteral(["list", "map"] as const).withDefault("list"));
   const [query, setQuery] = useQueryState(
     "q",
     parseAsString.withDefault("").withOptions({ history: "replace" }),
@@ -106,14 +117,21 @@ export function WarehousesClient({
           className="w-44"
         />
 
-        <Link href={`/master-data/warehouses/new?province=${encodeURIComponent(orgProvince ?? "")}&city=${encodeURIComponent(orgCity ?? "")}`}>
-          <Button>
+          <Button nativeButton={false} render={<Link href={`/master-data/warehouses/new?province=${encodeURIComponent(orgProvince ?? "")}&city=${encodeURIComponent(orgCity ?? "")}`} />}>
             <PlusIcon />
             Gudang baru
           </Button>
-        </Link>
       </div>
 
+      <Tabs value={tab} onValueChange={(value) => void setTab(value === "map" ? "map" : "list")}>
+        <TabsList aria-label="Tampilan gudang">
+          <TabsTrigger value="list"><ListIcon />Daftar Gudang</TabsTrigger>
+          <TabsTrigger value="map"><MapIcon />Peta Gudang</TabsTrigger>
+        </TabsList>
+        <TabsContent value="map">
+          {tab === "map" && <WarehousesMap warehouses={filtered} headOffice={headOffice} />}
+        </TabsContent>
+        <TabsContent value="list" className="space-y-3">
       <div className="overflow-hidden rounded-xl ring-1 ring-foreground/10">
         <div className="overflow-x-auto">
           <Table>
@@ -169,7 +187,7 @@ export function WarehousesClient({
                         href={`/master-data/warehouses/${warehouse.id}`}
                         className="flex items-center gap-2 text-left hover:underline"
                       >
-                        <WarehouseIcon className="text-muted-foreground size-4 shrink-0" />
+                        <WarehouseTypeSymbol icon={warehouse.warehouseTypeIcon ?? DEFAULT_WAREHOUSE_ICON} color={warehouse.warehouseTypeColor ?? DEFAULT_WAREHOUSE_COLOR} />
                         <span className="block text-sm font-medium">
                           {warehouse.name}
                         </span>
@@ -187,11 +205,9 @@ export function WarehousesClient({
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Link href={`/master-data/warehouses/${warehouse.id}`}>
-                        <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Ubah gudang">
+                        <Button nativeButton={false} render={<Link href={`/master-data/warehouses/${warehouse.id}`} />} variant="ghost" size="icon" className="h-7 w-7" aria-label="Ubah gudang">
                           <EditIcon className="size-4" />
                         </Button>
-                      </Link>
                     </TableCell>
                   </TableRow>
                 ))
@@ -231,6 +247,8 @@ export function WarehousesClient({
           </Button>
         </div>
       </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

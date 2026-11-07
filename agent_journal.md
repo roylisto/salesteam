@@ -3,7 +3,9 @@
 > Handoff notes for AI agents doing "vibe coding" on this repo.
 > Read this first; it captures the project context, conventions, and what has
 > already been built so you can continue without re-discovering everything.
-> Last updated: 2026-11-07 (**Warehouse type appearance**) — warehouse types now store a hex `color` and an allowlisted `icon` key. Create/edit dialogs offer eight color presets, a custom color picker, six warehouse/logistics icons, and a live symbol preview. The type list displays the saved colored symbol. Existing types default to indigo (`#4f46e5`) and `warehouse`. Shared keys/palette live in `src/lib/warehouse-appearance.ts`; rendering and icon labels live in `src/components/warehouse-type-symbol.tsx`, ready for future warehouse map markers. Server actions validate both fields. Migration `0017_warehouse-type-appearance` applied successfully. TypeScript and targeted ESLint passed. The overall warehouse map remains future work.
+> Last updated: 2026-11-07 (**Warehouse overview map**) — warehouse list icons now use each type’s saved color/icon. `/master-data/warehouses` has URL-backed **Daftar Gudang** / **Peta Gudang** tabs (`tab=list|map`). The lazy client-only Leaflet overview renders all filtered warehouses (not only the current table page), colored icon pins, safe DOM-built detail popups with edit links, type legend, fit-to-all control, responsive sizing, and missing-coordinate notices. A distinct **Kantor Pusat (Head Office)** pin uses the organization’s saved coordinates/address and remains visible regardless of warehouse filters. Type/area/PIC joins now enforce organization and soft-delete filters. No new schema or migration.
+>
+> Previous: 2026-11-07 (**Warehouse type appearance**) — warehouse types now store a hex `color` and an allowlisted `icon` key. Create/edit dialogs offer eight color presets, a custom color picker, six warehouse/logistics icons, and a live symbol preview. The type list displays the saved colored symbol. Existing types default to indigo (`#4f46e5`) and `warehouse`. Shared keys/palette live in `src/lib/warehouse-appearance.ts`; rendering and icon labels live in `src/components/warehouse-type-symbol.tsx`, ready for future warehouse map markers. Server actions validate both fields. Migration `0017_warehouse-type-appearance` applied successfully. TypeScript and targeted ESLint passed. The overall warehouse map remains future work.
 >
 > Previous: 2026-11-07 (**Warehouse navigation**) — grouped warehouse links under **Manajemen Gudang** with **Daftar Gudang** and **Tipe Gudang** submenus. Expanded desktop/mobile navigation uses a collapsible group; collapsed sidebar uses a dropdown. Each child retains its own permission filter, and the parent is hidden when neither child is accessible.
 >
@@ -601,7 +603,8 @@ src/app/(app)/profile/
 
 src/app/(app)/master-data/warehouses/
   page.tsx                     warehouse list (joins area name)
-  warehouses-client.tsx        search + area filter + paginated table
+  warehouses-client.tsx        search + area filter + paginated table + list/map tabs
+  warehouses-map.tsx           Leaflet warehouse overview, type-colored icon pins + Head Office
   new/page.tsx                 create warehouse page (server: loads options)
   [id]/page.tsx                edit warehouse page (server: loads warehouse + options)
   warehouse-form.tsx           shared full-page form (cards, PIC, wilayah, map)
