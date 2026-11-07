@@ -60,6 +60,7 @@ type NavItem = {
   href: string;
   icon: LucideIcon;
   permission: string;
+  children?: NavItem[];
 };
 
 const PRIMARY_NAV: NavItem[] = [
@@ -79,10 +80,14 @@ const MASTER_NAV: NavItem[] = [
     permission: "areas",
   },
   {
-    label: "Gudang",
+    label: "Manajemen Gudang",
     href: "/master-data/warehouses",
     icon: WarehouseIcon,
     permission: "warehouses",
+    children: [
+      { label: "Daftar Gudang", href: "/master-data/warehouses", icon: WarehouseIcon, permission: "warehouses" },
+      { label: "Tipe Gudang", href: "/master-data/warehouse-types", icon: BoxesIcon, permission: "warehouse_types" },
+    ],
   },
   {
     label: "Outlet",
@@ -95,12 +100,6 @@ const MASTER_NAV: NavItem[] = [
     href: "/master-data/outlet-types",
     icon: TagsIcon,
     permission: "outlet_types",
-  },
-  {
-    label: "Tipe Gudang",
-    href: "/master-data/warehouse-types",
-    icon: BoxesIcon,
-    permission: "warehouse_types",
   },
 ];
 
@@ -152,6 +151,61 @@ function NavLinks({
           pathname === item.href || pathname.startsWith(`${item.href}/`);
         const Icon = item.icon;
 
+        if (item.children) {
+          const groupActive = item.children.some(
+            (child) => pathname === child.href || pathname.startsWith(`${child.href}/`),
+          );
+          const groupClassName = cn(
+            "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm font-medium transition-colors",
+            groupActive
+              ? "bg-sidebar-accent text-sidebar-accent-foreground"
+              : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+          );
+
+          if (collapsed) {
+            return (
+              <DropdownMenu key={item.href}>
+                <DropdownMenuTrigger
+                  className={cn(groupClassName, "justify-center px-2")}
+                  aria-label={item.label}
+                  title={item.label}
+                >
+                  <Icon className="size-4 shrink-0" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent side="right" align="start" className="w-52">
+                  <DropdownMenuGroup>
+                    <DropdownMenuLabel>{item.label}</DropdownMenuLabel>
+                    {item.children.map((child) => (
+                      <DropdownMenuItem
+                        key={child.href}
+                        render={<Link href={child.href} aria-current={pathname === child.href || pathname.startsWith(`${child.href}/`) ? "page" : undefined} />}
+                        nativeButton={false}
+                        onClick={onNavigate}
+                      >
+                        <child.icon />
+                        {child.label}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            );
+          }
+
+          return (
+            <details key={item.href} open className="group/nav">
+              <summary className={cn(groupClassName, "cursor-pointer list-none [&::-webkit-details-marker]:hidden")}>
+                <Icon className="size-4 shrink-0" />
+                <span className="truncate">{item.label}</span>
+                <ChevronRightIcon className="ml-auto size-4 shrink-0 transition-transform group-open/nav:rotate-90" />
+              </summary>
+              <div className="border-sidebar-border ml-4 mt-1 border-l pl-2">
+                <NavLinks items={item.children} onNavigate={onNavigate} />
+              </div>
+            </details>
+          );
+        }
+
         return (
           <Link
             key={item.href}
@@ -190,9 +244,13 @@ function SidebarContent({
   const primary = PRIMARY_NAV.filter((item) =>
     permissions.includes(item.permission),
   );
-  const master = MASTER_NAV.filter((item) =>
-    permissions.includes(item.permission),
-  );
+  const master = MASTER_NAV.flatMap((item) => {
+    if (item.children) {
+      const children = item.children.filter((child) => permissions.includes(child.permission));
+      return children.length > 0 ? [{ ...item, children }] : [];
+    }
+    return permissions.includes(item.permission) ? [item] : [];
+  });
   const settings = SETTINGS_NAV.filter((item) =>
     permissions.includes(item.permission),
   );
