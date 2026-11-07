@@ -2,7 +2,6 @@
 
 import { useMemo } from "react";
 import {
-  BoxesIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   EditIcon,
@@ -25,6 +24,7 @@ import {
 } from "@/components/ui/table";
 
 import { WarehouseTypeDialog } from "./warehouse-type-dialog";
+import { WarehouseTypeSymbol } from "@/components/warehouse-type-symbol";
 import type { WarehouseTypeRow } from "./types";
 
 const PAGE_SIZE = 10;
@@ -143,7 +143,7 @@ export function WarehouseTypesClient({
                         onClick={() => void setWarehouseTypeId(warehouseType.id)}
                         className="flex items-center gap-2 text-left"
                       >
-                        <BoxesIcon className="text-muted-foreground size-4 shrink-0" />
+                        <WarehouseTypeSymbol icon={warehouseType.icon} color={warehouseType.color} />
                         <span className="block text-sm font-medium">
                           {warehouseType.name}
                         </span>

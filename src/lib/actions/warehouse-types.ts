@@ -8,6 +8,7 @@ import { db } from "@/db";
 import { notDeleted, warehouseTypes } from "@/db/schema";
 import { can, getCurrentUser } from "@/lib/auth";
 import { toFieldErrors } from "@/lib/validation";
+import { WAREHOUSE_ICON_KEYS } from "@/lib/warehouse-appearance";
 
 export type WarehouseTypeFormState = {
   ok?: boolean;
@@ -26,11 +27,15 @@ async function requireWarehouseTypeManager() {
 const WarehouseTypeSchema = z.object({
   name: z.string().trim().min(2, "Gunakan minimal 2 karakter.").max(150),
   isActive: z.boolean(),
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Pilih warna yang valid.").transform((value) => value.toLowerCase()),
+  icon: z.enum(WAREHOUSE_ICON_KEYS, { error: "Pilih ikon gudang yang tersedia." }),
 });
 
 function readForm(formData: FormData) {
   return WarehouseTypeSchema.safeParse({
     name: formData.get("name"),
+    color: formData.get("color"),
+    icon: formData.get("icon"),
     isActive: formData.get("isActive") === "true",
   });
 }
@@ -66,6 +71,8 @@ export async function createWarehouseType(
   await db.insert(warehouseTypes).values({
     organizationId: manager.organization.id,
     name: parsed.data.name,
+    color: parsed.data.color,
+    icon: parsed.data.icon,
     isActive: parsed.data.isActive,
   });
 
@@ -122,7 +129,7 @@ export async function updateWarehouseType(
 
   await db
     .update(warehouseTypes)
-    .set({ name: parsed.data.name, isActive: parsed.data.isActive })
+    .set(parsed.data)
     .where(
       and(
         eq(warehouseTypes.id, id),

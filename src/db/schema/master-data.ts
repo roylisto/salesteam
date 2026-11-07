@@ -70,6 +70,8 @@ export const warehouseTypes = pgTable(
       .notNull()
       .references(() => organizations.id, { onDelete: "cascade" }),
     name: varchar("name", { length: 150 }).notNull(),
+    color: varchar("color", { length: 7 }).default("#4f46e5").notNull(),
+    icon: varchar("icon", { length: 32 }).default("warehouse").notNull(),
     isActive: boolean("is_active").default(true).notNull(),
     ...timestamps,
   },

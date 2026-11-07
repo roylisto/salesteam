@@ -3,7 +3,9 @@
 > Handoff notes for AI agents doing "vibe coding" on this repo.
 > Read this first; it captures the project context, conventions, and what has
 > already been built so you can continue without re-discovering everything.
-> Last updated: 2026-11-07 (**Warehouse navigation**) — grouped warehouse links under **Manajemen Gudang** with **Daftar Gudang** and **Tipe Gudang** submenus. Expanded desktop/mobile navigation uses a collapsible group; collapsed sidebar uses a dropdown. Each child retains its own permission filter, and the parent is hidden when neither child is accessible.
+> Last updated: 2026-11-07 (**Warehouse type appearance**) — warehouse types now store a hex `color` and an allowlisted `icon` key. Create/edit dialogs offer eight color presets, a custom color picker, six warehouse/logistics icons, and a live symbol preview. The type list displays the saved colored symbol. Existing types default to indigo (`#4f46e5`) and `warehouse`. Shared keys/palette live in `src/lib/warehouse-appearance.ts`; rendering and icon labels live in `src/components/warehouse-type-symbol.tsx`, ready for future warehouse map markers. Server actions validate both fields. Migration `0017_warehouse-type-appearance` applied successfully. TypeScript and targeted ESLint passed. The overall warehouse map remains future work.
+>
+> Previous: 2026-11-07 (**Warehouse navigation**) — grouped warehouse links under **Manajemen Gudang** with **Daftar Gudang** and **Tipe Gudang** submenus. Expanded desktop/mobile navigation uses a collapsible group; collapsed sidebar uses a dropdown. Each child retains its own permission filter, and the parent is hidden when neither child is accessible.
 >
 > Previous: 2026-10-29 (**Warehouse types master data**) — added the `warehouse_types` master-data table (per-org name + isActive, soft delete) with its own `/master-data/warehouse-types` page (search + sort + dialog CRUD, `warehouse_types` permission) and a **Tipe Gudang** sidebar entry. `warehouses.depot_type` (free text) was replaced by `warehouses.warehouse_type_id` (FK → `warehouse_types`, `ON DELETE SET NULL`), and the warehouse form's "Tipe Gudang" is now a searchable `Combobox` fed by the master data instead of a text input. Migrations `0015_warehouse-types` + `0016_warehouse-drop-depot-type` (both applied).
 >
@@ -383,6 +385,8 @@ Defined in `src/db/schema/*` and re-exported from `index.ts`.
 6. Run `npm run db:generate -- --name <change>` then `npm run db:migrate`.
 
 ### Migration history
+
+- `0017_warehouse-type-appearance.sql` — adds non-null `warehouse_types.color` and `icon` with defaults for existing rows. **Applied.**
 
 - `0000_natural_tarot.sql` — initial schema.
 - `0001_team-hierarchy-admin-virtual.sql` — `users.isAdmin`, `users.reportsTo`,

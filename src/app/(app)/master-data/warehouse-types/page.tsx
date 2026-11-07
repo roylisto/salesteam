@@ -19,6 +19,8 @@ export default async function WarehouseTypesPage() {
     .select({
       id: warehouseTypes.id,
       name: warehouseTypes.name,
+      color: warehouseTypes.color,
+      icon: warehouseTypes.icon,
       isActive: warehouseTypes.isActive,
       createdAt: warehouseTypes.createdAt,
       updatedAt: warehouseTypes.updatedAt,
