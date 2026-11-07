@@ -1,16 +1,28 @@
 import { and, asc, eq } from "drizzle-orm";
 
 import { db } from "@/db";
-import { areaOffices, notDeleted, users, warehouses } from "@/db/schema";
+import {
+  areaOffices,
+  notDeleted,
+  users,
+  warehouses,
+  warehouseTypes,
+} from "@/db/schema";
 
-import type { AreaOption, BackOfficeUserOption, WarehouseDetail } from "./types";
+import type {
+  AreaOption,
+  BackOfficeUserOption,
+  WarehouseDetail,
+  WarehouseTypeOption,
+} from "./types";
 
-/** Area / PIC choices shared by the create and edit pages. */
+/** Area / type / PIC choices shared by the create and edit pages. */
 export async function loadFormOptions(organizationId: number): Promise<{
   areas: AreaOption[];
+  warehouseTypes: WarehouseTypeOption[];
   backOfficeUsers: BackOfficeUserOption[];
 }> {
-  const [areaRows, picRows] = await Promise.all([
+  const [areaRows, typeRows, picRows] = await Promise.all([
     db
       .select({ id: areaOffices.id, name: areaOffices.name })
       .from(areaOffices)
@@ -21,6 +33,16 @@ export async function loadFormOptions(organizationId: number): Promise<{
         ),
       )
       .orderBy(asc(areaOffices.name)),
+    db
+      .select({ id: warehouseTypes.id, name: warehouseTypes.name })
+      .from(warehouseTypes)
+      .where(
+        and(
+          eq(warehouseTypes.organizationId, organizationId),
+          notDeleted(warehouseTypes),
+        ),
+      )
+      .orderBy(asc(warehouseTypes.name)),
     db
       .select({ id: users.id, name: users.name, email: users.email })
       .from(users)
@@ -34,7 +56,11 @@ export async function loadFormOptions(organizationId: number): Promise<{
       .orderBy(asc(users.name)),
   ]);
 
-  return { areas: areaRows, backOfficeUsers: picRows };
+  return {
+    areas: areaRows,
+    warehouseTypes: typeRows,
+    backOfficeUsers: picRows,
+  };
 }
 
 /** Full warehouse record for the edit page, or null when it is missing/deleted. */
@@ -46,7 +72,7 @@ export async function loadWarehouseDetail(
     .select({
       id: warehouses.id,
       name: warehouses.name,
-      depotType: warehouses.depotType,
+      warehouseTypeId: warehouses.warehouseTypeId,
       isActive: warehouses.isActive,
       areaOfficeId: warehouses.areaOfficeId,
       picUserId: warehouses.picUserId,

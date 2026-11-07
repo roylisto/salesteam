@@ -1,7 +1,8 @@
 export type WarehouseRow = {
   id: number;
   name: string;
-  depotType: string | null;
+  warehouseTypeId: number | null;
+  warehouseTypeName: string | null;
   isActive: boolean;
   areaOfficeId: number | null;
   areaName: string | null;
@@ -22,7 +23,7 @@ export type WarehouseRow = {
 export type WarehouseDetail = {
   id: number;
   name: string;
-  depotType: string | null;
+  warehouseTypeId: number | null;
   isActive: boolean;
   areaOfficeId: number | null;
   picUserId: number | null;
@@ -39,6 +40,11 @@ export type WarehouseDetail = {
 };
 
 export type AreaOption = {
+  id: number;
+  name: string;
+};
+
+export type WarehouseTypeOption = {
   id: number;
   name: string;
 };

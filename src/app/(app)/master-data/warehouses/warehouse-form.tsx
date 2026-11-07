@@ -27,7 +27,12 @@ import {
   updateWarehouse,
 } from "@/lib/actions/warehouses";
 
-import type { AreaOption, BackOfficeUserOption, WarehouseDetail } from "./types";
+import type {
+  AreaOption,
+  BackOfficeUserOption,
+  WarehouseDetail,
+  WarehouseTypeOption,
+} from "./types";
 
 const LIST_PATH = "/master-data/warehouses";
 
@@ -39,12 +44,14 @@ function FieldError({ message }: { message?: string }) {
 export function WarehouseForm({
   warehouse,
   areas,
+  warehouseTypes,
   backOfficeUsers,
   defaultProvince,
   defaultCity,
 }: {
   warehouse: WarehouseDetail | null;
   areas: AreaOption[];
+  warehouseTypes: WarehouseTypeOption[];
   backOfficeUsers: BackOfficeUserOption[];
   defaultProvince: string | null;
   defaultCity: string | null;
@@ -61,6 +68,9 @@ export function WarehouseForm({
   );
   const [picUserId, setPicUserId] = useState(
     warehouse?.picUserId ? String(warehouse.picUserId) : "",
+  );
+  const [warehouseTypeId, setWarehouseTypeId] = useState(
+    warehouse?.warehouseTypeId ? String(warehouse.warehouseTypeId) : "",
   );
   const [active, setActive] = useState(warehouse?.isActive ?? true);
   const [address, setAddress] = useState(warehouse?.address ?? "");
@@ -103,6 +113,13 @@ export function WarehouseForm({
   const areaOptions = useMemo(
     () => areas.map((area) => ({ value: String(area.id), label: area.name })),
     [areas],
+  );
+  const warehouseTypeOptions = useMemo(
+    () => [
+      { value: "", label: "Belum diatur" },
+      ...warehouseTypes.map((type) => ({ value: String(type.id), label: type.name })),
+    ],
+    [warehouseTypes],
   );
   const picOptions = useMemo(
     () => backOfficeUsers.map((user) => ({ value: String(user.id), label: user.name })),
@@ -161,6 +178,7 @@ export function WarehouseForm({
     if (warehouse) formData.set("id", String(warehouse.id));
     formData.set("areaOfficeId", areaOfficeId);
     formData.set("picUserId", picUserId);
+    formData.set("warehouseTypeId", warehouseTypeId);
     formData.set("isActive", active ? "true" : "false");
     formData.set("address", address);
     formData.set("province", province);
@@ -278,13 +296,15 @@ export function WarehouseForm({
 
           <div className="space-y-1.5">
             <Label htmlFor="warehouse-type">Tipe Gudang</Label>
-            <Input
+            <Combobox
               id="warehouse-type"
-              name="depotType"
-              defaultValue={warehouse?.depotType ?? ""}
-              placeholder="Opsional, mis. Utama / Transit"
+              options={warehouseTypeOptions}
+              value={warehouseTypeId}
+              onValueChange={setWarehouseTypeId}
+              placeholder="Pilih tipe gudang"
+              emptyText="Tipe gudang tidak ditemukan."
             />
-            <FieldError message={errors.depotType} />
+            <FieldError message={errors.warehouseTypeId} />
           </div>
 
           <div className="space-y-1.5">

@@ -3,7 +3,14 @@ import { and, asc, eq } from "drizzle-orm";
 
 import { PageHeader } from "@/components/page-header";
 import { db } from "@/db";
-import { areaOffices, notDeleted, organizations, users, warehouses } from "@/db/schema";
+import {
+  areaOffices,
+  notDeleted,
+  organizations,
+  users,
+  warehouses,
+  warehouseTypes,
+} from "@/db/schema";
 import { requirePermission } from "@/lib/auth";
 
 import { WarehousesClient } from "./warehouses-client";
@@ -34,7 +41,8 @@ export default async function WarehousesPage() {
     .select({
       id: warehouses.id,
       name: warehouses.name,
-      depotType: warehouses.depotType,
+      warehouseTypeId: warehouses.warehouseTypeId,
+      warehouseTypeName: warehouseTypes.name,
       isActive: warehouses.isActive,
       areaOfficeId: warehouses.areaOfficeId,
       areaName: areaOffices.name,
@@ -54,6 +62,7 @@ export default async function WarehousesPage() {
     .from(warehouses)
     .leftJoin(areaOffices, eq(warehouses.areaOfficeId, areaOffices.id))
     .leftJoin(users, eq(warehouses.picUserId, users.id))
+    .leftJoin(warehouseTypes, eq(warehouses.warehouseTypeId, warehouseTypes.id))
     .where(
       and(eq(warehouses.organizationId, organization.id), notDeleted(warehouses)),
     )

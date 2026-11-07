@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import {
+  BoxesIcon,
   Building2Icon,
   ChevronRightIcon,
   ChevronsUpDownIcon,
@@ -94,6 +95,12 @@ const MASTER_NAV: NavItem[] = [
     href: "/master-data/outlet-types",
     icon: TagsIcon,
     permission: "outlet_types",
+  },
+  {
+    label: "Tipe Gudang",
+    href: "/master-data/warehouse-types",
+    icon: BoxesIcon,
+    permission: "warehouse_types",
   },
 ];
 

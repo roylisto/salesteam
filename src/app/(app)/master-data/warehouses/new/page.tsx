@@ -38,6 +38,7 @@ export default async function NewWarehousePage({ searchParams }: NewWarehousePag
       <WarehouseForm
         warehouse={null}
         areas={options.areas}
+        warehouseTypes={options.warehouseTypes}
         backOfficeUsers={options.backOfficeUsers}
         defaultProvince={defaultProvince}
         defaultCity={defaultCity}

@@ -45,6 +45,7 @@ export default async function EditWarehousePage({
       <WarehouseForm
         warehouse={warehouse}
         areas={options.areas}
+        warehouseTypes={options.warehouseTypes}
         backOfficeUsers={options.backOfficeUsers}
         defaultProvince={null}
         defaultCity={null}

@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { db } from "@/db";
-import { areaOffices, notDeleted, users, warehouses } from "@/db/schema";
+import { areaOffices, notDeleted, users, warehouses, warehouseTypes } from "@/db/schema";
 import { can, getCurrentUser } from "@/lib/auth";
 import { toFieldErrors } from "@/lib/validation";
 
@@ -37,12 +37,14 @@ const WarehouseSchema = z.object({
     .optional()
     .nullable()
     .transform((value) => (value && value > 0 ? value : null)),
-  depotType: z
-    .string()
-    .trim()
-    .max(50)
+  // Optional warehouse type from master data; must belong to the same org.
+  warehouseTypeId: z.coerce
+    .number()
+    .int()
+    .positive()
     .optional()
-    .transform((value) => (value ? value : null)),
+    .nullable()
+    .transform((value) => (value && value > 0 ? value : null)),
   address: z
     .string()
     .trim()
@@ -82,7 +84,7 @@ function readForm(formData: FormData) {
     name: formData.get("name"),
     areaOfficeId: formData.get("areaOfficeId"),
     picUserId: formData.get("picUserId"),
-    depotType: formData.get("depotType"),
+    warehouseTypeId: formData.get("warehouseTypeId"),
     address: formData.get("address"),
     province: formData.get("province") ?? "",
     regency: formData.get("regency") ?? "",
@@ -109,6 +111,21 @@ async function areaBelongsToOrg(areaId: number, organizationId: number) {
   return Boolean(area);
 }
 
+async function warehouseTypeBelongsToOrg(typeId: number, organizationId: number) {
+  const [type] = await db
+    .select({ id: warehouseTypes.id })
+    .from(warehouseTypes)
+    .where(
+      and(
+        eq(warehouseTypes.id, typeId),
+        eq(warehouseTypes.organizationId, organizationId),
+        notDeleted(warehouseTypes),
+      ),
+    )
+    .limit(1);
+  return Boolean(type);
+}
+
 export async function createWarehouse(
   _state: WarehouseFormState,
   formData: FormData,
@@ -122,6 +139,16 @@ export async function createWarehouse(
 
   if (!(await areaBelongsToOrg(parsed.data.areaOfficeId, manager.organization.id))) {
     return { fieldErrors: { areaOfficeId: "Pilih area yang valid." } };
+  }
+
+  if (
+    parsed.data.warehouseTypeId &&
+    !(await warehouseTypeBelongsToOrg(
+      parsed.data.warehouseTypeId,
+      manager.organization.id,
+    ))
+  ) {
+    return { fieldErrors: { warehouseTypeId: "Pilih tipe gudang yang valid." } };
   }
 
   if (parsed.data.picUserId) {
@@ -163,7 +190,7 @@ export async function createWarehouse(
     areaOfficeId: parsed.data.areaOfficeId,
     picUserId: parsed.data.picUserId,
     name: parsed.data.name,
-    depotType: parsed.data.depotType,
+    warehouseTypeId: parsed.data.warehouseTypeId,
     address: parsed.data.address,
     province: parsed.data.province,
     regency: parsed.data.regency,
@@ -211,6 +238,16 @@ export async function updateWarehouse(
     return { fieldErrors: { areaOfficeId: "Pilih area yang valid." } };
   }
 
+  if (
+    parsed.data.warehouseTypeId &&
+    !(await warehouseTypeBelongsToOrg(
+      parsed.data.warehouseTypeId,
+      manager.organization.id,
+    ))
+  ) {
+    return { fieldErrors: { warehouseTypeId: "Pilih tipe gudang yang valid." } };
+  }
+
   if (parsed.data.picUserId) {
     const [picUser] = await db
       .select({ id: users.id })
@@ -252,7 +289,7 @@ export async function updateWarehouse(
       areaOfficeId: parsed.data.areaOfficeId,
       picUserId: parsed.data.picUserId,
       name: parsed.data.name,
-      depotType: parsed.data.depotType,
+      warehouseTypeId: parsed.data.warehouseTypeId,
       address: parsed.data.address,
       province: parsed.data.province,
       regency: parsed.data.regency,

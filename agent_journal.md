@@ -3,7 +3,9 @@
 > Handoff notes for AI agents doing "vibe coding" on this repo.
 > Read this first; it captures the project context, conventions, and what has
 > already been built so you can continue without re-discovering everything.
-> Last updated: 2026-10-29 (**Team member pages**) — adding **and** editing a team member are now full pages (`/settings/team/new`, `/settings/team/[id]`) instead of dialogs; the team table list shows the **Kode pegawai** column, and rows (plus org-tree nodes) link to the edit page. Shared member form fields live in `member-fields.tsx`; team data loading is in `data.ts` (used by the list, new, and edit pages). Both forms share the same compact 2-column layout (no card header, `lg:grid-cols-2`): **personal data on the left**, **Area & Gudang on the right**.
+> Last updated: 2026-10-29 (**Warehouse types master data**) — added the `warehouse_types` master-data table (per-org name + isActive, soft delete) with its own `/master-data/warehouse-types` page (search + sort + dialog CRUD, `warehouse_types` permission) and a **Tipe Gudang** sidebar entry. `warehouses.depot_type` (free text) was replaced by `warehouses.warehouse_type_id` (FK → `warehouse_types`, `ON DELETE SET NULL`), and the warehouse form's "Tipe Gudang" is now a searchable `Combobox` fed by the master data instead of a text input. Migrations `0015_warehouse-types` + `0016_warehouse-drop-depot-type` (both applied).
+>
+> Previous: 2026-10-29 (**Team member pages**) — adding **and** editing a team member are now full pages (`/settings/team/new`, `/settings/team/[id]`) instead of dialogs; the team table list shows the **Kode pegawai** column, and rows (plus org-tree nodes) link to the edit page. Shared member form fields live in `member-fields.tsx`; team data loading is in `data.ts` (used by the list, new, and edit pages). Both forms share the same compact 2-column layout (no card header, `lg:grid-cols-2`): **personal data on the left**, **Area & Gudang on the right**.
 >
 > Previous: 2026-10-29 (**Sortable table columns**) — added `src/components/table-sort.tsx` (`useTableSort` + `SortableHead`) and wired click-to-sort headers (with asc/desc icons + `aria-sort`) into every data table: Areas, Outlet types, Warehouses, Outlets, and the Team `MemberTable`. The active column/direction live in the URL (`sort`, `dir`).
 >
@@ -142,6 +144,7 @@ src/app/
   (app)/master-data/outlets/new      → create outlet (full-page form)
   (app)/master-data/outlets/[id]     → edit outlet (full-page form)
   (app)/master-data/outlet-types     → outlet type master data (sales channels)
+  (app)/master-data/warehouse-types  → warehouse type master data
   (app)/settings/organization   → org settings (logo upload, currency, tz)
   (app)/settings/team           → team hierarchy + members
   (app)/settings/roles          → user-defined roles & permissions
@@ -177,9 +180,9 @@ src/app/
 
 - Catalogue of module permission keys in
   [permissions.ts](file:///Users/roy/Projects/salesteam/src/lib/permissions.ts): `dashboard`, `products`,
-  `outlets`, `outlet_types`, `warehouses`, `warehouse_movements`, `sales_inventory`,
-  `sales_stock`, `orders`, `visits`, `finance`, `payments`, `areas`,
-  `organization`, `team`, `roles`.
+  `outlets`, `outlet_types`, `warehouses`, `warehouse_types`, `warehouse_movements`,
+  `sales_inventory`, `sales_stock`, `orders`, `visits`, `finance`, `payments`,
+  `areas`, `organization`, `team`, `roles`.
 - **Roles are user-defined per organization.** There are **no** seeded/default
   roles (no manager/sales/finance presets). The old `DEFAULT_ROLE_PRESETS`
   concept was removed.
@@ -350,11 +353,13 @@ Defined in `src/db/schema/*` and re-exported from `index.ts`.
   mustChangePassword, isAdmin, isOrganizationOwner, lastLoginAt), `sessions` (id, userId, expiresAt,
   ip, userAgent, deletedAt), `password_reset_requests` (userId, tokenHash,
   expiresAt, usedAt, timestamps — backing the forgot-password flow + monthly limit).
-- **master-data.ts** — `area_offices`, `user_area_assignments`, `warehouses`,
-  `user_warehouse_assignments`, `outlet_types` (per-org sales-channel master
-  data: name + isActive), `products`, `outlets` (references `outlet_type_id` →
-  `outlet_types`; optional `warehouse_id` + `sales_id`; address parts, lat/lng,
-  owner/contact, KYC ids, `image_url`), `warehouse_stocks`.
+- **master-data.ts** — `area_offices`, `user_area_assignments`, `warehouse_types`
+  (per-org warehouse-type master data: name + isActive), `warehouses` (references
+  `warehouse_type_id` → `warehouse_types`; optional `pic_user_id`, area,
+  address parts, lat/lng), `user_warehouse_assignments`, `outlet_types` (per-org
+  sales-channel master data: name + isActive), `products`, `outlets` (references
+  `outlet_type_id` → `outlet_types`; optional `warehouse_id` + `sales_id`; address
+  parts, lat/lng, owner/contact, KYC ids, `image_url`), `warehouse_stocks`.
 - **inventory.ts** — `stock_movements`, `stock_movement_items`, `sales_stocks`,
   `sales_stock_items`, `sales_inventory`.
 - **orders.ts** — `orders`, `order_items`, `invoices`.
@@ -402,6 +407,20 @@ Defined in `src/db/schema/*` and re-exported from `index.ts`.
   `pic_user_id` (FK → users, set null), `address`, `province`, `regency`,
   `district`, `village`, `postal_code`, `latitude` (double precision),
   `longitude` (double precision); plus `warehouses_pic_user_idx`. **Applied.**
+- `0011_free_krista_starr.sql` — adds `organizations.province` + `city`. **Applied.**
+- `0012_red_wolfpack.sql` — adds the `wilayah` reference table (kode PK, nama) +
+  `wilayah_nama_idx`, holding the local Indonesian region data from
+  `dbdata/wilayah.sql`. **Applied.**
+- `0013_flimsy_longshot.sql` — adds `organizations.district`, `village`,
+  `postal_code`, `latitude`, `longitude`. **Applied.**
+- `0014_cute_wasp.sql` — drops the now-unused `organizations.postal_code`. **Applied.**
+- `0015_warehouse-types.sql` — adds the `warehouse_types` master-data table
+  (per-org name + isActive, partial-unique `(organization_id, name)`) and
+  `warehouses.warehouse_type_id` (FK → `warehouse_types`, `ON DELETE SET NULL`)
+  + `warehouses_warehouse_type_idx`. **Applied.**
+- `0016_warehouse-drop-depot-type.sql` — drops the legacy free-text
+  `warehouses.depot_type` column. **Applied.** (Generated as two migrations
+  because drizzle-kit's interactive rename prompt needs a TTY; see gotchas.)
 - All of `0000`–`0010` were applied to the Aiven dev database
   (`pg-salesteam-dev-…aivencloud.com`, CA supplied via `DB_SSL_CA`) on
   2026-10-27 — verified 28 tables in `public`.
@@ -440,7 +459,9 @@ Defined in `src/db/schema/*` and re-exported from `index.ts`.
   `Combobox`es.
 - **Area management** (`/master-data/areas`): CRUD (soft delete).
 - **Warehouse management** (`/master-data/warehouses`): **full create/edit pages**
-  (`/new`, `/[id]`) instead of a dialog. Fields: name, depot type, active flag,
+  (`/new`, `/[id]`) instead of a dialog. Fields: name, **warehouse type**
+  (searchable `Combobox` fed by the `warehouse_types` master data, with a
+  "Belum diatur" option), active flag,
   area (dropdown), **PIC** (dropdown of Back Office users only), **address parts**
   (address, province/regency/district/village cascading dropdowns from
   `api.kodewilayah.web.id`, postal code), **latitude/longitude picked on an
@@ -469,6 +490,11 @@ Defined in `src/db/schema/*` and re-exported from `index.ts`.
   for sales channels (Retail, Grosir, Horeca, …) — name + isActive, per-org
   partial-unique name. Gated by the `outlet_types` permission. Feeds the outlet
   form's type dropdown.
+- **Warehouse types** (`/master-data/warehouse-types`): CRUD (soft delete) master
+  data for depot types (Utama, Transit, Cabang, …) — name + isActive, per-org
+  partial-unique name (same shape as outlet types: search + sortable table +
+  create/edit dialog). Gated by the `warehouse_types` permission. Feeds the
+  warehouse form's "Tipe Gudang" dropdown.
 - **Team** (`/settings/team`):
   - Tabs: **Semua**, **Struktur Organisasi**, **Back Office**, **Sales**.
   - **Struktur Organisasi** tab: recursive indented diagram (member cards →
@@ -557,6 +583,7 @@ src/lib/
                                outlet-type assignment, per-org unique code,
                                full address/geo/KYC fields, S3 photo upload)
     outlet-types.ts            create/update/delete outlet type (per-org name)
+    warehouse-types.ts         create/update/delete warehouse type (per-org name)
     account.ts                 create/update/delete member (system-generated pw
                                + one credentials email), reset password
                                (Admin-only for other members)
@@ -590,6 +617,12 @@ src/app/(app)/master-data/outlet-types/
   outlet-types-client.tsx      search + paginated table + dialog opener
   outlet-type-dialog.tsx       create/edit/delete dialog (name + active)
   types.ts                     OutletTypeRow
+
+src/app/(app)/master-data/warehouse-types/
+  page.tsx                     warehouse type list (server component)
+  warehouse-types-client.tsx   search + paginated table + dialog opener
+  warehouse-type-dialog.tsx    create/edit/delete dialog (name + active)
+  types.ts                     WarehouseTypeRow
 
 src/app/(app)/settings/team/
   page.tsx                     team list (server: loads shared team data)
@@ -696,6 +729,11 @@ src/proxy.ts                   optimistic auth guard
 - The `_journal.json` `when` timestamps must stay consistent; if you need to
   regenerate a migration, delete the `.sql` + snapshot and revert the journal
   entry first, then re-run `db:generate`.
+- **`db:generate` prompts when a diff removes one column and adds another**
+  (drizzle-kit asks "is this a rename?"), which fails in a non-TTY shell with
+  `Interactive prompts require a TTY terminal`. Workaround: split it into two
+  generates — first add the new column (keeping the old one), then remove the old
+  column in a second migration (see `0015`/`0016` for the warehouse-type swap).
 - `AGENTS.md` (nextjs-agent-rules block) is auto-managed by `next dev`; leave it
   intact in commits.
 - **`SMTP_FROM` must use a sender domain authorized for the SMTP account.** The

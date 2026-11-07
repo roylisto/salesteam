@@ -61,6 +61,26 @@ export const userAreaAssignments = pgTable(
   ],
 );
 
+/** Warehouse type master data (e.g. Utama, Transit, Cabang). */
+export const warehouseTypes = pgTable(
+  "warehouse_types",
+  {
+    id: primaryId(),
+    organizationId: bigint("organization_id", { mode: "number" })
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 150 }).notNull(),
+    isActive: boolean("is_active").default(true).notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex("warehouse_types_organization_name_unique")
+      .on(table.organizationId, table.name)
+      .where(isNull(table.deletedAt)),
+    index("warehouse_types_organization_idx").on(table.organizationId),
+  ],
+);
+
 /** Warehouse / depot that holds product stock. */
 export const warehouses = pgTable(
   "warehouses",
@@ -76,8 +96,11 @@ export const warehouses = pgTable(
     picUserId: bigint("pic_user_id", { mode: "number" }).references(() => users.id, {
       onDelete: "set null",
     }),
+    warehouseTypeId: bigint("warehouse_type_id", { mode: "number" }).references(
+      () => warehouseTypes.id,
+      { onDelete: "set null" },
+    ),
     name: varchar("name", { length: 150 }).notNull(),
-    depotType: varchar("depot_type", { length: 50 }),
     address: text("address"),
     province: varchar("province", { length: 120 }),
     regency: varchar("regency", { length: 120 }),
@@ -95,6 +118,7 @@ export const warehouses = pgTable(
       .where(isNull(table.deletedAt)),
     index("warehouses_area_office_idx").on(table.areaOfficeId),
     index("warehouses_pic_user_idx").on(table.picUserId),
+    index("warehouses_warehouse_type_idx").on(table.warehouseTypeId),
   ],
 );
 

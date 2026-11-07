@@ -14,6 +14,7 @@ export const PERMISSIONS = [
   { key: "outlets", label: "Outlet" },
   { key: "outlet_types", label: "Tipe Outlet" },
   { key: "warehouses", label: "Gudang" },
+  { key: "warehouse_types", label: "Tipe Gudang" },
   { key: "warehouse_movements", label: "Mutasi Gudang" },
   { key: "sales_inventory", label: "Stok Sales" },
   { key: "sales_stock", label: "Transaksi Stok Sales" },

@@ -27,7 +27,7 @@ const ALL_AREAS = "all";
 const SORT_COLUMNS: SortColumn<WarehouseRow>[] = [
   { key: "name", getValue: (warehouse) => warehouse.name },
   { key: "area", getValue: (warehouse) => warehouse.areaName ?? null },
-  { key: "type", getValue: (warehouse) => warehouse.depotType ?? null },
+  { key: "type", getValue: (warehouse) => warehouse.warehouseTypeName ?? null },
   { key: "status", getValue: (warehouse) => (warehouse.isActive ? 1 : 0) },
 ];
 
@@ -179,7 +179,7 @@ export function WarehousesClient({
                       {warehouse.areaName ?? "Belum ditugaskan"}
                     </TableCell>
                     <TableCell className="text-muted-foreground hidden text-sm lg:table-cell">
-                      {warehouse.depotType ?? "—"}
+                      {warehouse.warehouseTypeName ?? "—"}
                     </TableCell>
                     <TableCell>
                       <Badge variant={warehouse.isActive ? "secondary" : "outline"}>

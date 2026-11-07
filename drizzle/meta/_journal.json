@@ -106,6 +106,20 @@
       "when": 1793246759401,
       "tag": "0014_cute_wasp",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1793264320101,
+      "tag": "0015_warehouse-types",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1793264332695,
+      "tag": "0016_warehouse-drop-depot-type",
+      "breakpoints": true
     }
   ]
 }
