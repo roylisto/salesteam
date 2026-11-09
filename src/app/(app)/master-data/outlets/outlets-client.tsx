@@ -44,13 +44,9 @@ const SORT_COLUMNS: SortColumn<OutletRow>[] = [
 export function OutletsClient({
   outlets,
   warehouses,
-  orgProvince,
-  orgCity,
 }: {
   outlets: OutletRow[];
   warehouses: WarehouseOption[];
-  orgProvince: string | null;
-  orgCity: string | null;
 }) {
   const [query, setQuery] = useQueryState(
     "q",
@@ -150,7 +146,7 @@ export function OutletsClient({
         <Button
           render={
             <Link
-              href={`/master-data/outlets/new?province=${encodeURIComponent(orgProvince ?? "")}&city=${encodeURIComponent(orgCity ?? "")}`}
+              href="/master-data/outlets/new"
             />
           }
           nativeButton={false}

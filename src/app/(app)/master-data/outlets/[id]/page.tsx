@@ -44,11 +44,10 @@ export default async function EditOutletPage({
       </PageHeader>
       <OutletForm
         outlet={outlet}
+        areas={options.areas}
         warehouses={options.warehouses}
         members={options.members}
         outletTypes={options.outletTypes}
-        defaultProvince={null}
-        defaultCity={null}
       />
     </div>
   );

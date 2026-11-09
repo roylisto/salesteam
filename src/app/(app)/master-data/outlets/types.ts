@@ -3,6 +3,17 @@ export type WarehouseOption = {
   name: string;
 };
 
+export type AreaOption = {
+  id: number;
+  name: string;
+};
+
+export type WarehouseLocationOption = WarehouseOption & {
+  areaOfficeId: number | null;
+  latitude: number | null;
+  longitude: number | null;
+};
+
 export type MemberOption = {
   id: number;
   name: string;

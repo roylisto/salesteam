@@ -3,7 +3,11 @@
 > Handoff notes for AI agents doing "vibe coding" on this repo.
 > Read this first; it captures the project context, conventions, and what has
 > already been built so you can continue without re-discovering everything.
-> Last updated: 2026-11-09 (**More type icons**) — both outlet and warehouse type dialogs now offer 18 icon choices in a wrapping icon-only layout. Each option retains a tooltip, accessible name, and selected state. New icon keys use the existing validation and rendering maps, including the warehouse map. No schema change.
+> Last updated: 2026-11-09 (**Outlet area filter and Sales PIC**) — outlet create/edit first selects a warehouse area, which filters warehouse options. Edit derives the area from the existing warehouse, including an option for legacy warehouses without an area. Changing area clears the warehouse selection and locks the shop address and map until a warehouse is selected again. PIC choices and server validation allow only active Sales users from the same organization.
+>
+> Previous: 2026-11-09 (**Outlet warehouse-first location**) — create/edit requires a non-deleted warehouse from the same organization. The selected warehouse coordinates provide the outlet map’s initial pin only; saved or user-selected outlet coordinates take priority and only those are persisted. Legacy outlets without a warehouse require assignment on the next save. The form no longer geocodes the organization’s region as the starting point.
+>
+> Previous: 2026-11-09 (**More type icons**) — both outlet and warehouse type dialogs now offer 18 icon choices in a wrapping icon-only layout. Each option retains a tooltip, accessible name, and selected state. New icon keys use the existing validation and rendering maps, including the warehouse map. No schema change.
 >
 > Previous: 2026-11-07 (**Outlet navigation and type appearance; tab hover fix**) — sidebar groups **Manajemen Outlet** into **Daftar Outlet** and **Tipe Outlet**, using the same permission-aware expandable group / collapsed dropdown as warehouses. Outlet types now save `color` (hex) and allowlisted `icon`, with eight color presets, custom color, six retail/business icons and live preview. Both type and outlet lists display the saved symbol; existing types default to indigo/store. Shared configuration/rendering: `src/lib/outlet-appearance.ts`, `src/components/outlet-type-symbol.tsx`. Migration `0018_outlet-type-appearance` applied. Warehouse active tabs explicitly retain white text on hover in light/dark themes.
 >

@@ -1,25 +1,43 @@
 import { and, asc, eq } from "drizzle-orm";
 
 import { db } from "@/db";
-import { notDeleted, outletTypes, outlets, users, warehouses } from "@/db/schema";
+import { areaOffices, notDeleted, outletTypes, outlets, users, warehouses } from "@/db/schema";
 
 import type {
+  AreaOption,
   MemberOption,
   OutletDetail,
   OutletTypeOption,
-  WarehouseOption,
+  WarehouseLocationOption,
 } from "./types";
 
 /** Warehouse / rep / outlet-type choices shared by the create and edit pages. */
 export async function loadFormOptions(organizationId: number): Promise<{
-  warehouses: WarehouseOption[];
+  areas: AreaOption[];
+  warehouses: WarehouseLocationOption[];
   members: MemberOption[];
   outletTypes: OutletTypeOption[];
 }> {
-  const [warehouseRows, memberRows, outletTypeRows] = await Promise.all([
+  const [areaRows, warehouseRows, memberRows, outletTypeRows] = await Promise.all([
     db
-      .select({ id: warehouses.id, name: warehouses.name })
+      .select({ id: areaOffices.id, name: areaOffices.name })
+      .from(areaOffices)
+      .where(and(eq(areaOffices.organizationId, organizationId), notDeleted(areaOffices)))
+      .orderBy(asc(areaOffices.name)),
+    db
+      .select({
+        id: warehouses.id,
+        name: warehouses.name,
+        areaOfficeId: areaOffices.id,
+        latitude: warehouses.latitude,
+        longitude: warehouses.longitude,
+      })
       .from(warehouses)
+      .leftJoin(areaOffices, and(
+        eq(warehouses.areaOfficeId, areaOffices.id),
+        eq(areaOffices.organizationId, organizationId),
+        notDeleted(areaOffices),
+      ))
       .where(
         and(eq(warehouses.organizationId, organizationId), notDeleted(warehouses)),
       )
@@ -31,6 +49,7 @@ export async function loadFormOptions(organizationId: number): Promise<{
         and(
           eq(users.organizationId, organizationId),
           eq(users.isActive, true),
+          eq(users.userType, "sales"),
           notDeleted(users),
         ),
       )
@@ -45,6 +64,7 @@ export async function loadFormOptions(organizationId: number): Promise<{
   ]);
 
   return {
+    areas: areaRows,
     warehouses: warehouseRows,
     members: memberRows,
     outletTypes: outletTypeRows,

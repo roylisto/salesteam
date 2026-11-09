@@ -71,8 +71,7 @@ const OutletSchema = z.object({
   name: z.string().trim().min(2, "Gunakan minimal 2 karakter.").max(200),
   code: optionalText(80),
   status: z.enum(["active", "inactive"]),
-  // Optional assignments; a rep / type / warehouse can be pinned later.
-  warehouseId: optionalId,
+  warehouseId: z.coerce.number().int().positive({ message: "Pilih gudang terlebih dahulu." }),
   salesId: optionalId,
   outletTypeId: optionalId,
   ownerName: optionalText(150),
@@ -141,6 +140,7 @@ async function idBelongsToOrg(
         eq(table.id, id),
         eq(table.organizationId, organizationId),
         notDeleted(table),
+        table === users ? and(eq(users.userType, "sales"), eq(users.isActive, true)) : undefined,
       ),
     )
     .limit(1);
@@ -151,14 +151,11 @@ async function validateReferences(
   data: OutletInput,
   organizationId: number,
 ): Promise<Record<string, string> | null> {
-  if (
-    data.warehouseId &&
-    !(await idBelongsToOrg(warehouses, data.warehouseId, organizationId))
-  ) {
+  if (!(await idBelongsToOrg(warehouses, data.warehouseId, organizationId))) {
     return { warehouseId: "Pilih gudang yang valid." };
   }
   if (data.salesId && !(await idBelongsToOrg(users, data.salesId, organizationId))) {
-    return { salesId: "Pilih sales yang valid." };
+    return { salesId: "Pilih pengguna Sales yang aktif." };
   }
   if (
     data.outletTypeId &&

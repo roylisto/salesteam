@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   ImagePlusIcon,
@@ -35,11 +35,14 @@ import {
 import { toFileSrc } from "@/lib/files";
 
 import type {
+  AreaOption,
   MemberOption,
   OutletDetail,
   OutletTypeOption,
-  WarehouseOption,
+  WarehouseLocationOption,
 } from "./types";
+
+const NO_AREA = "no-area";
 
 const LIST_PATH = "/master-data/outlets";
 
@@ -50,18 +53,16 @@ function FieldError({ message }: { message?: string }) {
 
 export function OutletForm({
   outlet,
+  areas,
   warehouses,
   members,
   outletTypes,
-  defaultProvince,
-  defaultCity,
 }: {
   outlet: OutletDetail | null;
-  warehouses: WarehouseOption[];
+  areas: AreaOption[];
+  warehouses: WarehouseLocationOption[];
   members: MemberOption[];
   outletTypes: OutletTypeOption[];
-  defaultProvince: string | null;
-  defaultCity: string | null;
 }) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -71,8 +72,10 @@ export function OutletForm({
   const isEdit = outlet !== null;
 
   const [active, setActive] = useState(outlet ? outlet.status === "active" : true);
-  const [warehouseId, setWarehouseId] = useState(
-    outlet?.warehouseId ? String(outlet.warehouseId) : "",
+  const initialWarehouse = warehouses.find((warehouse) => warehouse.id === outlet?.warehouseId);
+  const [warehouseId, setWarehouseId] = useState(initialWarehouse ? String(initialWarehouse.id) : "");
+  const [areaFilter, setAreaFilter] = useState(
+    initialWarehouse ? String(initialWarehouse.areaOfficeId ?? NO_AREA) : "",
   );
   const [salesId, setSalesId] = useState(
     outlet?.salesId ? String(outlet.salesId) : "",
@@ -89,7 +92,14 @@ export function OutletForm({
   const [postalCode, setPostalCode] = useState(outlet?.postalCode ?? "");
   const [address, setAddress] = useState(outlet?.address ?? "");
 
-  const [mapCentered, setMapCentered] = useState(false);
+  const selectedWarehouse = warehouses.find((warehouse) => String(warehouse.id) === warehouseId);
+  const hasOutletLocation = latitude !== "" && longitude !== "";
+  const warehouseLatitude = selectedWarehouse?.latitude;
+  const warehouseLongitude = selectedWarehouse?.longitude;
+  const hasWarehouseLocation = warehouseLatitude != null && warehouseLongitude != null &&
+    Number.isFinite(warehouseLatitude) && Number.isFinite(warehouseLongitude) &&
+    Math.abs(warehouseLatitude) <= 90 && Math.abs(warehouseLongitude) <= 180;
+  const useWarehouseLocation = !hasOutletLocation && hasWarehouseLocation;
 
   const {
     province,
@@ -118,8 +128,6 @@ export function OutletForm({
 
   function handleAddressChange(result: AddressComponents) {
     if (result.address) setAddress(result.address);
-    if (result.latitude) setLatitude(result.latitude);
-    if (result.longitude) setLongitude(result.longitude);
     if (result.postalCode) setPostalCode(result.postalCode);
 
     syncFromAddress({
@@ -129,38 +137,6 @@ export function OutletForm({
       village: result.village,
     });
   }
-
-  // Geocode default province/city for new outlets to center the map
-  useEffect(() => {
-    if (isEdit || mapCentered) return;
-    if (!defaultProvince && !defaultCity) return;
-    if (latitude.trim() !== "" && longitude.trim() !== "") return;
-
-    let ignore = false;
-
-    async function geocodeDefaultLocation() {
-      try {
-        const query = `${defaultCity ? defaultCity + ", " : ""}${defaultProvince}, Indonesia`;
-        const response = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=${encodeURIComponent(query)}`,
-        );
-        const results = (await response.json()) as Array<{ lat: string; lon: string }>;
-        if (results.length > 0 && !ignore) {
-          setLatitude(results[0].lat);
-          setLongitude(results[0].lon);
-          setMapCentered(true);
-        }
-      } catch {
-        // Ignore geocoding errors
-      }
-    }
-
-    geocodeDefaultLocation();
-
-    return () => {
-      ignore = true;
-    };
-  }, [defaultProvince, defaultCity, isEdit, latitude, longitude, mapCentered]);
 
   const [imagePreview, setImagePreview] = useState<string | null>(() =>
     toFileSrc(outlet?.imageUrl ?? null),
@@ -175,15 +151,18 @@ export function OutletForm({
     ],
     [outletTypes],
   );
+  const areaOptions = useMemo(() => {
+    const options = areas.map((area) => ({ value: String(area.id), label: area.name }));
+    if (warehouses.some((warehouse) => warehouse.areaOfficeId === null)) {
+      options.push({ value: NO_AREA, label: "Tanpa area" });
+    }
+    return options;
+  }, [areas, warehouses]);
   const warehouseOptions = useMemo(
-    () => [
-      { value: "", label: "Tanpa gudang" },
-      ...warehouses.map((warehouse) => ({
-        value: String(warehouse.id),
-        label: warehouse.name,
-      })),
-    ],
-    [warehouses],
+    () => warehouses
+      .filter((warehouse) => String(warehouse.areaOfficeId ?? NO_AREA) === areaFilter)
+      .map((warehouse) => ({ value: String(warehouse.id), label: warehouse.name })),
+    [areaFilter, warehouses],
   );
   const salesOptions = useMemo(
     () => [
@@ -233,6 +212,12 @@ export function OutletForm({
   }
 
   function handleSubmit(formData: FormData) {
+    if (!selectedWarehouse) {
+      setErrors((previous) => ({ ...previous, warehouseId: "Pilih gudang terlebih dahulu." }));
+      document.getElementById("outlet-warehouse")?.focus();
+      return;
+    }
+
     if (outlet) formData.set("id", String(outlet.id));
     formData.set("status", active ? "active" : "inactive");
     formData.set("warehouseId", warehouseId);
@@ -377,13 +362,34 @@ export function OutletForm({
           </div>
 
           <div className="space-y-1.5">
-            <Label>Gudang</Label>
+            <Label htmlFor="outlet-area">Area gudang</Label>
             <Combobox
+              id="outlet-area"
+              options={areaOptions}
+              value={areaFilter}
+              onValueChange={(value) => {
+                if (value === areaFilter) return;
+                setAreaFilter(value);
+                setWarehouseId("");
+              }}
+              placeholder="Pilih area"
+              emptyText="Area tidak ditemukan."
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="outlet-warehouse">Gudang (wajib)</Label>
+            <Combobox
+              id="outlet-warehouse"
               options={warehouseOptions}
               value={warehouseId}
-              onValueChange={setWarehouseId}
-              placeholder="Pilih gudang"
-              emptyText="Gudang tidak ditemukan."
+              onValueChange={(value) => {
+                setWarehouseId(value);
+                if (value) setErrors((previous) => ({ ...previous, warehouseId: "" }));
+              }}
+              disabled={!areaFilter}
+              placeholder={areaFilter ? "Pilih gudang" : "Pilih area terlebih dahulu"}
+              emptyText="Tidak ada gudang di area ini."
             />
             <FieldError message={errors.warehouseId} />
           </div>
@@ -397,6 +403,11 @@ export function OutletForm({
               placeholder="Pilih tenaga penjualan"
               emptyText="Tenaga penjualan tidak ditemukan."
             />
+            {salesId && !members.some((member) => String(member.id) === salesId) && (
+              <p className="text-muted-foreground text-xs">
+                PIC sebelumnya tidak tersedia. Pilih pengguna Sales aktif atau pilih Belum ditugaskan.
+              </p>
+            )}
             <FieldError message={errors.salesId} />
           </div>
 
@@ -487,18 +498,34 @@ export function OutletForm({
         </CardHeader>
         <CardContent className="grid gap-6 lg:grid-cols-[500px_1fr]">
           <div className="lg:sticky lg:top-4 lg:self-start">
-            <LocationPicker
-              latitude={latitude}
-              longitude={longitude}
-              onChange={(nextLatitude, nextLongitude) => {
-                setLatitude(nextLatitude);
-                setLongitude(nextLongitude);
-              }}
-              onAddressChange={handleAddressChange}
-              compact
-            />
+            {useWarehouseLocation && (
+              <p className="text-muted-foreground mb-2 text-sm">
+                Peta dimulai dari lokasi gudang. Klik atau geser pin untuk menetapkan lokasi outlet.
+              </p>
+            )}
+            {selectedWarehouse && !hasWarehouseLocation && !hasOutletLocation && (
+              <p className="text-muted-foreground mb-2 text-sm">
+                Gudang ini belum memiliki titik lokasi. Cari alamat atau pilih titik outlet di peta.
+              </p>
+            )}
+            {!selectedWarehouse ? (
+              <p className="text-muted-foreground rounded-lg border p-4 text-sm">
+                Pilih gudang untuk membuka peta lokasi outlet.
+              </p>
+            ) : (
+              <LocationPicker
+                latitude={useWarehouseLocation ? String(warehouseLatitude) : latitude}
+                longitude={useWarehouseLocation ? String(warehouseLongitude) : longitude}
+                onChange={(nextLatitude, nextLongitude) => {
+                  setLatitude(nextLatitude);
+                  setLongitude(nextLongitude);
+                }}
+                onAddressChange={handleAddressChange}
+                compact
+              />
+            )}
           </div>
-          <div className="space-y-4 lg:max-h-[calc(100vh-200px)] lg:overflow-y-auto lg:pr-2">
+          <fieldset disabled={!selectedWarehouse} aria-label="Alamat toko" className="min-w-0 space-y-4 lg:max-h-[calc(100vh-200px)] lg:overflow-y-auto lg:pr-2">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label>Provinsi</Label>
@@ -508,7 +535,7 @@ export function OutletForm({
                   onValueChange={setProvince}
                   placeholder={loadingProvince ? "Memuat..." : "Cari provinsi"}
                   emptyText="Provinsi tidak ditemukan."
-                  disabled={loadingProvince}
+                  disabled={!selectedWarehouse || loadingProvince}
                 />
                 <FieldError message={errors.province} />
               </div>
@@ -521,7 +548,7 @@ export function OutletForm({
                   onValueChange={setRegency}
                   placeholder={loadingRegency ? "Memuat..." : "Cari kabupaten/kota"}
                   emptyText="Kabupaten/kota tidak ditemukan."
-                  disabled={loadingRegency}
+                  disabled={!selectedWarehouse || loadingRegency}
                 />
                 <FieldError message={errors.city} />
               </div>
@@ -534,7 +561,7 @@ export function OutletForm({
                   onValueChange={setDistrict}
                   placeholder={loadingDistrict ? "Memuat..." : "Cari kecamatan"}
                   emptyText="Kecamatan tidak ditemukan."
-                  disabled={loadingDistrict}
+                  disabled={!selectedWarehouse || loadingDistrict}
                 />
                 <FieldError message={errors.district} />
               </div>
@@ -547,7 +574,7 @@ export function OutletForm({
                   onValueChange={setVillage}
                   placeholder={loadingVillage ? "Memuat..." : "Cari kelurahan/desa"}
                   emptyText="Kelurahan/desa tidak ditemukan."
-                  disabled={loadingVillage}
+                  disabled={!selectedWarehouse || loadingVillage}
                 />
                 <FieldError message={errors.village} />
               </div>
@@ -599,7 +626,7 @@ export function OutletForm({
             </div>
 
             <Separator />
-          </div>
+          </fieldset>
         </CardContent>
       </Card>
 
