@@ -149,17 +149,21 @@ export function WarehouseTypeDialog({
 
           <fieldset className="space-y-2">
             <legend className="text-sm font-medium">Ikon</legend>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="flex flex-wrap gap-2">
               {WAREHOUSE_ICON_KEYS.map((key) => (
                 <button
                   key={key}
                   type="button"
                   aria-pressed={icon === key}
+                  aria-label={WAREHOUSE_ICONS[key].label}
+                  title={WAREHOUSE_ICONS[key].label}
                   onClick={() => setIcon(key)}
-                  className={cn("flex flex-col items-center gap-1 rounded-lg border p-2 text-xs focus-visible:outline-2 focus-visible:outline-offset-2", icon === key ? "border-primary bg-primary/5 ring-1 ring-primary" : "hover:bg-muted")}
+                  className={cn(
+                    "flex size-11 items-center justify-center rounded-lg border focus-visible:outline-2 focus-visible:outline-offset-2",
+                    icon === key ? "border-primary bg-primary/5 ring-1 ring-primary" : "hover:bg-muted",
+                  )}
                 >
                   <WarehouseTypeSymbol icon={key} color={color} />
-                  {WAREHOUSE_ICONS[key].label}
                 </button>
               ))}
             </div>
