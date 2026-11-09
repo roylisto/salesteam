@@ -6,16 +6,18 @@ import { AuditHistoryPage } from "@/components/audit-history";
 import { AuditTabs } from "@/components/audit-tabs";
 import { PageHeader } from "@/components/page-header";
 import { db } from "@/db";
-import { notDeleted, outletTypes, outlets, warehouses } from "@/db/schema";
+import { areaOffices, notDeleted, outletTypes, outlets, warehouses } from "@/db/schema";
 import { requirePermission } from "@/lib/auth";
 import { toFileSrc } from "@/lib/files";
 
 import { ALL_WAREHOUSES, NO_WAREHOUSE, OUTLET_PAGE_SIZE, outletListParsers } from "./list-query";
 import { OutletsClient } from "./outlets-client";
+import { OutletMapControls } from "./outlet-map-controls";
 import type { OutletListRow } from "./types";
 
 export const metadata: Metadata = { title: "Outlet" };
 
+const OUTLETS_PATH = "/master-data/outlets";
 const loadListQuery = createLoader(outletListParsers);
 const sortColumns = {
   name: outlets.name,
@@ -28,9 +30,31 @@ export default async function OutletsPage({ searchParams }: PageProps<"/master-d
   const user = await requirePermission("outlets");
   const params = await searchParams;
   if (params.tab === "audit") {
-    return <AuditHistoryPage user={user} module="outlets" path="/master-data/outlets" title="Outlet" label="Daftar Outlet" params={params} />;
+    return <AuditHistoryPage user={user} module="outlets" path={OUTLETS_PATH} title="Outlet"
+      label="Daftar Outlet" params={params} map mapLabel="Peta Outlet" />;
   }
   const organizationId = user.organization.id;
+  if (params.tab === "map") {
+    const [areas, warehouseOptions, types] = await Promise.all([
+      db.select({ id: areaOffices.id, name: areaOffices.name }).from(areaOffices)
+        .where(and(eq(areaOffices.organizationId, organizationId), notDeleted(areaOffices)))
+        .orderBy(asc(areaOffices.name)),
+      db.select({ id: warehouses.id, name: warehouses.name, areaOfficeId: warehouses.areaOfficeId })
+        .from(warehouses).where(and(eq(warehouses.organizationId, organizationId), notDeleted(warehouses)))
+        .orderBy(asc(warehouses.name)),
+      db.select({ id: outletTypes.id, name: outletTypes.name }).from(outletTypes)
+        .where(and(eq(outletTypes.organizationId, organizationId), notDeleted(outletTypes)))
+        .orderBy(asc(outletTypes.name)),
+    ]);
+
+    return (
+      <div className="w-full">
+        <PageHeader title="Outlet" description="Lihat sebaran outlet berdasarkan lokasi dan wilayah." />
+        <AuditTabs path={OUTLETS_PATH} label="Daftar Outlet" map mapLabel="Peta Outlet" />
+        <OutletMapControls areas={areas} warehouses={warehouseOptions} types={types} />
+      </div>
+    );
+  }
   const { q, warehouse, status, page, sort, dir } = loadListQuery(params);
   const needle = q.trim();
   const warehouseId = Number(warehouse);
@@ -103,7 +127,7 @@ export default async function OutletsPage({ searchParams }: PageProps<"/master-d
         title="Outlet"
         description="Toko pelanggan yang dikunjungi tenaga penjualan, beserta gudang yang melayaninya."
       />
-      <AuditTabs path="/master-data/outlets" label="Daftar Outlet" />
+      <AuditTabs path={OUTLETS_PATH} label="Daftar Outlet" map mapLabel="Peta Outlet" />
       <OutletsClient
         outlets={outletsList}
         warehouses={warehouseRows}

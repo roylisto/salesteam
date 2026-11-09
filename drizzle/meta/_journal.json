@@ -155,6 +155,13 @@
       "when": 1794235347079,
       "tag": "0021_audit-logs",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1794236198154,
+      "tag": "0022_outlet-map-index",
+      "breakpoints": true
     }
   ]
 }

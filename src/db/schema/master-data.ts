@@ -1,4 +1,4 @@
-import { isNull } from "drizzle-orm";
+import { and, isNotNull, isNull } from "drizzle-orm";
 import {
   bigint,
   boolean,
@@ -262,6 +262,9 @@ export const outlets = pgTable(
     index("outlets_warehouse_idx").on(table.warehouseId),
     index("outlets_outlet_type_idx").on(table.outletTypeId),
     index("outlets_name_idx").on(table.name),
+    index("outlets_org_map_coordinates_idx")
+      .on(table.organizationId, table.latitude, table.longitude)
+      .where(and(isNull(table.deletedAt), isNotNull(table.latitude), isNotNull(table.longitude))!),
   ],
 );
 

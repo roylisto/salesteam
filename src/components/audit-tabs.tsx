@@ -4,10 +4,11 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 
-export function AuditTabs({ path, label = "Data", map = false }: {
+export function AuditTabs({ path, label = "Data", map = false, mapLabel = "Peta Gudang" }: {
   path: string;
   label?: string;
   map?: boolean;
+  mapLabel?: string;
 }) {
   const params = useSearchParams();
   const tab = params.get("tab");
@@ -21,7 +22,7 @@ export function AuditTabs({ path, label = "Data", map = false }: {
   };
   const tabs = [
     { id: "data", text: label, href: href() },
-    ...(map ? [{ id: "map", text: "Peta Gudang", href: href("map") }] : []),
+    ...(map ? [{ id: "map", text: mapLabel, href: href("map") }] : []),
     { id: "audit", text: "Riwayat Aktivitas", href: href("audit") },
   ];
   return (

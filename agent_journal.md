@@ -3,7 +3,11 @@
 > Handoff notes for AI agents doing "vibe coding" on this repo.
 > Read this first; it captures the project context, conventions, and what has
 > already been built so you can continue without re-discovering everything.
-> Last updated: 2026-11-09 (**Audit trail**) — one `audit_logs` table stores actor name snapshot, module, action, target, and time. CRUD actions log in the same transaction as their mutations. Organization onboarding and successful sign-in, sign-out, password changes and password resets are included. Each CRUD menu and Profile has a server-paginated **Riwayat Aktivitas** tab. Reads enforce tenant and module permissions, profile is self-only, and non-admin Team history is scoped to own actions and the visible reporting subtree. No passwords, tokens, or raw form payloads are logged. Migration `0021_audit-logs` applied.
+> Last updated: 2026-11-09 (**Outlet GIS zoom hierarchy**) — after Tampilkan Outlet, the map uses OSM basemap tiles with transparent BIG administrative boundary overlays. Zoom 0–6 shows full filtered province totals (including outlets with a province but no coordinates), 7–9 regency/city, 10–12 district, 13–14 village, and 15+ pins with the existing dense-view fallback. Lower levels use the visible viewport. Province totals and boundary image reuse a fixed national view request; finer boundary requests contain only public viewport coordinates. The province list shows totals even when a province has no point to place on the map.
+>
+> Previous: 2026-11-09 (**Outlet overview map**) — `/master-data/outlets?tab=map` loads only filter options until **Tampilkan Outlet** is clicked. Area filters warehouse choices, and the API applies organization, permission, soft-delete, viewport, area, warehouse and type constraints. PostgreSQL returns district counts below zoom 11, village counts at zoom 11–14, then type-colored pins from zoom 15. More than 750 visible outlets at pin zoom falls back to village counts. Count badges render on a canvas, and pins use React portals. Migration `0022_outlet-map-index` adds a partial coordinate index and was applied. Integration checks covered zoom levels, filters, tenant isolation, permission checks, and dense fallback inside a rolled-back transaction.
+>
+> Previous: 2026-11-09 (**Audit trail**) — one `audit_logs` table stores actor name snapshot, module, action, target, and time. CRUD actions log in the same transaction as their mutations. Organization onboarding and successful sign-in, sign-out, password changes and password resets are included. Each CRUD menu and Profile has a server-paginated **Riwayat Aktivitas** tab. Reads enforce tenant and module permissions, profile is self-only, and non-admin Team history is scoped to own actions and the visible reporting subtree. No passwords, tokens, or raw form payloads are logged. Migration `0021_audit-logs` applied.
 >
 > Previous: 2026-11-09 (**Soft-delete coverage**) — migration `0020_wilayah-soft-delete` adds `wilayah.deleted_at`; region lookups exclude retired rows. The importer stages the source in a transaction, restores current codes, and retires missing codes without deleting them. Outlet photos and organization logos are detached when removed or replaced, with old objects retained in private storage.
 >
@@ -411,6 +415,8 @@ Defined in `src/db/schema/*` and re-exported from `index.ts`.
 6. Run `npm run db:generate -- --name <change>` then `npm run db:migrate`.
 
 ### Migration history
+
+- `0022_outlet-map-index.sql` — indexes live outlet coordinates by organization for viewport queries. **Applied.**
 
 - `0021_audit-logs.sql` — adds one audit trail table and an organization/module ordering index. **Applied.**
 

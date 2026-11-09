@@ -34,7 +34,7 @@ function tabHref(path: string, params: AuditSearchParams, tab?: string, page = 1
   return query.size ? `${path}?${query}` : path;
 }
 
-export async function AuditHistoryPage({ user, module, path, title, params, label, map, memberIds = [] }: {
+export async function AuditHistoryPage({ user, module, path, title, params, label, map, mapLabel, memberIds = [] }: {
   user: CurrentUser;
   module: AuditModule;
   path: string;
@@ -42,6 +42,7 @@ export async function AuditHistoryPage({ user, module, path, title, params, labe
   params: AuditSearchParams;
   label?: string;
   map?: boolean;
+  mapLabel?: string;
   memberIds?: number[];
 }) {
   if (module !== "profile" && !can(user, module)) return null;
@@ -80,7 +81,7 @@ export async function AuditHistoryPage({ user, module, path, title, params, labe
   return (
     <div className="w-full">
       <PageHeader title={title} description="Riwayat tindakan pengguna pada halaman ini." />
-      <AuditTabs path={path} label={label} map={map} />
+      <AuditTabs path={path} label={label} map={map} mapLabel={mapLabel} />
       <div className="overflow-hidden rounded-xl border">
         <Table>
           <TableHeader><TableRow>

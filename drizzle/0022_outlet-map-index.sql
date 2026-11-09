@@ -1,0 +1,1 @@
+CREATE INDEX "outlets_org_map_coordinates_idx" ON "outlets" USING btree ("organization_id","latitude","longitude") WHERE ("outlets"."deleted_at" is null and "outlets"."latitude" is not null and "outlets"."longitude" is not null);
