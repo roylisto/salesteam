@@ -5,13 +5,15 @@ import Link from "next/link";
 import Image from "next/image";
 import { OutletTypeSymbol } from "@/components/outlet-type-symbol";
 import { DEFAULT_OUTLET_ICON, DEFAULT_OUTLET_COLOR } from "@/lib/outlet-appearance";
-import { ChevronLeftIcon, ChevronRightIcon, EditIcon, PlusIcon, SearchIcon } from "lucide-react";
+import { EditIcon, PlusIcon, SearchIcon } from "lucide-react";
 import { debounce, useQueryStates } from "nuqs";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
 import { Input } from "@/components/ui/input";
+import { ServerTablePagination } from "@/components/server-table-pagination";
+import type { PageSize, TablePagination } from "@/lib/table-query";
 import { SortableHead } from "@/components/table-sort";
 import {
   Table,
@@ -22,7 +24,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-import { ALL_WAREHOUSES, NO_WAREHOUSE, OUTLET_PAGE_SIZE, outletListParsers } from "./list-query";
+import { ALL_WAREHOUSES, NO_WAREHOUSE, outletListParsers } from "./list-query";
 import type { OutletListRow, WarehouseOption } from "./types";
 
 const STATUS_FILTER_OPTIONS = [
@@ -59,22 +61,19 @@ function OutletThumbnail({ outlet }: { outlet: OutletListRow }) {
 export function OutletsClient({
   outlets,
   warehouses,
-  currentPage,
-  totalPages,
-  total,
+  pagination,
 }: {
   outlets: OutletListRow[];
   warehouses: WarehouseOption[];
-  currentPage: number;
-  totalPages: number;
-  total: number;
+  pagination: TablePagination;
 }) {
   const [pending, startTransition] = useTransition();
   const [{ q, warehouse, status, sort, dir }, setQuery] = useQueryStates(outletListParsers, {
     shallow: false,
     startTransition,
   });
-  const start = (currentPage - 1) * OUTLET_PAGE_SIZE;
+  const setPage = (page: number) => void setQuery({ page });
+  const setPageSize = (pageSize: PageSize) => void setQuery({ pageSize, page: 1 });
 
   function toggleSort(key: string) {
     if (key !== "name" && key !== "type" && key !== "warehouse" && key !== "status") return;
@@ -240,36 +239,7 @@ export function OutletsClient({
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-muted-foreground text-xs">
-          {total === 0
-            ? "Tidak ada hasil"
-            : `Menampilkan ${start + 1}–${start + outlets.length} dari ${total}`}
-        </p>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={pending || currentPage <= 1}
-            onClick={() => void setQuery({ page: currentPage - 1 })}
-          >
-            <ChevronLeftIcon />
-            Sebelumnya
-          </Button>
-          <span className="text-muted-foreground text-xs tabular-nums">
-            {currentPage} / {totalPages}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={pending || currentPage >= totalPages}
-            onClick={() => void setQuery({ page: currentPage + 1 })}
-          >
-            Berikutnya
-            <ChevronRightIcon />
-          </Button>
-        </div>
-      </div>
+      <ServerTablePagination pagination={pagination} pending={pending} onPage={setPage} onPageSize={setPageSize} />
     </div>
   );
 }

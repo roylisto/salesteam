@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, count, eq, sql } from "drizzle-orm";
 
 import { AuditHistoryPage } from "@/components/audit-history";
 import { AuditTabs } from "@/components/audit-tabs";
@@ -7,6 +7,8 @@ import { PageHeader } from "@/components/page-header";
 import { db } from "@/db";
 import { notDeleted, warehouseTypes } from "@/db/schema";
 import { requirePermission } from "@/lib/auth";
+import { loadTableQuery, paginateTable } from "@/lib/table-query";
+import { tableOrder, tableSearch } from "@/lib/table-sql";
 
 import { WarehouseTypesClient } from "./warehouse-types-client";
 import type { WarehouseTypeRow } from "./types";
@@ -21,7 +23,12 @@ export default async function WarehouseTypesPage({ searchParams }: PageProps<"/m
   }
   const { organization } = user;
 
-  const rows = await db
+  const { q, page, pageSize, sort, dir } = loadTableQuery(params);
+  const scope = and(eq(warehouseTypes.organizationId, organization.id), notDeleted(warehouseTypes));
+  const filters = and(scope, tableSearch(q, warehouseTypes.name));
+  const [{ total }] = await db.select({ total: count() }).from(warehouseTypes).where(filters);
+  const pagination = paginateTable(total, page, pageSize);
+  const query = () => db
     .select({
       id: warehouseTypes.id,
       name: warehouseTypes.name,
@@ -31,20 +38,23 @@ export default async function WarehouseTypesPage({ searchParams }: PageProps<"/m
       createdAt: warehouseTypes.createdAt,
       updatedAt: warehouseTypes.updatedAt,
     })
-    .from(warehouseTypes)
-    .where(
-      and(
-        eq(warehouseTypes.organizationId, organization.id),
-        notDeleted(warehouseTypes),
-      ),
-    )
-    .orderBy(asc(warehouseTypes.name));
+    .from(warehouseTypes);
+  const rows = await query().where(filters)
+    .orderBy(tableOrder({ name: sql`lower(${warehouseTypes.name})`, createdAt: warehouseTypes.createdAt, status: warehouseTypes.isActive }, sort, dir, asc(warehouseTypes.name)), asc(warehouseTypes.id))
+    .limit(pageSize).offset(pagination.offset);
 
-  const warehouseTypesList: WarehouseTypeRow[] = rows.map((row) => ({
+  const selectedId = typeof params.warehouseType === "string" ? Number(params.warehouseType) : NaN;
+  const selected = rows.find((row) => row.id === selectedId) ?? (
+    Number.isSafeInteger(selectedId) && selectedId > 0
+      ? (await query().where(and(scope, eq(warehouseTypes.id, selectedId))).limit(1))[0]
+      : undefined
+  );
+  const serialize = (row: (typeof rows)[number]): WarehouseTypeRow => ({
     ...row,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
-  }));
+  });
+  const warehouseTypesList = rows.map(serialize);
 
   return (
     <div className="w-full">
@@ -53,7 +63,7 @@ export default async function WarehouseTypesPage({ searchParams }: PageProps<"/m
         description="Klasifikasikan gudang berdasarkan fungsinya (Utama, Transit, Cabang, ...)."
       />
       <AuditTabs path="/master-data/warehouse-types" label="Daftar Tipe Gudang" />
-      <WarehouseTypesClient warehouseTypes={warehouseTypesList} />
+      <WarehouseTypesClient warehouseTypes={warehouseTypesList} pagination={pagination} selectedRow={selected ? serialize(selected) : null} />
     </div>
   );
 }

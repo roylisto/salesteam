@@ -35,3 +35,8 @@ export type MemberRow = {
   lastLoginAt: string | null;
   createdAt: string;
 };
+
+export type MemberListRow = Pick<MemberRow,
+  "id" | "name" | "email" | "code" | "roleName" | "isAdmin" | "userType" |
+  "reportsToName" | "areaNames" | "isActive" | "isOrganizationOwner"
+>;

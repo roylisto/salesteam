@@ -1,6 +1,5 @@
 "use client";
 
-import { useMemo } from "react";
 import { PencilIcon, PlusIcon, ShieldCheckIcon, UsersIcon } from "lucide-react";
 import {
   parseAsInteger,
@@ -8,6 +7,9 @@ import {
   useQueryState,
 } from "nuqs";
 
+import { ServerTablePagination, useServerTable } from "@/components/server-table-pagination";
+import { Input } from "@/components/ui/input";
+import type { TablePagination } from "@/lib/table-query";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,24 +24,25 @@ import { permissionLabel } from "@/lib/permissions";
 import { RoleDialog } from "./role-dialog";
 import type { RoleDetail } from "./types";
 
-export function RolesClient({ roles }: { roles: RoleDetail[] }) {
-  const [roleId, setRoleId] = useQueryState("role", parseAsInteger);
+export function RolesClient({ roles, pagination, selectedRow }: {
+  roles: RoleDetail[];
+  pagination: TablePagination;
+  selectedRow: RoleDetail | null;
+}) {
+  const { q, setQuery, setPage, setPageSize, pending, startTransition } = useServerTable();
+  const [roleId, setRoleId] = useQueryState("role", parseAsInteger.withOptions({ shallow: false, startTransition }));
   const [action, setAction] = useQueryState(
     "action",
     parseAsStringLiteral(["create"] as const),
   );
 
-  const selected = useMemo(
-    () => roles.find((role) => role.id === roleId) ?? null,
-    [roles, roleId],
-  );
+  const selected = selectedRow?.id === roleId ? selectedRow : null;
 
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-muted-foreground text-sm">
-          {roles.length} peran di organisasi ini
-        </p>
+        <Input aria-label="Cari peran" placeholder="Cari peran berdasarkan nama atau deskripsi" className="max-w-sm"
+          value={q} onChange={(event) => setQuery(event.target.value)} />
         <Button onClick={() => void setAction("create")}>
           <PlusIcon />
           Peran baru
@@ -95,6 +98,8 @@ export function RolesClient({ roles }: { roles: RoleDetail[] }) {
           </Card>
         ))}
       </div>
+
+      <ServerTablePagination pagination={pagination} pending={pending} onPage={setPage} onPageSize={setPageSize} />
 
       <RoleDialog
         open={action === "create"}

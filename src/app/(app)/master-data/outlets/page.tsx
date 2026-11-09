@@ -8,9 +8,10 @@ import { PageHeader } from "@/components/page-header";
 import { db } from "@/db";
 import { areaOffices, notDeleted, outletTypes, outlets, warehouses } from "@/db/schema";
 import { requirePermission } from "@/lib/auth";
+import { paginateTable } from "@/lib/table-query";
 import { toFileSrc } from "@/lib/files";
 
-import { ALL_WAREHOUSES, NO_WAREHOUSE, OUTLET_PAGE_SIZE, outletListParsers } from "./list-query";
+import { ALL_WAREHOUSES, NO_WAREHOUSE, outletListParsers } from "./list-query";
 import { OutletsClient } from "./outlets-client";
 import { OutletMapControls } from "./outlet-map-controls";
 import type { OutletListRow } from "./types";
@@ -55,7 +56,7 @@ export default async function OutletsPage({ searchParams }: PageProps<"/master-d
       </div>
     );
   }
-  const { q, warehouse, status, page, sort, dir } = loadListQuery(params);
+  const { q, warehouse, status, page, pageSize, sort, dir } = loadListQuery(params);
   const needle = q.trim();
   const warehouseId = Number(warehouse);
   const warehouseCondition = warehouse === ALL_WAREHOUSES
@@ -84,9 +85,7 @@ export default async function OutletsPage({ searchParams }: PageProps<"/master-d
       .orderBy(asc(warehouses.name)),
     db.select({ total: count() }).from(outlets).where(filters),
   ]);
-  const total = totals.total;
-  const totalPages = Math.max(1, Math.ceil(total / OUTLET_PAGE_SIZE));
-  const currentPage = Math.min(Math.max(page, 1), totalPages);
+  const pagination = paginateTable(totals.total, page, pageSize);
   const order = dir === "desc" ? sql`desc` : sql`asc`;
   const rows = await db
     .select({
@@ -113,8 +112,8 @@ export default async function OutletsPage({ searchParams }: PageProps<"/master-d
     ))
     .where(filters)
     .orderBy(sql`lower(${sortColumns[sort]}) ${order} nulls last`, asc(outlets.id))
-    .limit(OUTLET_PAGE_SIZE)
-    .offset((currentPage - 1) * OUTLET_PAGE_SIZE);
+    .limit(pageSize)
+    .offset(pagination.offset);
 
   const outletsList: OutletListRow[] = rows.map(({ imageUrl, ...row }) => {
     const src = toFileSrc(imageUrl);
@@ -131,9 +130,7 @@ export default async function OutletsPage({ searchParams }: PageProps<"/master-d
       <OutletsClient
         outlets={outletsList}
         warehouses={warehouseRows}
-        currentPage={currentPage}
-        totalPages={totalPages}
-        total={total}
+        pagination={pagination}
       />
     </div>
   );

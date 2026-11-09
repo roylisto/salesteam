@@ -1,19 +1,18 @@
 "use client";
 
-import { useMemo } from "react";
 import {
-  ChevronLeftIcon,
-  ChevronRightIcon,
   EditIcon,
   MapPinIcon,
   PlusIcon,
   SearchIcon,
 } from "lucide-react";
-import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryState } from "nuqs";
+import { parseAsInteger, parseAsStringLiteral, useQueryState } from "nuqs";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { SortableHead, useTableSort, type SortColumn } from "@/components/table-sort";
+import { ServerTablePagination, useServerTable } from "@/components/server-table-pagination";
+import type { TablePagination } from "@/lib/table-query";
+import { SortableHead } from "@/components/table-sort";
 import {
   Table,
   TableBody,
@@ -26,42 +25,19 @@ import {
 import { AreaDialog } from "./area-dialog";
 import type { AreaRow } from "./types";
 
-const PAGE_SIZE = 10;
-
-const SORT_COLUMNS: SortColumn<AreaRow>[] = [
-  { key: "name", getValue: (area) => area.name },
-  { key: "createdAt", getValue: (area) => area.createdAt },
-];
-
-export function AreasClient({ areas }: { areas: AreaRow[] }) {
-  const [query, setQuery] = useQueryState(
-    "q",
-    parseAsString.withDefault("").withOptions({ history: "replace" }),
-  );
-  const [page, setPage] = useQueryState("page", parseAsInteger.withDefault(1));
-  const [areaId, setAreaId] = useQueryState("area", parseAsInteger);
+export function AreasClient({ areas, pagination, selectedRow }: {
+  areas: AreaRow[];
+  pagination: TablePagination;
+  selectedRow: AreaRow | null;
+}) {
+  const { q, setQuery, setPage, setPageSize, sortKey, sortDir, toggleSort, pending, startTransition } = useServerTable();
+  const [areaId, setAreaId] = useQueryState("area", parseAsInteger.withOptions({ shallow: false, startTransition }));
   const [action, setAction] = useQueryState(
     "action",
     parseAsStringLiteral(["create"] as const),
   );
 
-  const selected = useMemo(
-    () => areas.find((area) => area.id === areaId) ?? null,
-    [areas, areaId],
-  );
-
-  const filtered = useMemo(() => {
-    const needle = query.trim().toLowerCase();
-    if (needle.length === 0) return areas;
-    return areas.filter((area) => area.name.toLowerCase().includes(needle));
-  }, [areas, query]);
-
-  const { sortedRows, sortKey, sortDir, toggleSort } = useTableSort(filtered, SORT_COLUMNS);
-
-  const totalPages = Math.max(1, Math.ceil(sortedRows.length / PAGE_SIZE));
-  const currentPage = Math.min(Math.max(page, 1), totalPages);
-  const start = (currentPage - 1) * PAGE_SIZE;
-  const visible = sortedRows.slice(start, start + PAGE_SIZE);
+  const selected = selectedRow?.id === areaId ? selectedRow : null;
 
   return (
     <div className="space-y-3">
@@ -69,11 +45,8 @@ export function AreasClient({ areas }: { areas: AreaRow[] }) {
         <div className="relative min-w-56 flex-1">
           <SearchIcon className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2" />
           <Input
-            value={query}
-            onChange={(event) => {
-              void setQuery(event.target.value);
-              void setPage(1);
-            }}
+            value={q}
+            onChange={(event) => setQuery(event.target.value)}
             placeholder="Cari area berdasarkan nama"
             className="pl-8"
           />
@@ -86,7 +59,7 @@ export function AreasClient({ areas }: { areas: AreaRow[] }) {
       </div>
 
       <div className="overflow-hidden rounded-xl ring-1 ring-foreground/10">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto" aria-busy={pending}>
           <Table>
             <TableHeader>
               <TableRow>
@@ -109,7 +82,7 @@ export function AreasClient({ areas }: { areas: AreaRow[] }) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {visible.length === 0 ? (
+              {areas.length === 0 ? (
                 <TableRow>
                   <TableCell
                     colSpan={3}
@@ -119,7 +92,7 @@ export function AreasClient({ areas }: { areas: AreaRow[] }) {
                   </TableCell>
                 </TableRow>
               ) : (
-                visible.map((area) => (
+                areas.map((area) => (
                   <TableRow key={area.id}>
                     <TableCell>
                       <button
@@ -155,36 +128,7 @@ export function AreasClient({ areas }: { areas: AreaRow[] }) {
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-muted-foreground text-xs">
-          {sortedRows.length === 0
-            ? "Tidak ada hasil"
-            : `Menampilkan ${start + 1}–${Math.min(start + PAGE_SIZE, sortedRows.length)} dari ${sortedRows.length}`}
-        </p>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={currentPage <= 1}
-            onClick={() => void setPage(currentPage - 1)}
-          >
-            <ChevronLeftIcon />
-            Sebelumnya
-          </Button>
-          <span className="text-muted-foreground text-xs tabular-nums">
-            {currentPage} / {totalPages}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={currentPage >= totalPages}
-            onClick={() => void setPage(currentPage + 1)}
-          >
-            Berikutnya
-            <ChevronRightIcon />
-          </Button>
-        </div>
-      </div>
+      <ServerTablePagination pagination={pagination} pending={pending} onPage={setPage} onPageSize={setPageSize} />
 
       <AreaDialog
         area={null}

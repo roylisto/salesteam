@@ -2,9 +2,8 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { ChevronLeftIcon, ChevronRightIcon, EditIcon, SearchIcon, UserPlusIcon } from "lucide-react";
+import { ChevronRightIcon, EditIcon, SearchIcon, UserPlusIcon } from "lucide-react";
 import {
-  parseAsInteger,
   parseAsString,
   parseAsStringLiteral,
   useQueryState,
@@ -17,8 +16,6 @@ import { Combobox } from "@/components/ui/combobox";
 import { Input } from "@/components/ui/input";
 import {
   SortableHead,
-  useTableSort,
-  type SortColumn,
   type SortDirection,
 } from "@/components/table-sort";
 import {
@@ -31,7 +28,9 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-import type { MemberRow } from "./types";
+import { ServerTablePagination, useServerTable } from "@/components/server-table-pagination";
+import type { TablePagination } from "@/lib/table-query";
+import type { MemberListRow, MemberRow } from "./types";
 
 const STATUS_OPTIONS = ["all", "active", "inactive"] as const;
 const STATUS_FILTER_OPTIONS = [
@@ -39,29 +38,12 @@ const STATUS_FILTER_OPTIONS = [
   { value: "active", label: "Aktif" },
   { value: "inactive", label: "Tidak aktif" },
 ];
-const PAGE_SIZE = 10;
-
-const SORT_COLUMNS: SortColumn<MemberRow>[] = [
-  { key: "name", getValue: (member) => member.name },
-  { key: "code", getValue: (member) => member.code ?? null },
-  { key: "type", getValue: (member) => (member.userType === "sales" ? "Sales" : "Back Office") },
-  { key: "role", getValue: (member) => member.roleName ?? null },
-  { key: "reportsTo", getValue: (member) => member.reportsToName ?? null },
-  {
-    key: "area",
-    getValue: (member) =>
-      member.areaNames.length > 0 ? member.areaNames.join(", ") : null,
-  },
-  { key: "status", getValue: (member) => (member.isActive ? 1 : 0) },
-];
-
-type TabValue = string;
 const ALL_TAB = "all";
 const HIERARCHY_TAB = "hierarchy";
 const BACK_OFFICE_TAB = "back_office";
 const SALES_TAB = "sales";
 
-function StatusBadge({ member }: { member: MemberRow }) {
+function StatusBadge({ member }: { member: MemberListRow }) {
   if (member.isOrganizationOwner) {
     return <Badge variant="secondary">Pemilik</Badge>;
   }
@@ -82,31 +64,22 @@ function UserTypeBadge({ userType }: { userType: MemberRow["userType"] }) {
   return <Badge variant="secondary">Back Office</Badge>;
 }
 
-function typeTabOf(member: MemberRow): string {
-  return member.userType === "sales" ? SALES_TAB : BACK_OFFICE_TAB;
-}
-
-// Indirection via module-level map keeps the recursive tree simple.
-let childrenByParent: Map<number | null, MemberRow[]> = new Map();
-let memberById: Map<number, MemberRow> = new Map();
-
 function HierarchyBranch({
-  memberId,
+  member,
+  childrenByParent,
   depth,
   expandedIds,
   onToggle,
 }: {
-  memberId: number;
+  member: MemberRow;
+  childrenByParent: Map<number | null, MemberRow[]>;
   depth: number;
   expandedIds: Set<number>;
   onToggle: (id: number) => void;
 }) {
-  const member = memberById.get(memberId);
-  if (!member) return null;
-
-  const children = childrenByParent.get(memberId) ?? [];
+  const children = childrenByParent.get(member.id) ?? [];
   const hasChildren = children.length > 0;
-  const isExpanded = expandedIds.has(memberId);
+  const isExpanded = expandedIds.has(member.id);
 
   return (
     <div className={depth > 0 ? "ml-4 border-l pl-4 sm:ml-6" : ""}>
@@ -114,7 +87,7 @@ function HierarchyBranch({
         {hasChildren ? (
           <button
             type="button"
-            onClick={() => onToggle(memberId)}
+            onClick={() => onToggle(member.id)}
             aria-expanded={isExpanded}
             aria-label={
               isExpanded
@@ -152,7 +125,8 @@ function HierarchyBranch({
           {children.map((child) => (
             <HierarchyBranch
               key={child.id}
-              memberId={child.id}
+              member={child}
+              childrenByParent={childrenByParent}
               depth={depth + 1}
               expandedIds={expandedIds}
               onToggle={onToggle}
@@ -170,7 +144,7 @@ function MemberTable({
   sortDir,
   onSort,
 }: {
-  rows: MemberRow[];
+  rows: MemberListRow[];
   sortKey: string | null;
   sortDir: SortDirection | null;
   onSort: (key: string) => void;
@@ -321,85 +295,46 @@ function MemberTable({
   );
 }
 
-export function TeamClient({ members }: { members: MemberRow[] }) {
-  const [tab, setTab] = useQueryState("tab", parseAsString.withDefault(ALL_TAB));
-  const [query, setQuery] = useQueryState(
-    "q",
-    parseAsString.withDefault("").withOptions({ history: "replace" }),
-  );
-  const [status, setStatus] = useQueryState(
-    "status",
-    parseAsStringLiteral(STATUS_OPTIONS).withDefault("all"),
-  );
-  const [page, setPage] = useQueryState("page", parseAsInteger.withDefault(1));
-
-  const tabs = useMemo(() => {
-    const list: { value: string; label: string; count: number }[] = [
-      { value: ALL_TAB, label: "Semua", count: members.length },
-      { value: HIERARCHY_TAB, label: "Struktur Organisasi", count: members.length },
-      {
-        value: BACK_OFFICE_TAB,
-        label: "Back Office",
-        count: members.filter((m) => (m.userType ?? "back_office") === "back_office").length,
-      },
-      {
-        value: SALES_TAB,
-        label: "Sales",
-        count: members.filter((m) => m.userType === "sales").length,
-      },
-    ];
-    return list;
-  }, [members]);
-
-  const activeTab: TabValue = tabs.some((t) => t.value === tab) ? tab : ALL_TAB;
-
-  const filtered = useMemo(() => {
-    const needle = query.trim().toLowerCase();
-    return members.filter((member) => {
-      if (activeTab !== ALL_TAB && activeTab !== HIERARCHY_TAB && typeTabOf(member) !== activeTab) {
-        return false;
-      }
-      if (status === "active" && !member.isActive) return false;
-      if (status === "inactive" && member.isActive) return false;
-      if (needle.length === 0) return true;
-      return [member.name, member.email, member.code ?? ""].some((value) =>
-        value.toLowerCase().includes(needle),
-      );
-    });
-  }, [members, query, status, activeTab]);
-
-  const { sortedRows, sortKey, sortDir, toggleSort } = useTableSort(filtered, SORT_COLUMNS);
-
-  const totalPages = Math.max(1, Math.ceil(sortedRows.length / PAGE_SIZE));
-  const currentPage = Math.min(Math.max(page, 1), totalPages);
-  const start = (currentPage - 1) * PAGE_SIZE;
-  const visible = sortedRows.slice(start, start + PAGE_SIZE);
+export function TeamClient({ members, hierarchyMembers, pagination, counts }: {
+  members: MemberListRow[];
+  hierarchyMembers?: MemberRow[];
+  pagination: TablePagination;
+  counts: { backOffice: number; sales: number };
+}) {
+  const { q, setQuery, setPage, setPageSize, sortKey, sortDir, toggleSort, pending, startTransition } = useServerTable();
+  const [tab, setTab] = useQueryState("tab", parseAsString.withDefault(ALL_TAB).withOptions({ shallow: false, startTransition }));
+  const [status, setStatus] = useQueryState("status", parseAsStringLiteral(STATUS_OPTIONS).withDefault("all").withOptions({ shallow: false, startTransition }));
+  const totalMembers = counts.backOffice + counts.sales;
+  const tabs = [
+    { value: ALL_TAB, label: "Semua", count: totalMembers },
+    { value: HIERARCHY_TAB, label: "Struktur Organisasi", count: totalMembers },
+    { value: BACK_OFFICE_TAB, label: "Back Office", count: counts.backOffice },
+    { value: SALES_TAB, label: "Sales", count: counts.sales },
+  ];
+  const activeTab = tabs.some((item) => item.value === tab) ? tab : ALL_TAB;
 
   const grouped = useMemo(() => {
     if (activeTab !== ALL_TAB) return null;
-    const groups: { key: string; label: string; rows: MemberRow[] }[] = [];
-    const backOfficeRows = visible.filter((m) => (m.userType ?? "back_office") === "back_office");
+    const groups: { key: string; label: string; rows: MemberListRow[] }[] = [];
+    const backOfficeRows = members.filter((m) => (m.userType ?? "back_office") === "back_office");
     if (backOfficeRows.length > 0) groups.push({ key: BACK_OFFICE_TAB, label: "Back Office", rows: backOfficeRows });
-    const salesRows = visible.filter((m) => m.userType === "sales");
+    const salesRows = members.filter((m) => m.userType === "sales");
     if (salesRows.length > 0) groups.push({ key: SALES_TAB, label: "Sales", rows: salesRows });
     return groups;
-  }, [visible, activeTab]);
+  }, [members, activeTab]);
 
-  const roots = useMemo(() => {
-    const ids = new Set(members.map((m) => m.id));
+  const childrenByParent = useMemo(() => {
+    const ids = new Set(hierarchyMembers?.map((member) => member.id));
     const byParent = new Map<number | null, MemberRow[]>();
-    const byId = new Map<number, MemberRow>();
-    for (const member of members) {
-      byId.set(member.id, member);
+    for (const member of hierarchyMembers ?? []) {
       const parent = member.reportsTo !== null && ids.has(member.reportsTo) ? member.reportsTo : null;
-      const list = byParent.get(parent) ?? [];
-      list.push(member);
-      byParent.set(parent, list);
+      const children = byParent.get(parent) ?? [];
+      children.push(member);
+      byParent.set(parent, children);
     }
-    childrenByParent = byParent;
-    memberById = byId;
-    return byParent.get(null) ?? [];
-  }, [members]);
+    return byParent;
+  }, [hierarchyMembers]);
+  const roots = childrenByParent.get(null) ?? [];
 
   // Root members start expanded so the top level of the structure is visible;
   // deeper levels stay collapsed to keep the page compact.
@@ -420,7 +355,7 @@ export function TeamClient({ members }: { members: MemberRow[] }) {
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3" aria-busy={pending}>
       <Tabs
         value={activeTab}
         onValueChange={(value) => {
@@ -448,14 +383,12 @@ export function TeamClient({ members }: { members: MemberRow[] }) {
       </Tabs>
 
       <div className="flex flex-wrap items-center gap-2">
+        {activeTab !== HIERARCHY_TAB && <>
         <div className="relative min-w-56 flex-1">
           <SearchIcon className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2" />
           <Input
-            value={query}
-            onChange={(event) => {
-              void setQuery(event.target.value);
-              void setPage(1);
-            }}
+            value={q}
+            onChange={(event) => setQuery(event.target.value)}
             placeholder="Cari berdasarkan nama, email, atau kode pegawai"
             className="pl-8"
           />
@@ -472,6 +405,8 @@ export function TeamClient({ members }: { members: MemberRow[] }) {
           emptyText="Status tidak ditemukan."
           className="w-36"
         />
+
+        </>}
 
         <Button
           render={<Link href="/settings/team/new" />}
@@ -492,7 +427,8 @@ export function TeamClient({ members }: { members: MemberRow[] }) {
             roots.map((root) => (
               <HierarchyBranch
                 key={root.id}
-                memberId={root.id}
+                member={root}
+                childrenByParent={childrenByParent}
                 depth={0}
                 expandedIds={expandedIds}
                 onToggle={toggleNode}
@@ -527,45 +463,16 @@ export function TeamClient({ members }: { members: MemberRow[] }) {
         </div>
       ) : (
         <MemberTable
-          rows={visible}
+          rows={members}
           sortKey={sortKey}
           sortDir={sortDir}
           onSort={toggleSort}
         />
       )}
 
-      {activeTab !== HIERARCHY_TAB && !(activeTab === ALL_TAB && grouped) ? (
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="text-muted-foreground text-xs">
-            {filtered.length === 0
-              ? "Tidak ada hasil"
-              : `Menampilkan ${start + 1}–${Math.min(start + PAGE_SIZE, filtered.length)} dari ${filtered.length}`}
-          </p>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={currentPage <= 1}
-              onClick={() => void setPage(currentPage - 1)}
-            >
-              <ChevronLeftIcon />
-              Sebelumnya
-            </Button>
-            <span className="text-muted-foreground text-xs tabular-nums">
-              {currentPage} / {totalPages}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={currentPage >= totalPages}
-              onClick={() => void setPage(currentPage + 1)}
-            >
-              Berikutnya
-              <ChevronRightIcon />
-            </Button>
-          </div>
-        </div>
-      ) : null}
+      {activeTab !== HIERARCHY_TAB && (
+        <ServerTablePagination pagination={pagination} pending={pending} onPage={setPage} onPageSize={setPageSize} />
+      )}
     </div>
   );
 }

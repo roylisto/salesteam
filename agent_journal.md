@@ -3,7 +3,9 @@
 > Handoff notes for AI agents doing "vibe coding" on this repo.
 > Read this first; it captures the project context, conventions, and what has
 > already been built so you can continue without re-discovering everything.
-> Last updated: 2026-11-09 (**Outlet GIS zoom hierarchy**) — after Tampilkan Outlet, the map uses OSM basemap tiles with transparent BIG administrative boundary overlays. Zoom 0–6 shows full filtered province totals (including outlets with a province but no coordinates), 7–9 regency/city, 10–12 district, 13–14 village, and 15+ pins with the existing dense-view fallback. Lower levels use the visible viewport. Province totals and boundary image reuse a fixed national view request; finer boundary requests contain only public viewport coordinates. The province list shows totals even when a province has no point to place on the map.
+> Last updated: 2026-11-09 (**Server-side table queries**) — Area, Gudang, Tipe Gudang, Outlet, Tipe Outlet, Tim and audit-history tables now page, search, filter and sort in PostgreSQL where applicable. Peran cards also use server search/paging. Shared page sizes are 10/20/30/40/50, default 20, and query changes reset to the first page. Tim preserves reporting scope through a recursive SQL query; its separate hierarchy view still loads the tree. Audit history has its own URL keys for search, action and paging. Dialog links can load a selected row outside the current page. No migration.
+>
+> Previous: 2026-11-09 (**Outlet GIS zoom hierarchy**) — after Tampilkan Outlet, the map uses OSM basemap tiles with transparent BIG administrative boundary overlays. Zoom 0–6 shows full filtered province totals (including outlets with a province but no coordinates), 7–9 regency/city, 10–12 district, 13–14 village, and 15+ pins with the existing dense-view fallback. Lower levels use the visible viewport. Province totals and boundary image reuse a fixed national view request; finer boundary requests contain only public viewport coordinates. The province list shows totals even when a province has no point to place on the map.
 >
 > Previous: 2026-11-09 (**Outlet overview map**) — `/master-data/outlets?tab=map` loads only filter options until **Tampilkan Outlet** is clicked. Area filters warehouse choices, and the API applies organization, permission, soft-delete, viewport, area, warehouse and type constraints. PostgreSQL returns district counts below zoom 11, village counts at zoom 11–14, then type-colored pins from zoom 15. More than 750 visible outlets at pin zoom falls back to village counts. Count badges render on a canvas, and pins use React portals. Migration `0022_outlet-map-index` adds a partial coordinate index and was applied. Integration checks covered zoom levels, filters, tenant isolation, permission checks, and dense fallback inside a rolled-back transaction.
 >
@@ -693,8 +695,8 @@ src/components/
   ui/*                         shadcn/ui primitives (base-ui + radix)
   ui/combobox.tsx              searchable single-select (Base UI Combobox); now used
                                for all feature dropdowns in place of `ui/select`
-  table-sort.tsx               `useTableSort` (URL `sort`/`dir`, client-side) +
-                               `SortableHead` column header used by all list tables
+  table-sort.tsx               `SortableHead` column header for server-sorted tables
+  server-table-pagination.tsx  Shared URL query controls and page-size selector
 
 src/proxy.ts                   optimistic auth guard
 ```
@@ -737,16 +739,11 @@ src/proxy.ts                   optimistic auth guard
   `notDeleted(table)`.
 - **Client URL state** uses `nuqs` (`tab`, `q`, `status`, `page`, `user`, `action`,
   and now `sort`/`dir` for table sorting).
-- **Sortable table columns**: every list table sorts client-side via
-  `src/components/table-sort.tsx`. Declare a `SortColumn<T>[]`
-  (`{ key, getValue }`) at module level, call
-  `const { sortedRows, sortKey, sortDir, toggleSort } = useTableSort(filtered, columns)`,
-  slice pages from `sortedRows`, and render each sortable header as
-  `<SortableHead label=... columnKey=... sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />`
-  (keep a plain `TableHead` for the action column). The active column/direction
-  persist in the URL (`sort`, `dir`) so sorted views are shareable; numbers
-  compare numerically, text uses an Indonesian number-aware `localeCompare`, and
-  empty values always sort last.
+- **Table queries**: parse URL parameters with `lib/table-query.ts`, apply tenant
+  scope, search and filters in SQL, and count before fetching the page with
+  `LIMIT`/`OFFSET`. Use `tableOrder` with a column allowlist and a stable ID
+  tie-breaker. Clients use `useServerTable`, `SortableHead`, and
+  `ServerTablePagination`. Set `shallow: false` on filters that fetch server data.
 - **UI**: compose from `src/components/ui/*`; use `cn()`; icons from
   `lucide-react`.
 - **Searchable dropdowns**: use `ui/combobox.tsx` (`Combobox`) instead of

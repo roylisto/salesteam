@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, count, eq, sql } from "drizzle-orm";
 
 import { AuditHistoryPage } from "@/components/audit-history";
 import { AuditTabs } from "@/components/audit-tabs";
@@ -14,6 +14,8 @@ import {
   warehouseTypes,
 } from "@/db/schema";
 import { requirePermission } from "@/lib/auth";
+import { loadTableQuery, paginateTable } from "@/lib/table-query";
+import { tableOrder, tableSearch } from "@/lib/table-sql";
 
 import { WarehousesClient } from "./warehouses-client";
 import type { AreaOption, WarehouseRow } from "./types";
@@ -43,7 +45,20 @@ export default async function WarehousesPage({ searchParams }: PageProps<"/maste
     .where(and(eq(organizations.id, organization.id), notDeleted(organizations)))
     .limit(1);
 
-  const warehouseRows = await db
+  const { q, sort, dir, page, pageSize } = loadTableQuery(params);
+  const map = params.tab === "map";
+  const area = typeof params.area === "string" ? params.area : "all";
+  const areaId = Number(area);
+  const filters = and(
+    eq(warehouses.organizationId, organization.id),
+    notDeleted(warehouses),
+    tableSearch(q, warehouses.name),
+    area === "all" ? undefined : Number.isSafeInteger(areaId) && areaId > 0
+      ? eq(warehouses.areaOfficeId, areaId) : sql`false`,
+  );
+  const [totals] = map ? [{ total: 0 }] : await db.select({ total: count() }).from(warehouses).where(filters);
+  const pagination = paginateTable(totals.total, page, pageSize);
+  const query = db
     .select({
       id: warehouses.id,
       name: warehouses.name,
@@ -71,10 +86,12 @@ export default async function WarehousesPage({ searchParams }: PageProps<"/maste
     .leftJoin(areaOffices, and(eq(warehouses.areaOfficeId, areaOffices.id), eq(areaOffices.organizationId, organization.id), notDeleted(areaOffices)))
     .leftJoin(users, and(eq(warehouses.picUserId, users.id), eq(users.organizationId, organization.id), notDeleted(users)))
     .leftJoin(warehouseTypes, and(eq(warehouses.warehouseTypeId, warehouseTypes.id), eq(warehouseTypes.organizationId, organization.id), notDeleted(warehouseTypes)))
-    .where(
-      and(eq(warehouses.organizationId, organization.id), notDeleted(warehouses)),
-    )
-    .orderBy(asc(warehouses.name));
+    .where(filters)
+    .orderBy(tableOrder({
+      name: sql`lower(${warehouses.name})`, area: sql`lower(${areaOffices.name})`,
+      type: sql`lower(${warehouseTypes.name})`, status: warehouses.isActive,
+    }, sort, dir, asc(warehouses.name)), asc(warehouses.id));
+  const warehouseRows = await (map ? query : query.limit(pageSize).offset(pagination.offset));
 
   const areas: AreaOption[] = areaRows;
   const warehousesList: WarehouseRow[] = warehouseRows.map((warehouse) => ({
@@ -93,7 +110,8 @@ export default async function WarehousesPage({ searchParams }: PageProps<"/maste
       />
       <AuditTabs path="/master-data/warehouses" label="Daftar Gudang" map />
       <WarehousesClient
-        tab={params.tab === "map" ? "map" : "list"}
+        tab={map ? "map" : "list"}
+        pagination={pagination}
         headOffice={org ?? { name: organization.name, address: null, latitude: null, longitude: null }}
         warehouses={warehousesList}
         areas={areas}

@@ -3,8 +3,8 @@
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useMemo } from "react";
-import { ChevronLeftIcon, ChevronRightIcon, EditIcon, PlusIcon, SearchIcon } from "lucide-react";
-import { parseAsInteger, parseAsString, useQueryState } from "nuqs";
+import { EditIcon, PlusIcon, SearchIcon } from "lucide-react";
+import { parseAsString, useQueryState } from "nuqs";
 import { WarehouseTypeSymbol } from "@/components/warehouse-type-symbol";
 import { DEFAULT_WAREHOUSE_COLOR, DEFAULT_WAREHOUSE_ICON } from "@/lib/warehouse-appearance";
 
@@ -12,7 +12,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
 import { Input } from "@/components/ui/input";
-import { SortableHead, useTableSort, type SortColumn } from "@/components/table-sort";
+import { ServerTablePagination, useServerTable } from "@/components/server-table-pagination";
+import type { TablePagination } from "@/lib/table-query";
+import { SortableHead } from "@/components/table-sort";
 import {
   Table,
   TableBody,
@@ -24,22 +26,15 @@ import {
 
 import type { AreaOption, WarehouseRow, HeadOfficeLocation } from "./types";
 
-const PAGE_SIZE = 10;
 const ALL_AREAS = "all";
 const WarehousesMap = dynamic(() => import("./warehouses-map").then((module) => module.WarehousesMap), {
   ssr: false,
   loading: () => <p className="text-muted-foreground py-8 text-sm">Memuat peta…</p>,
 });
 
-const SORT_COLUMNS: SortColumn<WarehouseRow>[] = [
-  { key: "name", getValue: (warehouse) => warehouse.name },
-  { key: "area", getValue: (warehouse) => warehouse.areaName ?? null },
-  { key: "type", getValue: (warehouse) => warehouse.warehouseTypeName ?? null },
-  { key: "status", getValue: (warehouse) => (warehouse.isActive ? 1 : 0) },
-];
-
 export function WarehousesClient({
   tab,
+  pagination,
   warehouses,
   areas,
   orgProvince,
@@ -47,39 +42,17 @@ export function WarehousesClient({
   headOffice,
 }: {
   tab: "list" | "map";
+  pagination: TablePagination;
   warehouses: WarehouseRow[];
   areas: AreaOption[];
   orgProvince: string | null;
   orgCity: string | null;
   headOffice: HeadOfficeLocation;
 }) {
-  const [query, setQuery] = useQueryState(
-    "q",
-    parseAsString.withDefault("").withOptions({ history: "replace" }),
-  );
-  const [areaFilter, setAreaFilter] = useQueryState(
-    "area",
-    parseAsString.withDefault(ALL_AREAS).withOptions({ history: "replace" }),
-  );
-  const [page, setPage] = useQueryState("page", parseAsInteger.withDefault(1));
-
-  const filtered = useMemo(() => {
-    const needle = query.trim().toLowerCase();
-    return warehouses.filter((warehouse) => {
-      if (areaFilter !== ALL_AREAS && String(warehouse.areaOfficeId) !== areaFilter) {
-        return false;
-      }
-      if (needle.length === 0) return true;
-      return warehouse.name.toLowerCase().includes(needle);
-    });
-  }, [warehouses, query, areaFilter]);
-
-  const { sortedRows, sortKey, sortDir, toggleSort } = useTableSort(filtered, SORT_COLUMNS);
-
-  const totalPages = Math.max(1, Math.ceil(sortedRows.length / PAGE_SIZE));
-  const currentPage = Math.min(Math.max(page, 1), totalPages);
-  const start = (currentPage - 1) * PAGE_SIZE;
-  const visible = sortedRows.slice(start, start + PAGE_SIZE);
+  const { q, setQuery, setPage, setPageSize, sortKey, sortDir, toggleSort, pending, startTransition } = useServerTable();
+  const [areaFilter, setAreaFilter] = useQueryState("area", parseAsString.withDefault(ALL_AREAS).withOptions({
+    shallow: false, startTransition,
+  }));
 
   const areaOptions = useMemo(
     () => [
@@ -95,11 +68,8 @@ export function WarehousesClient({
         <div className="relative min-w-56 flex-1">
           <SearchIcon className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2" />
           <Input
-            value={query}
-            onChange={(event) => {
-              void setQuery(event.target.value);
-              void setPage(1);
-            }}
+            value={q}
+            onChange={(event) => setQuery(event.target.value)}
             placeholder="Cari gudang berdasarkan nama"
             className="pl-8"
           />
@@ -124,11 +94,11 @@ export function WarehousesClient({
       </div>
 
       {tab === "map" ? (
-        <WarehousesMap warehouses={filtered} headOffice={headOffice} />
+        <WarehousesMap warehouses={warehouses} headOffice={headOffice} />
       ) : (
         <div className="space-y-3">
           <div className="overflow-hidden rounded-xl ring-1 ring-foreground/10">
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto" aria-busy={pending}>
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -165,7 +135,7 @@ export function WarehousesClient({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {visible.length === 0 ? (
+                  {warehouses.length === 0 ? (
                     <TableRow>
                       <TableCell
                         colSpan={5}
@@ -175,7 +145,7 @@ export function WarehousesClient({
                       </TableCell>
                     </TableRow>
                   ) : (
-                    visible.map((warehouse) => (
+                    warehouses.map((warehouse) => (
                       <TableRow key={warehouse.id}>
                         <TableCell>
                           <Link
@@ -212,36 +182,7 @@ export function WarehousesClient({
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="text-muted-foreground text-xs">
-              {sortedRows.length === 0
-                ? "Tidak ada hasil"
-                : `Menampilkan ${start + 1}–${Math.min(start + PAGE_SIZE, sortedRows.length)} dari ${sortedRows.length}`}
-            </p>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={currentPage <= 1}
-                onClick={() => void setPage(currentPage - 1)}
-              >
-                <ChevronLeftIcon />
-                Sebelumnya
-              </Button>
-              <span className="text-muted-foreground text-xs tabular-nums">
-                {currentPage} / {totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={currentPage >= totalPages}
-                onClick={() => void setPage(currentPage + 1)}
-              >
-                Berikutnya
-                <ChevronRightIcon />
-              </Button>
-            </div>
-          </div>
+          <ServerTablePagination pagination={pagination} pending={pending} onPage={setPage} onPageSize={setPageSize} />
         </div>
       )}
     </div>

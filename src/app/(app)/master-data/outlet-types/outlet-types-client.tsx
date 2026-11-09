@@ -1,19 +1,18 @@
 "use client";
 
-import { useMemo } from "react";
 import {
-  ChevronLeftIcon,
-  ChevronRightIcon,
   EditIcon,
   PlusIcon,
   SearchIcon,
 } from "lucide-react";
-import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryState } from "nuqs";
+import { parseAsInteger, parseAsStringLiteral, useQueryState } from "nuqs";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { SortableHead, useTableSort, type SortColumn } from "@/components/table-sort";
+import { ServerTablePagination, useServerTable } from "@/components/server-table-pagination";
+import type { TablePagination } from "@/lib/table-query";
+import { SortableHead } from "@/components/table-sort";
 import {
   Table,
   TableBody,
@@ -27,52 +26,21 @@ import { OutletTypeSymbol } from "@/components/outlet-type-symbol";
 import { OutletTypeDialog } from "./outlet-type-dialog";
 import type { OutletTypeRow } from "./types";
 
-const PAGE_SIZE = 10;
-
-const SORT_COLUMNS: SortColumn<OutletTypeRow>[] = [
-  { key: "name", getValue: (outletType) => outletType.name },
-  { key: "status", getValue: (outletType) => (outletType.isActive ? 1 : 0) },
-  { key: "createdAt", getValue: (outletType) => outletType.createdAt },
-];
-
-export function OutletTypesClient({
-  outletTypes,
-}: {
+export function OutletTypesClient({ outletTypes, pagination, selectedRow }: {
   outletTypes: OutletTypeRow[];
+  pagination: TablePagination;
+  selectedRow: OutletTypeRow | null;
 }) {
-  const [query, setQuery] = useQueryState(
-    "q",
-    parseAsString.withDefault("").withOptions({ history: "replace" }),
-  );
-  const [page, setPage] = useQueryState("page", parseAsInteger.withDefault(1));
+  const { q, setQuery, setPage, setPageSize, sortKey, sortDir, toggleSort, pending, startTransition } = useServerTable();
   const [outletTypeId, setOutletTypeId] = useQueryState(
     "outletType",
-    parseAsInteger,
-  );
+    parseAsInteger.withOptions({ shallow: false, startTransition }));
   const [action, setAction] = useQueryState(
     "action",
     parseAsStringLiteral(["create"] as const),
   );
 
-  const selected = useMemo(
-    () => outletTypes.find((outletType) => outletType.id === outletTypeId) ?? null,
-    [outletTypes, outletTypeId],
-  );
-
-  const filtered = useMemo(() => {
-    const needle = query.trim().toLowerCase();
-    if (needle.length === 0) return outletTypes;
-    return outletTypes.filter((outletType) =>
-      outletType.name.toLowerCase().includes(needle),
-    );
-  }, [outletTypes, query]);
-
-  const { sortedRows, sortKey, sortDir, toggleSort } = useTableSort(filtered, SORT_COLUMNS);
-
-  const totalPages = Math.max(1, Math.ceil(sortedRows.length / PAGE_SIZE));
-  const currentPage = Math.min(Math.max(page, 1), totalPages);
-  const start = (currentPage - 1) * PAGE_SIZE;
-  const visible = sortedRows.slice(start, start + PAGE_SIZE);
+  const selected = selectedRow?.id === outletTypeId ? selectedRow : null;
 
   return (
     <div className="space-y-3">
@@ -80,11 +48,8 @@ export function OutletTypesClient({
         <div className="relative min-w-56 flex-1">
           <SearchIcon className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2" />
           <Input
-            value={query}
-            onChange={(event) => {
-              void setQuery(event.target.value);
-              void setPage(1);
-            }}
+            value={q}
+            onChange={(event) => setQuery(event.target.value)}
             placeholder="Cari tipe outlet berdasarkan nama"
             className="pl-8"
           />
@@ -97,7 +62,7 @@ export function OutletTypesClient({
       </div>
 
       <div className="overflow-hidden rounded-xl ring-1 ring-foreground/10">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto" aria-busy={pending}>
           <Table>
             <TableHeader>
               <TableRow>
@@ -127,7 +92,7 @@ export function OutletTypesClient({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {visible.length === 0 ? (
+              {outletTypes.length === 0 ? (
                 <TableRow>
                   <TableCell
                     colSpan={4}
@@ -137,7 +102,7 @@ export function OutletTypesClient({
                   </TableCell>
                 </TableRow>
               ) : (
-                visible.map((outletType) => (
+                outletTypes.map((outletType) => (
                   <TableRow key={outletType.id}>
                     <TableCell>
                       <button
@@ -178,36 +143,7 @@ export function OutletTypesClient({
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-muted-foreground text-xs">
-          {sortedRows.length === 0
-            ? "Tidak ada hasil"
-            : `Menampilkan ${start + 1}–${Math.min(start + PAGE_SIZE, sortedRows.length)} dari ${sortedRows.length}`}
-        </p>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={currentPage <= 1}
-            onClick={() => void setPage(currentPage - 1)}
-          >
-            <ChevronLeftIcon />
-            Sebelumnya
-          </Button>
-          <span className="text-muted-foreground text-xs tabular-nums">
-            {currentPage} / {totalPages}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={currentPage >= totalPages}
-            onClick={() => void setPage(currentPage + 1)}
-          >
-            Berikutnya
-            <ChevronRightIcon />
-          </Button>
-        </div>
-      </div>
+      <ServerTablePagination pagination={pagination} pending={pending} onPage={setPage} onPageSize={setPageSize} />
 
       <OutletTypeDialog
         outletType={null}
