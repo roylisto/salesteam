@@ -3,7 +3,7 @@
 
 import { and, like, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { wilayah } from "@/db/schema/regions";
+import { notDeleted, wilayah } from "@/db/schema";
 
 export type WilayahOption = {
   kode: string;
@@ -15,9 +15,9 @@ export type WilayahOption = {
  */
 export async function getProvinces(): Promise<WilayahOption[]> {
   return await db
-    .select()
+    .select({ kode: wilayah.kode, nama: wilayah.nama })
     .from(wilayah)
-    .where(sql`LENGTH(kode) = 2`)
+    .where(and(notDeleted(wilayah), sql`LENGTH(kode) = 2`))
     .orderBy(wilayah.nama);
 }
 
@@ -27,10 +27,11 @@ export async function getProvinces(): Promise<WilayahOption[]> {
 export async function getCities(provinceCode: string): Promise<WilayahOption[]> {
   if (!provinceCode) return [];
   return await db
-    .select()
+    .select({ kode: wilayah.kode, nama: wilayah.nama })
     .from(wilayah)
     .where(
       and(
+        notDeleted(wilayah),
         sql`LENGTH(kode) = 5`,
         like(wilayah.kode, `${provinceCode}.%`)
       )
@@ -44,10 +45,11 @@ export async function getCities(provinceCode: string): Promise<WilayahOption[]> 
 export async function getDistricts(cityCode: string): Promise<WilayahOption[]> {
   if (!cityCode) return [];
   return await db
-    .select()
+    .select({ kode: wilayah.kode, nama: wilayah.nama })
     .from(wilayah)
     .where(
       and(
+        notDeleted(wilayah),
         sql`LENGTH(kode) = 8`,
         like(wilayah.kode, `${cityCode}.%`)
       )
@@ -61,10 +63,11 @@ export async function getDistricts(cityCode: string): Promise<WilayahOption[]> {
 export async function getVillages(districtCode: string): Promise<WilayahOption[]> {
   if (!districtCode) return [];
   return await db
-    .select()
+    .select({ kode: wilayah.kode, nama: wilayah.nama })
     .from(wilayah)
     .where(
       and(
+        notDeleted(wilayah),
         sql`LENGTH(kode) = 13`,
         like(wilayah.kode, `${districtCode}.%`)
       )

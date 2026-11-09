@@ -1,7 +1,6 @@
 import "server-only";
 
 import {
-  DeleteObjectCommand,
   GetObjectCommand,
   PutObjectCommand,
   S3Client,
@@ -56,15 +55,6 @@ export async function uploadToS3(
     }),
   );
   return key;
-}
-
-export async function deleteFromS3(key: string): Promise<void> {
-  await s3Client.send(
-    new DeleteObjectCommand({
-      Bucket: s3Bucket,
-      Key: key,
-    }),
-  );
 }
 
 /** Short-lived signed URL so private objects can be previewed in the UI. */

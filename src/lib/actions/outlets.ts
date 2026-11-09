@@ -12,7 +12,7 @@ import {
   warehouses,
 } from "@/db/schema";
 import { can, getCurrentUser } from "@/lib/auth";
-import { deleteFromS3, uploadToS3 } from "@/lib/storage";
+import { uploadToS3 } from "@/lib/storage";
 import { toFieldErrors } from "@/lib/validation";
 
 export type OutletFormState = {
@@ -179,18 +179,9 @@ function sanitizeFilename(name: string): string {
   return name.replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/-+/g, "-").slice(0, 100);
 }
 
-/** Bare keys are returned as-is; legacy full URLs are trimmed to the key. */
-function resolveStoredKey(stored: string | null): string | null {
-  if (!stored) return null;
-  if (!stored.includes("://")) return stored;
-  const marker = `organizations/`;
-  const index = stored.indexOf(marker);
-  return index === -1 ? null : stored.slice(index);
-}
-
 type ImageOutcome =
   | { error: string }
-  | { imageUrl: string | null; replacedKey: string | null };
+  | { imageUrl: string | null };
 
 /**
  * Uploads/replaces/clears the outlet photo. Keys live under the organization's
@@ -216,14 +207,14 @@ async function resolveImage(
     const key = `organizations/${organizationId}/outlets/${Date.now()}-${sanitizeFilename(image.name || "outlet")}`;
     await uploadToS3(key, bytes, image.type);
 
-    return { imageUrl: key, replacedKey: resolveStoredKey(current) };
+    return { imageUrl: key };
   }
 
   if (removeImage && current) {
-    return { imageUrl: null, replacedKey: resolveStoredKey(current) };
+    return { imageUrl: null };
   }
 
-  return { imageUrl: current, replacedKey: null };
+  return { imageUrl: current };
 }
 
 export async function createOutlet(
@@ -292,10 +283,6 @@ export async function updateOutlet(
     .update(outlets)
     .set({ ...data, imageUrl: image.imageUrl })
     .where(and(eq(outlets.id, id), eq(outlets.organizationId, orgId)));
-
-  if (image.replacedKey) {
-    await deleteFromS3(image.replacedKey).catch(() => undefined);
-  }
 
   revalidatePath(OUTLETS_PATH);
   revalidatePath(`${OUTLETS_PATH}/${id}`);

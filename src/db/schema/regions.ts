@@ -1,4 +1,4 @@
-import { pgTable, varchar, index } from "drizzle-orm/pg-core";
+import { pgTable, varchar, index, timestamp } from "drizzle-orm/pg-core";
 
 /**
  * Indonesian administrative regions (Wilayah) based on Kepmendagri.
@@ -9,6 +9,7 @@ export const wilayah = pgTable(
   {
     kode: varchar("kode", { length: 13 }).primaryKey(),
     nama: varchar("nama", { length: 100 }).notNull(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
   (table) => [
     index("wilayah_nama_idx").on(table.nama),

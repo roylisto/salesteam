@@ -27,52 +27,34 @@ async function main() {
   });
 
   try {
-    console.log('Reading SQL file...');
     const content = fs.readFileSync(sqlPath, 'utf8');
+    const inserts = content.match(/^INSERT INTO wilayah \(kode, nama\)[\s\S]*?;[ \t]*$/gim);
+    if (!inserts?.length) throw new Error('No wilayah rows found in the source file.');
 
-    // Split by semicolon, but clean up each statement
-    const statements = content.split(';')
-      .map(s => s.trim())
-      .filter(s => s.length > 0);
+    await sql.begin(async (tx) => {
+      await tx`CREATE TEMP TABLE wilayah_import (kode varchar(13) PRIMARY KEY, nama varchar(100) NOT NULL) ON COMMIT DROP`;
+      for (const insert of inserts) {
+        await tx.unsafe(insert.replace(/^INSERT INTO wilayah/i, 'INSERT INTO wilayah_import'));
+      }
 
-    const insertStatements = statements.filter(s => {
-      // Remove comments to check if it's an INSERT
-      const clean = s.replace(/--.*$/gm, '').trim();
-      return clean.toUpperCase().startsWith('INSERT INTO WILAYAH');
+      await tx`LOCK TABLE wilayah IN SHARE ROW EXCLUSIVE MODE`;
+      await tx`
+        INSERT INTO wilayah (kode, nama)
+        SELECT kode, nama FROM wilayah_import
+        ON CONFLICT (kode) DO UPDATE SET nama = EXCLUDED.nama, deleted_at = NULL
+      `;
+      await tx`
+        UPDATE wilayah AS existing
+        SET deleted_at = now()
+        WHERE deleted_at IS NULL AND NOT EXISTS (
+          SELECT 1 FROM wilayah_import AS imported WHERE imported.kode = existing.kode
+        )
+      `;
     });
-
-    console.log(`Found ${insertStatements.length} potential INSERT statements.`);
-    
-    if (insertStatements.length === 0) {
-      console.log('Falling back to regex match for multiline INSERTs...');
-      const matches = content.match(/INSERT INTO wilayah[\s\S]*?;/gi);
-      if (matches) {
-        insertStatements.push(...matches.map(m => m.trim()));
-      }
-    }
-
-    console.log(`Final count: ${insertStatements.length} INSERT statements.`);
-
-    if (insertStatements.length > 0) {
-      console.log('Clearing existing wilayah data...');
-      await sql`TRUNCATE TABLE wilayah CASCADE`;
-
-      for (let i = 0; i < insertStatements.length; i++) {
-        process.stdout.write(`Executing statement ${i + 1}/${insertStatements.length}...\r`);
-        // Clean statement from MySQL specific things if any
-        let stmt = insertStatements[i];
-        // Ensure it ends with semicolon if we stripped it
-        if (!stmt.endsWith(';')) stmt += ';';
-        
-        await sql.unsafe(stmt);
-      }
-      console.log('\nImport completed successfully!');
-    } else {
-      console.log('No INSERT statements found to execute.');
-    }
-
+    console.log('Wilayah import completed successfully.');
   } catch (error) {
-    console.error('\nImport failed:', error);
+    console.error('Wilayah import failed:', error);
+    process.exitCode = 1;
   } finally {
     await sql.end();
   }

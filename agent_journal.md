@@ -3,7 +3,9 @@
 > Handoff notes for AI agents doing "vibe coding" on this repo.
 > Read this first; it captures the project context, conventions, and what has
 > already been built so you can continue without re-discovering everything.
-> Last updated: 2026-11-09 (**Server-paginated outlet list and thumbnails**) — outlet list uses URL-backed server search, filters, sorting and 10 rows per page. Its existing authenticated file route supports outlet-only 96×96 WebP thumbnails using Sharp with a private browser cache. The original file is used for edit, and the list falls back to the outlet type icon if the thumbnail is unavailable.
+> Last updated: 2026-11-09 (**Soft-delete coverage**) — migration `0020_wilayah-soft-delete` adds `wilayah.deleted_at`; region lookups exclude retired rows. The importer stages the source in a transaction, restores current codes, and retires missing codes without deleting them. Outlet photos and organization logos are detached when removed or replaced, with old objects retained in private storage.
+>
+> Previous: 2026-11-09 (**Server-paginated outlet list and thumbnails**) — outlet list uses URL-backed server search, filters, sorting and 10 rows per page. Its existing authenticated file route supports outlet-only 96×96 WebP thumbnails using Sharp with a private browser cache. The original file is used for edit, and the list falls back to the outlet type icon if the thumbnail is unavailable.
 >
 > Previous: 2026-11-09 (**Outlet PIC removed**) — outlet master data no longer assigns Sales PIC. Removed the field and its validation from create/edit, detail queries, and the list. Sales assignment is reserved for routing. The **Outlet aktif** switch uses a compact inline control. Migration `0019_remove-outlet-sales-pic` applied and removed the legacy column, index, and FK.
 >
@@ -408,6 +410,8 @@ Defined in `src/db/schema/*` and re-exported from `index.ts`.
 
 ### Migration history
 
+- `0020_wilayah-soft-delete.sql` — adds nullable `wilayah.deleted_at`. **Applied.**
+
 - `0019_remove-outlet-sales-pic.sql` — drops the outlet Sales PIC column and its index and foreign key. **Applied.**
 
 - `0018_outlet-type-appearance.sql` — adds non-null `outlet_types.color` and `icon` with defaults for existing rows. **Applied.**
@@ -486,7 +490,7 @@ Defined in `src/db/schema/*` and re-exported from `index.ts`.
   permission checklist (assignable modules only), reserved `admin` slug guard,
   cannot delete a role still assigned to members.
 - **Organization settings** (`/settings/organization`): profile, currency,
-  timezone, logo upload to S3 (with old-logo cleanup), private-file serving via
+  timezone, logo upload to S3 (old files are retained), private-file serving via
   `/api/files`. Currency, timezone and the wilayah fields are searchable
   `Combobox`es.
 - **Area management** (`/master-data/areas`): CRUD (soft delete).

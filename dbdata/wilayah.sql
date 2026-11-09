@@ -24,20 +24,7 @@ See the MIT License for more details
 copyright (c) 2025 by cahya dsn; cahyadsn@gmail.com
 ================================================================================*/
 --
--- Table structure for table wilayah
---
-
-DROP TABLE IF EXISTS wilayah;
-CREATE TABLE IF NOT EXISTS wilayah (
-    kode varchar(13) NOT NULL,
-    nama varchar(100) NOT NULL,
-    PRIMARY KEY (kode)
-) ENGINE=MyISAM;
-CREATE INDEX wilayah_name_idx ON wilayah (nama);
-
---
--- Dumping data for table wilayah
---
+-- Seed data for scripts/import-wilayah.ts. The schema is managed by Drizzle.
 
 -- Provinsi ACEH
 INSERT INTO wilayah (kode, nama)

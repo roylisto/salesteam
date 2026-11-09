@@ -7,7 +7,7 @@ import { z } from "zod";
 import { db } from "@/db";
 import { notDeleted, organizations } from "@/db/schema";
 import { can, getCurrentUser } from "@/lib/auth";
-import { deleteFromS3, uploadToS3 } from "@/lib/storage";
+import { uploadToS3 } from "@/lib/storage";
 import { toFieldErrors } from "@/lib/validation";
 
 export type OrganizationFormState = {
@@ -95,20 +95,6 @@ function sanitizeFilename(name: string): string {
   return name.replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/-+/g, "-").slice(0, 100);
 }
 
-function resolveStoredKey(stored: string | null): string | null {
-  if (!stored) return null;
-  // Bare keys are stored for new uploads; full URLs are legacy.
-  if (!stored.includes("://")) return stored;
-  const endpoint = (process.env.S3_ENDPOINT ?? "").replace(/\/+$/, "");
-  const bucket = process.env.S3_BUCKET ?? "";
-  const prefix = `${endpoint}/${bucket}/`;
-  if (stored.startsWith(prefix)) return stored.slice(prefix.length);
-  const marker = "organizations/";
-  const index = stored.indexOf(marker);
-  if (index !== -1) return stored.slice(index);
-  return null;
-}
-
 export async function updateOrganization(
   _state: OrganizationFormState,
   formData: FormData,
@@ -166,17 +152,8 @@ export async function updateOrganization(
 
     await uploadToS3(key, bytes, logo.type);
 
-    const oldKey = resolveStoredKey(logoUrl);
-    if (oldKey) {
-      await deleteFromS3(oldKey).catch(() => undefined);
-    }
-
     logoUrl = key;
   } else if (removeLogo && logoUrl) {
-    const oldKey = resolveStoredKey(logoUrl);
-    if (oldKey) {
-      await deleteFromS3(oldKey).catch(() => undefined);
-    }
     logoUrl = null;
   }
 
