@@ -56,3 +56,8 @@ export type OutletDetail = OutletRow & {
   familyCardNumber: string | null;
   businessId: string | null;
 };
+
+export type OutletListRow = Pick<OutletRow,
+  "id" | "code" | "name" | "status" | "warehouseName" |
+  "outletTypeName" | "outletTypeColor" | "outletTypeIcon"
+> & { thumbnailSrc: string | null };

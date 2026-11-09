@@ -3,7 +3,9 @@
 > Handoff notes for AI agents doing "vibe coding" on this repo.
 > Read this first; it captures the project context, conventions, and what has
 > already been built so you can continue without re-discovering everything.
-> Last updated: 2026-11-09 (**Outlet PIC removed**) — outlet master data no longer assigns Sales PIC. Removed the field and its validation from create/edit, detail queries, and the list. Sales assignment is reserved for routing. The **Outlet aktif** switch uses a compact inline control. Migration `0019_remove-outlet-sales-pic` applied and removed the legacy column, index, and FK.
+> Last updated: 2026-11-09 (**Server-paginated outlet list and thumbnails**) — outlet list uses URL-backed server search, filters, sorting and 10 rows per page. Its existing authenticated file route supports outlet-only 96×96 WebP thumbnails using Sharp with a private browser cache. The original file is used for edit, and the list falls back to the outlet type icon if the thumbnail is unavailable.
+>
+> Previous: 2026-11-09 (**Outlet PIC removed**) — outlet master data no longer assigns Sales PIC. Removed the field and its validation from create/edit, detail queries, and the list. Sales assignment is reserved for routing. The **Outlet aktif** switch uses a compact inline control. Migration `0019_remove-outlet-sales-pic` applied and removed the legacy column, index, and FK.
 >
 > Previous: 2026-11-09 (**Outlet PIC by warehouse**) — create/edit filters eligible active Sales users by the selected warehouse using non-deleted `user_warehouse_assignments`. Changing warehouse clears the PIC if no longer eligible. Server validates the same warehouse assignment and organization on save.
 >

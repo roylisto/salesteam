@@ -1,0 +1,2 @@
+ALTER TABLE "warehouse_types" ADD COLUMN "color" varchar(7) DEFAULT '#4f46e5' NOT NULL;--> statement-breakpoint
+ALTER TABLE "warehouse_types" ADD COLUMN "icon" varchar(32) DEFAULT 'warehouse' NOT NULL;
