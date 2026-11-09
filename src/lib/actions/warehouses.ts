@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { db } from "@/db";
+import { auditMutation } from "@/lib/audit";
 import { areaOffices, notDeleted, users, warehouses, warehouseTypes } from "@/db/schema";
 import { can, getCurrentUser } from "@/lib/auth";
 import { toFieldErrors } from "@/lib/validation";
@@ -185,22 +186,25 @@ export async function createWarehouse(
     return { fieldErrors: { name: "Gudang dengan nama ini sudah ada." } };
   }
 
-  await db.insert(warehouses).values({
-    organizationId: manager.organization.id,
-    areaOfficeId: parsed.data.areaOfficeId,
-    picUserId: parsed.data.picUserId,
-    name: parsed.data.name,
-    warehouseTypeId: parsed.data.warehouseTypeId,
-    address: parsed.data.address,
-    province: parsed.data.province,
-    regency: parsed.data.regency,
-    district: parsed.data.district,
-    village: parsed.data.village,
-    postalCode: parsed.data.postalCode,
-    latitude: parsed.data.latitude,
-    longitude: parsed.data.longitude,
-    isActive: formData.get("isActive") !== "false",
-  });
+  await auditMutation(manager, "warehouses", "create", (tx) =>
+    tx.insert(warehouses).values({
+      organizationId: manager.organization.id,
+      areaOfficeId: parsed.data.areaOfficeId,
+      picUserId: parsed.data.picUserId,
+      name: parsed.data.name,
+      warehouseTypeId: parsed.data.warehouseTypeId,
+      address: parsed.data.address,
+      province: parsed.data.province,
+      regency: parsed.data.regency,
+      district: parsed.data.district,
+      village: parsed.data.village,
+      postalCode: parsed.data.postalCode,
+      latitude: parsed.data.latitude,
+      longitude: parsed.data.longitude,
+      isActive: formData.get("isActive") !== "false",
+    })
+      .returning({ id: warehouses.id, name: warehouses.name }),
+  );
 
   revalidatePath(WAREHOUSES_PATH);
   return { ok: true };
@@ -283,29 +287,28 @@ export async function updateWarehouse(
     return { fieldErrors: { name: "Gudang dengan nama ini sudah ada." } };
   }
 
-  await db
-    .update(warehouses)
-    .set({
-      areaOfficeId: parsed.data.areaOfficeId,
-      picUserId: parsed.data.picUserId,
-      name: parsed.data.name,
-      warehouseTypeId: parsed.data.warehouseTypeId,
-      address: parsed.data.address,
-      province: parsed.data.province,
-      regency: parsed.data.regency,
-      district: parsed.data.district,
-      village: parsed.data.village,
-      postalCode: parsed.data.postalCode,
-      latitude: parsed.data.latitude,
-      longitude: parsed.data.longitude,
-      isActive: formData.get("isActive") !== "false",
-    })
-    .where(
-      and(
-        eq(warehouses.id, id),
-        eq(warehouses.organizationId, manager.organization.id),
-      ),
-    );
+  const saved = await auditMutation(manager, "warehouses", "update", (tx) =>
+    tx
+      .update(warehouses)
+      .set({
+        areaOfficeId: parsed.data.areaOfficeId,
+        picUserId: parsed.data.picUserId,
+        name: parsed.data.name,
+        warehouseTypeId: parsed.data.warehouseTypeId,
+        address: parsed.data.address,
+        province: parsed.data.province,
+        regency: parsed.data.regency,
+        district: parsed.data.district,
+        village: parsed.data.village,
+        postalCode: parsed.data.postalCode,
+        latitude: parsed.data.latitude,
+        longitude: parsed.data.longitude,
+        isActive: formData.get("isActive") !== "false",
+      })
+      .where(and(eq(warehouses.id, id), eq(warehouses.organizationId, manager.organization.id), notDeleted(warehouses)))
+      .returning({ id: warehouses.id, name: warehouses.name }),
+  );
+  if (!saved) return { error: "Gudang tidak ditemukan." };
 
   revalidatePath(WAREHOUSES_PATH);
   return { ok: true };
@@ -334,15 +337,14 @@ export async function deleteWarehouse(formData: FormData): Promise<WarehouseForm
   if (!warehouse) return { error: "Gudang tidak ditemukan." };
 
   // Soft delete: outlets and stock rows keep their references.
-  await db
-    .update(warehouses)
-    .set({ deletedAt: new Date() })
-    .where(
-      and(
-        eq(warehouses.id, id),
-        eq(warehouses.organizationId, manager.organization.id),
-      ),
-    );
+  const saved = await auditMutation(manager, "warehouses", "delete", (tx) =>
+    tx
+      .update(warehouses)
+      .set({ deletedAt: new Date() })
+      .where(and(eq(warehouses.id, id), eq(warehouses.organizationId, manager.organization.id), notDeleted(warehouses)))
+      .returning({ id: warehouses.id, name: warehouses.name }),
+  );
+  if (!saved) return { error: "Gudang tidak ditemukan." };
 
   revalidatePath(WAREHOUSES_PATH);
   return { ok: true };

@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { and, asc, count, eq, isNull, sql } from "drizzle-orm";
 import { createLoader } from "nuqs/server";
 
+import { AuditHistoryPage } from "@/components/audit-history";
+import { AuditTabs } from "@/components/audit-tabs";
 import { PageHeader } from "@/components/page-header";
 import { db } from "@/db";
 import { notDeleted, outletTypes, outlets, warehouses } from "@/db/schema";
@@ -24,8 +26,12 @@ const sortColumns = {
 
 export default async function OutletsPage({ searchParams }: PageProps<"/master-data/outlets">) {
   const user = await requirePermission("outlets");
+  const params = await searchParams;
+  if (params.tab === "audit") {
+    return <AuditHistoryPage user={user} module="outlets" path="/master-data/outlets" title="Outlet" label="Daftar Outlet" params={params} />;
+  }
   const organizationId = user.organization.id;
-  const { q, warehouse, status, page, sort, dir } = await loadListQuery(searchParams);
+  const { q, warehouse, status, page, sort, dir } = loadListQuery(params);
   const needle = q.trim();
   const warehouseId = Number(warehouse);
   const warehouseCondition = warehouse === ALL_WAREHOUSES
@@ -97,6 +103,7 @@ export default async function OutletsPage({ searchParams }: PageProps<"/master-d
         title="Outlet"
         description="Toko pelanggan yang dikunjungi tenaga penjualan, beserta gudang yang melayaninya."
       />
+      <AuditTabs path="/master-data/outlets" label="Daftar Outlet" />
       <OutletsClient
         outlets={outletsList}
         warehouses={warehouseRows}

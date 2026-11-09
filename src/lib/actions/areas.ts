@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { db } from "@/db";
+import { auditMutation } from "@/lib/audit";
 import { areaOffices, notDeleted } from "@/db/schema";
 import { can, getCurrentUser } from "@/lib/auth";
 import { toFieldErrors } from "@/lib/validation";
@@ -55,10 +56,13 @@ export async function createArea(
     return { fieldErrors: { name: "Area dengan nama ini sudah ada." } };
   }
 
-  await db.insert(areaOffices).values({
-    organizationId: manager.organization.id,
-    name: parsed.data.name,
-  });
+  await auditMutation(manager, "areas", "create", (tx) =>
+    tx.insert(areaOffices).values({
+      organizationId: manager.organization.id,
+      name: parsed.data.name,
+    })
+      .returning({ id: areaOffices.id, name: areaOffices.name }),
+  );
 
   revalidatePath(AREAS_PATH);
   return { ok: true };
@@ -110,14 +114,16 @@ export async function updateArea(
     return { fieldErrors: { name: "Area dengan nama ini sudah ada." } };
   }
 
-  await db
-    .update(areaOffices)
-    .set({
-      name: parsed.data.name,
-    })
-    .where(
-      and(eq(areaOffices.id, id), eq(areaOffices.organizationId, manager.organization.id)),
-    );
+  const saved = await auditMutation(manager, "areas", "update", (tx) =>
+    tx
+      .update(areaOffices)
+      .set({
+        name: parsed.data.name,
+      })
+      .where(and(eq(areaOffices.id, id), eq(areaOffices.organizationId, manager.organization.id), notDeleted(areaOffices)))
+      .returning({ id: areaOffices.id, name: areaOffices.name }),
+  );
+  if (!saved) return { error: "Area tidak ditemukan." };
 
   revalidatePath(AREAS_PATH);
   return { ok: true };
@@ -145,12 +151,14 @@ export async function deleteArea(formData: FormData): Promise<AreaFormState> {
   if (!area) return { error: "Area tidak ditemukan." };
 
   // Soft delete: an area may be referenced by assignments and warehouses.
-  await db
-    .update(areaOffices)
-    .set({ deletedAt: new Date() })
-    .where(
-      and(eq(areaOffices.id, id), eq(areaOffices.organizationId, manager.organization.id)),
-    );
+  const saved = await auditMutation(manager, "areas", "delete", (tx) =>
+    tx
+      .update(areaOffices)
+      .set({ deletedAt: new Date() })
+      .where(and(eq(areaOffices.id, id), eq(areaOffices.organizationId, manager.organization.id), notDeleted(areaOffices)))
+      .returning({ id: areaOffices.id, name: areaOffices.name }),
+  );
+  if (!saved) return { error: "Area tidak ditemukan." };
   revalidatePath(AREAS_PATH);
   return { ok: true };
 }

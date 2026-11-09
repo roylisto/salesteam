@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { db } from "@/db";
+import { auditMutation, recordAudit } from "@/lib/audit";
 import {
   areaOffices,
   notDeleted,
@@ -497,6 +498,7 @@ export async function createMember(
       .returning({ id: users.id });
     await replaceAreaAssignments(tx, orgId, created.id, areaIds);
     await replaceWarehouseAssignments(tx, orgId, created.id, warehouseIds);
+    await recordAudit(tx, manager, "team", "create", { id: created.id, name });
   });
 
   // Exactly one email per created member so the SMTP quota is not wasted.
@@ -663,8 +665,8 @@ export async function updateMember(
   // The organization owner keeps full access and cannot be demoted or disabled.
   const protectedMember: boolean = target.isOrganizationOwner || target.id === manager.id;
 
-  await db.transaction(async (tx) => {
-    await tx
+  const saved = await db.transaction(async (tx) => {
+    const [changed] = await tx
       .update(users)
       .set({
         name,
@@ -678,10 +680,15 @@ export async function updateMember(
         isAdmin: protectedMember ? target.isAdmin : roleInput.isAdmin,
         isActive: protectedMember ? true : parsed.data.isActive,
       })
-      .where(eq(users.id, id));
+      .where(and(eq(users.id, id), notDeleted(users)))
+      .returning({ id: users.id });
+    if (!changed) return false;
     await replaceAreaAssignments(tx, orgId, id, areaIds);
     await replaceWarehouseAssignments(tx, orgId, id, warehouseIds);
+    await recordAudit(tx, manager, "team", "update", { id, name });
+    return true;
   });
+  if (!saved) return { error: "Anggota tidak ditemukan." };
 
   revalidatePath(TEAM_PATH);
   return { ok: true };
@@ -730,10 +737,13 @@ export async function resetMemberPassword(
   const target = await assertManageableTarget(manager, parsed.data.id);
   if (!target) return { error: "Anggota tidak ditemukan." };
 
-  await db
-    .update(users)
-    .set({ passwordHash: await hashPassword(parsed.data.password) })
-    .where(eq(users.id, target.id));
+  const passwordHash = await hashPassword(parsed.data.password);
+  await auditMutation(manager, "team", "reset_password", (tx) =>
+    tx.update(users)
+      .set({ passwordHash })
+      .where(and(eq(users.id, target.id), notDeleted(users)))
+      .returning({ id: users.id, name: users.name }),
+  );
 
   return { ok: true };
 }
@@ -756,11 +766,13 @@ export async function deleteMember(
   // Soft delete: keep the row for history, detach area assignments and
   // reattach direct reports to this member's reporting line so the tree
   // does not dangle.
-  await db.transaction(async (tx) => {
-    await tx
+  const saved = await db.transaction(async (tx) => {
+    const [changed] = await tx
       .update(users)
       .set({ deletedAt: new Date(), isActive: false })
-      .where(eq(users.id, id));
+      .where(and(eq(users.id, id), notDeleted(users)))
+      .returning({ id: users.id });
+    if (!changed) return false;
     await tx
       .update(users)
       .set({ reportsTo: target.reportsTo })
@@ -789,7 +801,10 @@ export async function deleteMember(
           notDeleted(userWarehouseAssignments),
         ),
       );
+    await recordAudit(tx, manager, "team", "delete", target);
+    return true;
   });
+  if (!saved) return { error: "Anggota tidak ditemukan." };
   revalidatePath(TEAM_PATH);
   return { ok: true };
 }

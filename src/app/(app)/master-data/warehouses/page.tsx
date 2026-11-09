@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { and, asc, eq } from "drizzle-orm";
 
+import { AuditHistoryPage } from "@/components/audit-history";
+import { AuditTabs } from "@/components/audit-tabs";
 import { PageHeader } from "@/components/page-header";
 import { db } from "@/db";
 import {
@@ -18,8 +20,12 @@ import type { AreaOption, WarehouseRow } from "./types";
 
 export const metadata: Metadata = { title: "Gudang" };
 
-export default async function WarehousesPage() {
+export default async function WarehousesPage({ searchParams }: PageProps<"/master-data/warehouses">) {
   const user = await requirePermission("warehouses");
+  const params = await searchParams;
+  if (params.tab === "audit") {
+    return <AuditHistoryPage user={user} module="warehouses" path="/master-data/warehouses" title="Gudang" label="Daftar Gudang" params={params} map />;
+  }
   const { organization } = user;
 
   const areaRows = await db
@@ -85,7 +91,9 @@ export default async function WarehousesPage() {
         title="Gudang"
         description="Depo yang menyimpan stok, dikelompokkan di bawah setiap area."
       />
+      <AuditTabs path="/master-data/warehouses" label="Daftar Gudang" map />
       <WarehousesClient
+        tab={params.tab === "map" ? "map" : "list"}
         headOffice={org ?? { name: organization.name, address: null, latitude: null, longitude: null }}
         warehouses={warehousesList}
         areas={areas}

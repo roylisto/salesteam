@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { db } from "@/db";
+import { auditMutation } from "@/lib/audit";
 import { notDeleted, organizations } from "@/db/schema";
 import { can, getCurrentUser } from "@/lib/auth";
 import { uploadToS3 } from "@/lib/storage";
@@ -157,25 +158,29 @@ export async function updateOrganization(
     logoUrl = null;
   }
 
-  await db
-    .update(organizations)
-    .set({
-      name: parsed.data.name,
-      legalName: parsed.data.legalName ?? null,
-      email: parsed.data.email ?? null,
-      phone: parsed.data.phone ?? null,
-      address: parsed.data.address ?? null,
-      province: parsed.data.province,
-      city: parsed.data.city,
-      district: parsed.data.district,
-      village: parsed.data.village,
-      latitude: parsed.data.latitude,
-      longitude: parsed.data.longitude,
-      currency: parsed.data.currency,
-      timezone: parsed.data.timezone,
-      logoUrl,
-    })
-    .where(eq(organizations.id, user.organization.id));
+  const saved = await auditMutation(user, "organization", "update", (tx) =>
+    tx
+      .update(organizations)
+      .set({
+        name: parsed.data.name,
+        legalName: parsed.data.legalName ?? null,
+        email: parsed.data.email ?? null,
+        phone: parsed.data.phone ?? null,
+        address: parsed.data.address ?? null,
+        province: parsed.data.province,
+        city: parsed.data.city,
+        district: parsed.data.district,
+        village: parsed.data.village,
+        latitude: parsed.data.latitude,
+        longitude: parsed.data.longitude,
+        currency: parsed.data.currency,
+        timezone: parsed.data.timezone,
+        logoUrl,
+      })
+      .where(and(eq(organizations.id, user.organization.id), notDeleted(organizations)))
+      .returning({ id: organizations.id, name: organizations.name }),
+  );
+  if (!saved) return { error: "Organisasi tidak ditemukan." };
 
   revalidatePath(SETTINGS_PATH);
   revalidatePath("/", "layout");

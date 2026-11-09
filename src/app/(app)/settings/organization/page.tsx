@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { and, eq } from "drizzle-orm";
 
+import { AuditHistoryPage } from "@/components/audit-history";
+import { AuditTabs } from "@/components/audit-tabs";
 import { PageHeader } from "@/components/page-header";
 import { db } from "@/db";
 import { notDeleted, organizations } from "@/db/schema";
@@ -11,8 +13,12 @@ import type { OrganizationDetail } from "./types";
 
 export const metadata: Metadata = { title: "Organisasi" };
 
-export default async function OrganizationPage() {
+export default async function OrganizationPage({ searchParams }: PageProps<"/settings/organization">) {
   const user = await requirePermission("organization");
+  const params = await searchParams;
+  if (params.tab === "audit") {
+    return <AuditHistoryPage user={user} module="organization" path="/settings/organization" title="Organisasi" label="Pengaturan" params={params} />;
+  }
 
   const [row] = await db
     .select({
@@ -57,6 +63,7 @@ export default async function OrganizationPage() {
         title="Organisasi"
         description="Profil perusahaan, logo branding, dan pengaturan regional."
       />
+      <AuditTabs path="/settings/organization" label="Pengaturan" />
       <div className="w-full">
         <OrganizationForm organization={organization} />
       </div>

@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { db } from "@/db";
+import { auditMutation } from "@/lib/audit";
 import { notDeleted, roles, users } from "@/db/schema";
 import { can, getCurrentUser } from "@/lib/auth";
 import {
@@ -97,13 +98,16 @@ export async function createRole(
     return { fieldErrors: { name: "Peran dengan nama ini sudah ada." } };
   }
 
-  await db.insert(roles).values({
-    organizationId: manager.organization.id,
-    name: parsed.data.name,
-    slug,
-    description: parsed.data.description,
-    permissions,
-  });
+  await auditMutation(manager, "roles", "create", (tx) =>
+    tx.insert(roles).values({
+      organizationId: manager.organization.id,
+      name: parsed.data.name,
+      slug,
+      description: parsed.data.description,
+      permissions,
+    })
+      .returning({ id: roles.id, name: roles.name }),
+  );
 
   revalidatePath(ROLES_PATH);
   revalidatePath("/settings/team");
@@ -167,15 +171,19 @@ export async function updateRole(
     return { fieldErrors: { name: "Peran dengan nama ini sudah ada." } };
   }
 
-  await db
-    .update(roles)
-    .set({
-      name: parsed.data.name,
-      slug,
-      description: parsed.data.description,
-      permissions,
-    })
-    .where(eq(roles.id, id));
+  const saved = await auditMutation(manager, "roles", "update", (tx) =>
+    tx
+      .update(roles)
+      .set({
+        name: parsed.data.name,
+        slug,
+        description: parsed.data.description,
+        permissions,
+      })
+      .where(and(eq(roles.id, id), eq(roles.organizationId, manager.organization.id), notDeleted(roles)))
+      .returning({ id: roles.id, name: roles.name }),
+  );
+  if (!saved) return { error: "Peran tidak ditemukan." };
 
   revalidatePath(ROLES_PATH);
   revalidatePath("/settings/team");
@@ -213,7 +221,11 @@ export async function deleteRole(formData: FormData): Promise<RoleFormState> {
     return { error: "Pindahkan terlebih dahulu anggota tim yang menggunakan peran ini." };
   }
 
-  await db.update(roles).set({ deletedAt: new Date() }).where(eq(roles.id, id));
+  const saved = await auditMutation(manager, "roles", "delete", (tx) =>
+    tx.update(roles).set({ deletedAt: new Date() }).where(and(eq(roles.id, id), eq(roles.organizationId, manager.organization.id), notDeleted(roles)))
+      .returning({ id: roles.id, name: roles.name }),
+  );
+  if (!saved) return { error: "Peran tidak ditemukan." };
   revalidatePath(ROLES_PATH);
   return { ok: true };
 }

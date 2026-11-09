@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { db } from "@/db";
+import { auditMutation } from "@/lib/audit";
 import {
   notDeleted,
   outletTypes,
@@ -238,11 +239,14 @@ export async function createOutlet(
   const image = await resolveImage(formData, orgId, null);
   if ("error" in image) return { fieldErrors: { image: image.error } };
 
-  await db.insert(outlets).values({
-    organizationId: orgId,
-    ...data,
-    imageUrl: image.imageUrl,
-  });
+  await auditMutation(manager, "outlets", "create", (tx) =>
+    tx.insert(outlets).values({
+      organizationId: orgId,
+      ...data,
+      imageUrl: image.imageUrl,
+    })
+      .returning({ id: outlets.id, name: outlets.name }),
+  );
 
   revalidatePath(OUTLETS_PATH);
   return { ok: true };
@@ -279,10 +283,14 @@ export async function updateOutlet(
   const image = await resolveImage(formData, orgId, existing.imageUrl);
   if ("error" in image) return { fieldErrors: { image: image.error } };
 
-  await db
-    .update(outlets)
-    .set({ ...data, imageUrl: image.imageUrl })
-    .where(and(eq(outlets.id, id), eq(outlets.organizationId, orgId)));
+  const saved = await auditMutation(manager, "outlets", "update", (tx) =>
+    tx
+      .update(outlets)
+      .set({ ...data, imageUrl: image.imageUrl })
+      .where(and(eq(outlets.id, id), eq(outlets.organizationId, manager.organization.id), notDeleted(outlets)))
+      .returning({ id: outlets.id, name: outlets.name }),
+  );
+  if (!saved) return { error: "Outlet tidak ditemukan." };
 
   revalidatePath(OUTLETS_PATH);
   revalidatePath(`${OUTLETS_PATH}/${id}`);
@@ -310,15 +318,14 @@ export async function deleteOutlet(formData: FormData): Promise<OutletFormState>
   if (!existing) return { error: "Outlet tidak ditemukan." };
 
   // Soft delete: visits and orders keep their historical references.
-  await db
-    .update(outlets)
-    .set({ deletedAt: new Date() })
-    .where(
-      and(
-        eq(outlets.id, id),
-        eq(outlets.organizationId, manager.organization.id),
-      ),
-    );
+  const saved = await auditMutation(manager, "outlets", "delete", (tx) =>
+    tx
+      .update(outlets)
+      .set({ deletedAt: new Date() })
+      .where(and(eq(outlets.id, id), eq(outlets.organizationId, manager.organization.id), notDeleted(outlets)))
+      .returning({ id: outlets.id, name: outlets.name }),
+  );
+  if (!saved) return { error: "Outlet tidak ditemukan." };
 
   revalidatePath(OUTLETS_PATH);
   return { ok: true };

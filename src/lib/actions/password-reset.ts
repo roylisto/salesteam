@@ -4,6 +4,7 @@ import { and, count, desc, eq, gte, isNull } from "drizzle-orm";
 import { z } from "zod";
 
 import { db } from "@/db";
+import { recordAudit } from "@/lib/audit";
 import {
   notDeleted,
   passwordResetRequests,
@@ -226,6 +227,8 @@ export async function completePasswordReset(
       .update(sessions)
       .set({ deletedAt: new Date() })
       .where(and(eq(sessions.userId, user.id), isNull(sessions.deletedAt)));
+
+    await recordAudit(tx, { ...user, organization: { id: user.organizationId } }, "profile", "reset_password", user);
   });
 
   return { ok: true };

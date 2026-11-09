@@ -3,7 +3,9 @@
 > Handoff notes for AI agents doing "vibe coding" on this repo.
 > Read this first; it captures the project context, conventions, and what has
 > already been built so you can continue without re-discovering everything.
-> Last updated: 2026-11-09 (**Soft-delete coverage**) — migration `0020_wilayah-soft-delete` adds `wilayah.deleted_at`; region lookups exclude retired rows. The importer stages the source in a transaction, restores current codes, and retires missing codes without deleting them. Outlet photos and organization logos are detached when removed or replaced, with old objects retained in private storage.
+> Last updated: 2026-11-09 (**Audit trail**) — one `audit_logs` table stores actor name snapshot, module, action, target, and time. CRUD actions log in the same transaction as their mutations. Organization onboarding and successful sign-in, sign-out, password changes and password resets are included. Each CRUD menu and Profile has a server-paginated **Riwayat Aktivitas** tab. Reads enforce tenant and module permissions, profile is self-only, and non-admin Team history is scoped to own actions and the visible reporting subtree. No passwords, tokens, or raw form payloads are logged. Migration `0021_audit-logs` applied.
+>
+> Previous: 2026-11-09 (**Soft-delete coverage**) — migration `0020_wilayah-soft-delete` adds `wilayah.deleted_at`; region lookups exclude retired rows. The importer stages the source in a transaction, restores current codes, and retires missing codes without deleting them. Outlet photos and organization logos are detached when removed or replaced, with old objects retained in private storage.
 >
 > Previous: 2026-11-09 (**Server-paginated outlet list and thumbnails**) — outlet list uses URL-backed server search, filters, sorting and 10 rows per page. Its existing authenticated file route supports outlet-only 96×96 WebP thumbnails using Sharp with a private browser cache. The original file is used for edit, and the list falls back to the outlet type icon if the thumbnail is unavailable.
 >
@@ -409,6 +411,8 @@ Defined in `src/db/schema/*` and re-exported from `index.ts`.
 6. Run `npm run db:generate -- --name <change>` then `npm run db:migrate`.
 
 ### Migration history
+
+- `0021_audit-logs.sql` — adds one audit trail table and an organization/module ordering index. **Applied.**
 
 - `0020_wilayah-soft-delete.sql` — adds nullable `wilayah.deleted_at`. **Applied.**
 

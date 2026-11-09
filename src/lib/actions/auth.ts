@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { db } from "@/db";
+import { auditMutation } from "@/lib/audit";
 import { notDeleted, users } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth";
 import { hashPassword, verifyPassword } from "@/lib/password";
@@ -67,7 +68,7 @@ export async function login(
   }
 
   const headerList = await headers();
-  await createSession(user.id, {
+  await createSession(user, {
     ipAddress: headerList.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,
     userAgent: headerList.get("user-agent"),
   });
@@ -131,13 +132,13 @@ export async function changePassword(
     return { fieldErrors: { currentPassword: "Kata sandi saat ini salah." } };
   }
 
-  await db
-    .update(users)
-    .set({
-      passwordHash: await hashPassword(password),
-      mustChangePassword: false,
-    })
-    .where(eq(users.id, user.id));
+  const passwordHash = await hashPassword(password);
+  await auditMutation(currentUser, "profile", "change_password", (tx) =>
+    tx.update(users)
+      .set({ passwordHash, mustChangePassword: false })
+      .where(and(eq(users.id, user.id), notDeleted(users)))
+      .returning({ id: users.id }),
+  );
 
   return { ok: true };
 }

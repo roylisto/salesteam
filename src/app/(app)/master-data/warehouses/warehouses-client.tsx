@@ -3,9 +3,8 @@
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useMemo } from "react";
-import { ChevronLeftIcon, ChevronRightIcon, EditIcon, PlusIcon, SearchIcon, MapIcon, ListIcon } from "lucide-react";
-import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryState } from "nuqs";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { ChevronLeftIcon, ChevronRightIcon, EditIcon, PlusIcon, SearchIcon } from "lucide-react";
+import { parseAsInteger, parseAsString, useQueryState } from "nuqs";
 import { WarehouseTypeSymbol } from "@/components/warehouse-type-symbol";
 import { DEFAULT_WAREHOUSE_COLOR, DEFAULT_WAREHOUSE_ICON } from "@/lib/warehouse-appearance";
 
@@ -40,19 +39,20 @@ const SORT_COLUMNS: SortColumn<WarehouseRow>[] = [
 ];
 
 export function WarehousesClient({
+  tab,
   warehouses,
   areas,
   orgProvince,
   orgCity,
   headOffice,
 }: {
+  tab: "list" | "map";
   warehouses: WarehouseRow[];
   areas: AreaOption[];
   orgProvince: string | null;
   orgCity: string | null;
   headOffice: HeadOfficeLocation;
 }) {
-  const [tab, setTab] = useQueryState("tab", parseAsStringLiteral(["list", "map"] as const).withDefault("list"));
   const [query, setQuery] = useQueryState(
     "q",
     parseAsString.withDefault("").withOptions({ history: "replace" }),
@@ -123,132 +123,127 @@ export function WarehousesClient({
           </Button>
       </div>
 
-      <Tabs value={tab} onValueChange={(value) => void setTab(value === "map" ? "map" : "list")}>
-        <TabsList aria-label="Tampilan gudang">
-          <TabsTrigger value="list" className="data-active:bg-primary data-active:text-white data-active:hover:text-white dark:data-active:hover:text-white dark:data-active:bg-primary dark:data-active:text-white"><ListIcon />Daftar Gudang</TabsTrigger>
-          <TabsTrigger value="map" className="data-active:bg-primary data-active:text-white data-active:hover:text-white dark:data-active:hover:text-white dark:data-active:bg-primary dark:data-active:text-white"><MapIcon />Peta Gudang</TabsTrigger>
-        </TabsList>
-        <TabsContent value="map">
-          {tab === "map" && <WarehousesMap warehouses={filtered} headOffice={headOffice} />}
-        </TabsContent>
-        <TabsContent value="list" className="space-y-3">
-      <div className="overflow-hidden rounded-xl ring-1 ring-foreground/10">
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <SortableHead
-                  label="Gudang"
-                  columnKey="name"
-                  sortKey={sortKey}
-                  sortDir={sortDir}
-                  onSort={toggleSort}
-                />
-                <SortableHead
-                  label="Area"
-                  columnKey="area"
-                  sortKey={sortKey}
-                  sortDir={sortDir}
-                  onSort={toggleSort}
-                />
-                <SortableHead
-                  label="Tipe"
-                  columnKey="type"
-                  sortKey={sortKey}
-                  sortDir={sortDir}
-                  onSort={toggleSort}
-                  className="hidden lg:table-cell"
-                />
-                <SortableHead
-                  label="Status"
-                  columnKey="status"
-                  sortKey={sortKey}
-                  sortDir={sortDir}
-                  onSort={toggleSort}
-                />
-                <TableHead className="w-10" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {visible.length === 0 ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={5}
-                    className="text-muted-foreground h-24 text-center"
-                  >
-                    Tidak ada gudang yang cocok dengan filter ini.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                visible.map((warehouse) => (
-                  <TableRow key={warehouse.id}>
-                    <TableCell>
-                      <Link
-                        href={`/master-data/warehouses/${warehouse.id}`}
-                        className="flex items-center gap-2 text-left hover:underline"
-                      >
-                        <WarehouseTypeSymbol icon={warehouse.warehouseTypeIcon ?? DEFAULT_WAREHOUSE_ICON} color={warehouse.warehouseTypeColor ?? DEFAULT_WAREHOUSE_COLOR} />
-                        <span className="block text-sm font-medium">
-                          {warehouse.name}
-                        </span>
-                      </Link>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground text-sm">
-                      {warehouse.areaName ?? "Belum ditugaskan"}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground hidden text-sm lg:table-cell">
-                      {warehouse.warehouseTypeName ?? "—"}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={warehouse.isActive ? "secondary" : "outline"}>
-                        {warehouse.isActive ? "Aktif" : "Tidak aktif"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                        <Button nativeButton={false} render={<Link href={`/master-data/warehouses/${warehouse.id}`} />} variant="ghost" size="icon" className="h-7 w-7" aria-label="Ubah gudang">
-                          <EditIcon className="size-4" />
-                        </Button>
-                    </TableCell>
+      {tab === "map" ? (
+        <WarehousesMap warehouses={filtered} headOffice={headOffice} />
+      ) : (
+        <div className="space-y-3">
+          <div className="overflow-hidden rounded-xl ring-1 ring-foreground/10">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <SortableHead
+                      label="Gudang"
+                      columnKey="name"
+                      sortKey={sortKey}
+                      sortDir={sortDir}
+                      onSort={toggleSort}
+                    />
+                    <SortableHead
+                      label="Area"
+                      columnKey="area"
+                      sortKey={sortKey}
+                      sortDir={sortDir}
+                      onSort={toggleSort}
+                    />
+                    <SortableHead
+                      label="Tipe"
+                      columnKey="type"
+                      sortKey={sortKey}
+                      sortDir={sortDir}
+                      onSort={toggleSort}
+                      className="hidden lg:table-cell"
+                    />
+                    <SortableHead
+                      label="Status"
+                      columnKey="status"
+                      sortKey={sortKey}
+                      sortDir={sortDir}
+                      onSort={toggleSort}
+                    />
+                    <TableHead className="w-10" />
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      </div>
+                </TableHeader>
+                <TableBody>
+                  {visible.length === 0 ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={5}
+                        className="text-muted-foreground h-24 text-center"
+                      >
+                        Tidak ada gudang yang cocok dengan filter ini.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    visible.map((warehouse) => (
+                      <TableRow key={warehouse.id}>
+                        <TableCell>
+                          <Link
+                            href={`/master-data/warehouses/${warehouse.id}`}
+                            className="flex items-center gap-2 text-left hover:underline"
+                          >
+                            <WarehouseTypeSymbol icon={warehouse.warehouseTypeIcon ?? DEFAULT_WAREHOUSE_ICON} color={warehouse.warehouseTypeColor ?? DEFAULT_WAREHOUSE_COLOR} />
+                            <span className="block text-sm font-medium">
+                              {warehouse.name}
+                            </span>
+                          </Link>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-sm">
+                          {warehouse.areaName ?? "Belum ditugaskan"}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground hidden text-sm lg:table-cell">
+                          {warehouse.warehouseTypeName ?? "—"}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={warehouse.isActive ? "secondary" : "outline"}>
+                            {warehouse.isActive ? "Aktif" : "Tidak aktif"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                            <Button nativeButton={false} render={<Link href={`/master-data/warehouses/${warehouse.id}`} />} variant="ghost" size="icon" className="h-7 w-7" aria-label="Ubah gudang">
+                              <EditIcon className="size-4" />
+                            </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-muted-foreground text-xs">
-          {sortedRows.length === 0
-            ? "Tidak ada hasil"
-            : `Menampilkan ${start + 1}–${Math.min(start + PAGE_SIZE, sortedRows.length)} dari ${sortedRows.length}`}
-        </p>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={currentPage <= 1}
-            onClick={() => void setPage(currentPage - 1)}
-          >
-            <ChevronLeftIcon />
-            Sebelumnya
-          </Button>
-          <span className="text-muted-foreground text-xs tabular-nums">
-            {currentPage} / {totalPages}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={currentPage >= totalPages}
-            onClick={() => void setPage(currentPage + 1)}
-          >
-            Berikutnya
-            <ChevronRightIcon />
-          </Button>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-muted-foreground text-xs">
+              {sortedRows.length === 0
+                ? "Tidak ada hasil"
+                : `Menampilkan ${start + 1}–${Math.min(start + PAGE_SIZE, sortedRows.length)} dari ${sortedRows.length}`}
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={currentPage <= 1}
+                onClick={() => void setPage(currentPage - 1)}
+              >
+                <ChevronLeftIcon />
+                Sebelumnya
+              </Button>
+              <span className="text-muted-foreground text-xs tabular-nums">
+                {currentPage} / {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={currentPage >= totalPages}
+                onClick={() => void setPage(currentPage + 1)}
+              >
+                Berikutnya
+                <ChevronRightIcon />
+              </Button>
+            </div>
+          </div>
         </div>
-      </div>
-        </TabsContent>
-      </Tabs>
+      )}
     </div>
   );
 }

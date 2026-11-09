@@ -148,6 +148,13 @@
       "when": 1794234527661,
       "tag": "0020_wilayah-soft-delete",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1794235347079,
+      "tag": "0021_audit-logs",
+      "breakpoints": true
     }
   ]
 }

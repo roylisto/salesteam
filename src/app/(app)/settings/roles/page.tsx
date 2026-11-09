@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { and, asc, count, eq } from "drizzle-orm";
 
+import { AuditHistoryPage } from "@/components/audit-history";
+import { AuditTabs } from "@/components/audit-tabs";
 import { PageHeader } from "@/components/page-header";
 import { db } from "@/db";
 import { notDeleted, roles, users } from "@/db/schema";
@@ -11,8 +13,12 @@ import type { RoleDetail } from "./types";
 
 export const metadata: Metadata = { title: "Peran" };
 
-export default async function RolesPage() {
+export default async function RolesPage({ searchParams }: PageProps<"/settings/roles">) {
   const user = await requirePermission("roles");
+  const params = await searchParams;
+  if (params.tab === "audit") {
+    return <AuditHistoryPage user={user} module="roles" path="/settings/roles" title="Peran" label="Daftar Peran" params={params} />;
+  }
   const { organization } = user;
 
   const [roleRows, memberCounts] = await Promise.all([
@@ -52,6 +58,7 @@ export default async function RolesPage() {
         title="Peran"
         description="Praset izin yang menentukan modul mana yang dapat diakses oleh anggota."
       />
+      <AuditTabs path="/settings/roles" label="Daftar Peran" />
       <RolesClient roles={roleList} />
     </div>
   );

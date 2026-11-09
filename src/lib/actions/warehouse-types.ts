@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { db } from "@/db";
+import { auditMutation } from "@/lib/audit";
 import { notDeleted, warehouseTypes } from "@/db/schema";
 import { can, getCurrentUser } from "@/lib/auth";
 import { toFieldErrors } from "@/lib/validation";
@@ -68,13 +69,16 @@ export async function createWarehouseType(
     return { fieldErrors: { name: "Tipe gudang dengan nama ini sudah ada." } };
   }
 
-  await db.insert(warehouseTypes).values({
-    organizationId: manager.organization.id,
-    name: parsed.data.name,
-    color: parsed.data.color,
-    icon: parsed.data.icon,
-    isActive: parsed.data.isActive,
-  });
+  await auditMutation(manager, "warehouse_types", "create", (tx) =>
+    tx.insert(warehouseTypes).values({
+      organizationId: manager.organization.id,
+      name: parsed.data.name,
+      color: parsed.data.color,
+      icon: parsed.data.icon,
+      isActive: parsed.data.isActive,
+    })
+      .returning({ id: warehouseTypes.id, name: warehouseTypes.name }),
+  );
 
   revalidatePath(WAREHOUSE_TYPES_PATH);
   return { ok: true };
@@ -127,15 +131,14 @@ export async function updateWarehouseType(
     return { fieldErrors: { name: "Tipe gudang dengan nama ini sudah ada." } };
   }
 
-  await db
-    .update(warehouseTypes)
-    .set(parsed.data)
-    .where(
-      and(
-        eq(warehouseTypes.id, id),
-        eq(warehouseTypes.organizationId, manager.organization.id),
-      ),
-    );
+  const saved = await auditMutation(manager, "warehouse_types", "update", (tx) =>
+    tx
+      .update(warehouseTypes)
+      .set(parsed.data)
+      .where(and(eq(warehouseTypes.id, id), eq(warehouseTypes.organizationId, manager.organization.id), notDeleted(warehouseTypes)))
+      .returning({ id: warehouseTypes.id, name: warehouseTypes.name }),
+  );
+  if (!saved) return { error: "Tipe gudang tidak ditemukan." };
 
   revalidatePath(WAREHOUSE_TYPES_PATH);
   return { ok: true };
@@ -168,15 +171,14 @@ export async function deleteWarehouseType(
   if (!existing) return { error: "Tipe gudang tidak ditemukan." };
 
   // Soft delete. Warehouses referencing it keep the row but fall back to no type.
-  await db
-    .update(warehouseTypes)
-    .set({ deletedAt: new Date() })
-    .where(
-      and(
-        eq(warehouseTypes.id, id),
-        eq(warehouseTypes.organizationId, manager.organization.id),
-      ),
-    );
+  const saved = await auditMutation(manager, "warehouse_types", "delete", (tx) =>
+    tx
+      .update(warehouseTypes)
+      .set({ deletedAt: new Date() })
+      .where(and(eq(warehouseTypes.id, id), eq(warehouseTypes.organizationId, manager.organization.id), notDeleted(warehouseTypes)))
+      .returning({ id: warehouseTypes.id, name: warehouseTypes.name }),
+  );
+  if (!saved) return { error: "Tipe gudang tidak ditemukan." };
 
   revalidatePath(WAREHOUSE_TYPES_PATH);
   return { ok: true };

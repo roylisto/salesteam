@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { db } from "@/db";
+import { recordAudit } from "@/lib/audit";
 import { notDeleted, organizations, users } from "@/db/schema";
 import { hashPassword } from "@/lib/password";
 import { createSession } from "@/lib/session";
@@ -116,11 +117,12 @@ export async function createOrganization(
       })
       .returning();
 
+    await recordAudit(tx, { ...owner, organization }, "organization", "create", organization);
     return { organization, owner };
   });
 
   const headerList = await headers();
-  await createSession(created.owner.id, {
+  await createSession(created.owner, {
     ipAddress: headerList.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,
     userAgent: headerList.get("user-agent"),
   });

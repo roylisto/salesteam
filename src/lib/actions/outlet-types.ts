@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { db } from "@/db";
+import { auditMutation } from "@/lib/audit";
 import { notDeleted, outletTypes } from "@/db/schema";
 import { can, getCurrentUser } from "@/lib/auth";
 import { OUTLET_ICON_KEYS } from "@/lib/outlet-appearance";
@@ -68,13 +69,16 @@ export async function createOutletType(
     return { fieldErrors: { name: "Tipe outlet dengan nama ini sudah ada." } };
   }
 
-  await db.insert(outletTypes).values({
-    organizationId: manager.organization.id,
-    name: parsed.data.name,
-    color: parsed.data.color,
-    icon: parsed.data.icon,
-    isActive: parsed.data.isActive,
-  });
+  await auditMutation(manager, "outlet_types", "create", (tx) =>
+    tx.insert(outletTypes).values({
+      organizationId: manager.organization.id,
+      name: parsed.data.name,
+      color: parsed.data.color,
+      icon: parsed.data.icon,
+      isActive: parsed.data.isActive,
+    })
+      .returning({ id: outletTypes.id, name: outletTypes.name }),
+  );
 
   revalidatePath(OUTLET_TYPES_PATH);
   revalidatePath("/master-data/outlets");
@@ -127,15 +131,14 @@ export async function updateOutletType(
     return { fieldErrors: { name: "Tipe outlet dengan nama ini sudah ada." } };
   }
 
-  await db
-    .update(outletTypes)
-    .set(parsed.data)
-    .where(
-      and(
-        eq(outletTypes.id, id),
-        eq(outletTypes.organizationId, manager.organization.id),
-      ),
-    );
+  const saved = await auditMutation(manager, "outlet_types", "update", (tx) =>
+    tx
+      .update(outletTypes)
+      .set(parsed.data)
+      .where(and(eq(outletTypes.id, id), eq(outletTypes.organizationId, manager.organization.id), notDeleted(outletTypes)))
+      .returning({ id: outletTypes.id, name: outletTypes.name }),
+  );
+  if (!saved) return { error: "Tipe outlet tidak ditemukan." };
 
   revalidatePath(OUTLET_TYPES_PATH);
   revalidatePath("/master-data/outlets");
@@ -168,15 +171,14 @@ export async function deleteOutletType(
   if (!existing) return { error: "Tipe outlet tidak ditemukan." };
 
   // Soft delete. Outlets referencing it keep the row but fall back to no type.
-  await db
-    .update(outletTypes)
-    .set({ deletedAt: new Date() })
-    .where(
-      and(
-        eq(outletTypes.id, id),
-        eq(outletTypes.organizationId, manager.organization.id),
-      ),
-    );
+  const saved = await auditMutation(manager, "outlet_types", "delete", (tx) =>
+    tx
+      .update(outletTypes)
+      .set({ deletedAt: new Date() })
+      .where(and(eq(outletTypes.id, id), eq(outletTypes.organizationId, manager.organization.id), notDeleted(outletTypes)))
+      .returning({ id: outletTypes.id, name: outletTypes.name }),
+  );
+  if (!saved) return { error: "Tipe outlet tidak ditemukan." };
 
   revalidatePath(OUTLET_TYPES_PATH);
   revalidatePath("/master-data/outlets");

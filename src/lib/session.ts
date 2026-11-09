@@ -4,6 +4,7 @@ import { and, eq, gt, isNull, lt } from "drizzle-orm";
 import { cookies } from "next/headers";
 
 import { db } from "@/db";
+import { recordAudit } from "@/lib/audit";
 import { notDeleted, organizations, roles, sessions, users } from "@/db/schema";
 
 export const SESSION_COOKIE_NAME =
@@ -31,18 +32,21 @@ export type SessionMeta = {
 
 /** Inserts a DB session row and writes the httpOnly cookie. */
 export async function createSession(
-  userId: number,
+  user: { id: number; name: string; organizationId: number },
   meta: SessionMeta = {},
 ): Promise<string> {
   const id = generateSessionId();
   const expiresAt = expiryDate();
 
-  await db.insert(sessions).values({
-    id,
-    userId,
-    expiresAt,
-    ipAddress: meta.ipAddress ?? null,
-    userAgent: meta.userAgent ?? null,
+  await db.transaction(async (tx) => {
+    await tx.insert(sessions).values({
+      id,
+      userId: user.id,
+      expiresAt,
+      ipAddress: meta.ipAddress ?? null,
+      userAgent: meta.userAgent ?? null,
+    });
+    await recordAudit(tx, { ...user, organization: { id: user.organizationId } }, "profile", "login", { id: user.id });
   });
 
   const cookieStore = await cookies();
@@ -104,10 +108,17 @@ export async function deleteSession(): Promise<void> {
   const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
 
   if (token) {
-    await db
-      .update(sessions)
-      .set({ deletedAt: new Date() })
-      .where(eq(sessions.id, token));
+    const context = await loadSessionContext();
+    await db.transaction(async (tx) => {
+      const [closed] = await tx.update(sessions)
+        .set({ deletedAt: new Date() })
+        .where(and(eq(sessions.id, token), notDeleted(sessions)))
+        .returning({ id: sessions.id });
+      if (closed && context) {
+        const { user, organization } = context;
+        await recordAudit(tx, { ...user, organization }, "profile", "logout", { id: user.id });
+      }
+    });
   }
 
   cookieStore.delete(SESSION_COOKIE_NAME);
