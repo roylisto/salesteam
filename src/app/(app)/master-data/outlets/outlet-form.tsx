@@ -36,7 +36,6 @@ import { toFileSrc } from "@/lib/files";
 
 import type {
   AreaOption,
-  MemberOption,
   OutletDetail,
   OutletTypeOption,
   WarehouseLocationOption,
@@ -55,13 +54,11 @@ export function OutletForm({
   outlet,
   areas,
   warehouses,
-  members,
   outletTypes,
 }: {
   outlet: OutletDetail | null;
   areas: AreaOption[];
   warehouses: WarehouseLocationOption[];
-  members: MemberOption[];
   outletTypes: OutletTypeOption[];
 }) {
   const router = useRouter();
@@ -76,9 +73,6 @@ export function OutletForm({
   const [warehouseId, setWarehouseId] = useState(initialWarehouse ? String(initialWarehouse.id) : "");
   const [areaFilter, setAreaFilter] = useState(
     initialWarehouse ? String(initialWarehouse.areaOfficeId ?? NO_AREA) : "",
-  );
-  const [salesId, setSalesId] = useState(
-    outlet?.salesId ? String(outlet.salesId) : "",
   );
   const [outletTypeId, setOutletTypeId] = useState(
     outlet?.outletTypeId ? String(outlet.outletTypeId) : "",
@@ -145,10 +139,7 @@ export function OutletForm({
   const [confirming, setConfirming] = useState(false);
 
   const outletTypeOptions = useMemo(
-    () => [
-      { value: "", label: "Belum diatur" },
-      ...outletTypes.map((type) => ({ value: String(type.id), label: type.name })),
-    ],
+    () => outletTypes.map((type) => ({ value: String(type.id), label: type.name })),
     [outletTypes],
   );
   const areaOptions = useMemo(() => {
@@ -163,13 +154,6 @@ export function OutletForm({
       .filter((warehouse) => String(warehouse.areaOfficeId ?? NO_AREA) === areaFilter)
       .map((warehouse) => ({ value: String(warehouse.id), label: warehouse.name })),
     [areaFilter, warehouses],
-  );
-  const salesOptions = useMemo(
-    () => [
-      { value: "", label: "Belum ditugaskan" },
-      ...members.map((member) => ({ value: String(member.id), label: member.name })),
-    ],
-    [members],
   );
   const provinceOptions = useMemo(
     () => provinces.map((item) => ({ value: item.nama, label: item.nama })),
@@ -211,17 +195,24 @@ export function OutletForm({
     if (fileRef.current) fileRef.current.value = "";
   }
 
-  function handleSubmit(formData: FormData) {
-    if (!selectedWarehouse) {
-      setErrors((previous) => ({ ...previous, warehouseId: "Pilih gudang terlebih dahulu." }));
-      document.getElementById("outlet-warehouse")?.focus();
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const requiredFields = [
+      { key: "outletTypeId", id: "outlet-type", valid: outletTypes.some((type) => String(type.id) === outletTypeId), message: "Pilih tipe outlet." },
+      { key: "warehouseId", id: "outlet-warehouse", valid: Boolean(selectedWarehouse), message: "Pilih gudang terlebih dahulu." },
+    ];
+    const missing = requiredFields.filter((field) => !field.valid);
+    if (missing.length) {
+      setErrors(Object.fromEntries(missing.map((field) => [field.key, field.message])));
+      const firstId = missing[0].key === "warehouseId" && !areaFilter ? "outlet-area" : missing[0].id;
+      document.getElementById(firstId)?.focus();
       return;
     }
 
     if (outlet) formData.set("id", String(outlet.id));
     formData.set("status", active ? "active" : "inactive");
     formData.set("warehouseId", warehouseId);
-    formData.set("salesId", salesId);
     formData.set("outletTypeId", outletTypeId);
     formData.set("latitude", latitude);
     formData.set("longitude", longitude);
@@ -275,14 +266,13 @@ export function OutletForm({
   }
 
   return (
-    <form action={handleSubmit} className="space-y-3">
+    <form onSubmit={handleSubmit} className="space-y-3">
       <Card size="sm">
         <CardHeader className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
           <div>
             <CardTitle>Detail outlet</CardTitle>
             <CardDescription>
-              Nama dan kode mengidentifikasi toko; tipe, gudang, dan tenaga penjualan
-              menentukan rute dan stok.
+              Isi nama, tipe, dan gudang yang melayani outlet ini.
             </CardDescription>
           </div>
           <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
@@ -327,13 +317,15 @@ export function OutletForm({
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5 sm:col-span-2">
-            <Label htmlFor="outlet-name">Nama</Label>
+            <Label htmlFor="outlet-name">Nama (wajib)</Label>
             <Input
               id="outlet-name"
               name="name"
               defaultValue={outlet?.name ?? ""}
               placeholder="Toko Sumber Rejeki"
               required
+              minLength={2}
+              maxLength={200}
             />
             <FieldError message={errors.name} />
           </div>
@@ -350,8 +342,9 @@ export function OutletForm({
           </div>
 
           <div className="space-y-1.5">
-            <Label>Tipe outlet</Label>
+            <Label htmlFor="outlet-type">Tipe outlet (wajib)</Label>
             <Combobox
+              id="outlet-type"
               options={outletTypeOptions}
               value={outletTypeId}
               onValueChange={setOutletTypeId}
@@ -394,35 +387,9 @@ export function OutletForm({
             <FieldError message={errors.warehouseId} />
           </div>
 
-          <div className="space-y-1.5">
-            <Label>Tenaga penjualan</Label>
-            <Combobox
-              options={salesOptions}
-              value={salesId}
-              onValueChange={setSalesId}
-              placeholder="Pilih tenaga penjualan"
-              emptyText="Tenaga penjualan tidak ditemukan."
-            />
-            {salesId && !members.some((member) => String(member.id) === salesId) && (
-              <p className="text-muted-foreground text-xs">
-                PIC sebelumnya tidak tersedia. Pilih pengguna Sales aktif atau pilih Belum ditugaskan.
-              </p>
-            )}
-            <FieldError message={errors.salesId} />
-          </div>
-
-          <div className="flex items-center justify-between gap-4 rounded-lg border p-3 sm:col-span-2">
-            <div className="space-y-0.5">
-              <Label htmlFor="outlet-active">Aktif</Label>
-              <p className="text-muted-foreground text-xs">
-                Outlet tidak aktif disembunyikan dari kunjungan dan pesanan baru.
-              </p>
-            </div>
-            <Switch
-              id="outlet-active"
-              checked={active}
-              onCheckedChange={setActive}
-            />
+          <div className="inline-flex w-fit items-center gap-2 self-end rounded-lg border px-3 py-2">
+            <Switch id="outlet-active" checked={active} onCheckedChange={setActive} />
+            <Label htmlFor="outlet-active">Outlet aktif</Label>
           </div>
         </CardContent>
       </Card>

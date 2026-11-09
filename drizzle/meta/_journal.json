@@ -134,6 +134,13 @@
       "when": 1794068510061,
       "tag": "0018_outlet-type-appearance",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1794233712232,
+      "tag": "0019_remove-outlet-sales-pic",
+      "breakpoints": true
     }
   ]
 }

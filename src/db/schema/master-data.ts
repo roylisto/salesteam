@@ -225,9 +225,6 @@ export const outlets = pgTable(
       () => warehouses.id,
       { onDelete: "set null" },
     ),
-    salesId: bigint("sales_id", { mode: "number" }).references(() => users.id, {
-      onDelete: "set null",
-    }),
     outletTypeId: bigint("outlet_type_id", { mode: "number" }).references(
       () => outletTypes.id,
       { onDelete: "set null" },
@@ -263,7 +260,6 @@ export const outlets = pgTable(
       .where(isNull(table.deletedAt)),
     index("outlets_organization_idx").on(table.organizationId),
     index("outlets_warehouse_idx").on(table.warehouseId),
-    index("outlets_sales_idx").on(table.salesId),
     index("outlets_outlet_type_idx").on(table.outletTypeId),
     index("outlets_name_idx").on(table.name),
   ],

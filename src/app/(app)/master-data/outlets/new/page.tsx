@@ -31,7 +31,6 @@ export default async function NewOutletPage() {
         outlet={null}
         areas={options.areas}
         warehouses={options.warehouses}
-        members={options.members}
         outletTypes={options.outletTypes}
       />
     </div>

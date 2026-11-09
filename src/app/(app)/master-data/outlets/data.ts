@@ -1,24 +1,22 @@
 import { and, asc, eq } from "drizzle-orm";
 
 import { db } from "@/db";
-import { areaOffices, notDeleted, outletTypes, outlets, users, warehouses } from "@/db/schema";
+import { areaOffices, notDeleted, outletTypes, outlets, warehouses } from "@/db/schema";
 
 import type {
   AreaOption,
-  MemberOption,
   OutletDetail,
   OutletTypeOption,
   WarehouseLocationOption,
 } from "./types";
 
-/** Warehouse / rep / outlet-type choices shared by the create and edit pages. */
+/** Area / warehouse / outlet-type choices shared by the create and edit pages. */
 export async function loadFormOptions(organizationId: number): Promise<{
   areas: AreaOption[];
   warehouses: WarehouseLocationOption[];
-  members: MemberOption[];
   outletTypes: OutletTypeOption[];
 }> {
-  const [areaRows, warehouseRows, memberRows, outletTypeRows] = await Promise.all([
+  const [areaRows, warehouseRows, outletTypeRows] = await Promise.all([
     db
       .select({ id: areaOffices.id, name: areaOffices.name })
       .from(areaOffices)
@@ -43,18 +41,6 @@ export async function loadFormOptions(organizationId: number): Promise<{
       )
       .orderBy(asc(warehouses.name)),
     db
-      .select({ id: users.id, name: users.name })
-      .from(users)
-      .where(
-        and(
-          eq(users.organizationId, organizationId),
-          eq(users.isActive, true),
-          eq(users.userType, "sales"),
-          notDeleted(users),
-        ),
-      )
-      .orderBy(asc(users.name)),
-    db
       .select({ id: outletTypes.id, name: outletTypes.name })
       .from(outletTypes)
       .where(
@@ -66,7 +52,6 @@ export async function loadFormOptions(organizationId: number): Promise<{
   return {
     areas: areaRows,
     warehouses: warehouseRows,
-    members: memberRows,
     outletTypes: outletTypeRows,
   };
 }
@@ -84,8 +69,6 @@ export async function loadOutletDetail(
       status: outlets.status,
       warehouseId: outlets.warehouseId,
       warehouseName: warehouses.name,
-      salesId: outlets.salesId,
-      salesName: users.name,
       outletTypeId: outlets.outletTypeId,
       outletTypeName: outletTypes.name,
       outletTypeColor: outletTypes.color,
@@ -118,7 +101,6 @@ export async function loadOutletDetail(
       warehouses,
       and(eq(outlets.warehouseId, warehouses.id), notDeleted(warehouses)),
     )
-    .leftJoin(users, and(eq(outlets.salesId, users.id), notDeleted(users)))
     .leftJoin(
       outletTypes,
       and(eq(outlets.outletTypeId, outletTypes.id), notDeleted(outletTypes)),

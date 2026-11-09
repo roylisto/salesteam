@@ -10,6 +10,12 @@ const s3Hostname = (() => {
 })();
 
 const nextConfig: NextConfig = {
+  experimental: {
+    serverActions: {
+      // Allow a 2 MB image plus the multipart form fields and headers.
+      bodySizeLimit: "3mb",
+    },
+  },
   turbopack: {
     rules: {
       "*.css": {

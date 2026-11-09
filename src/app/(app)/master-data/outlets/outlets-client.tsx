@@ -37,7 +37,6 @@ const SORT_COLUMNS: SortColumn<OutletRow>[] = [
   { key: "name", getValue: (outlet) => outlet.name ?? null },
   { key: "type", getValue: (outlet) => outlet.outletTypeName ?? null },
   { key: "warehouse", getValue: (outlet) => outlet.warehouseName ?? null },
-  { key: "sales", getValue: (outlet) => outlet.salesName ?? null },
   { key: "status", getValue: (outlet) => outlet.status },
 ];
 
@@ -185,14 +184,6 @@ export function OutletsClient({
                   className="hidden lg:table-cell"
                 />
                 <SortableHead
-                  label="Tenaga penjualan"
-                  columnKey="sales"
-                  sortKey={sortKey}
-                  sortDir={sortDir}
-                  onSort={toggleSort}
-                  className="hidden lg:table-cell"
-                />
-                <SortableHead
                   label="Status"
                   columnKey="status"
                   sortKey={sortKey}
@@ -206,7 +197,7 @@ export function OutletsClient({
               {visible.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={6}
+                    colSpan={5}
                     className="text-muted-foreground h-24 text-center"
                   >
                     Tidak ada outlet yang cocok dengan filter ini.
@@ -238,9 +229,6 @@ export function OutletsClient({
                     </TableCell>
                     <TableCell className="text-muted-foreground hidden text-sm lg:table-cell">
                       {outlet.warehouseName ?? "Belum ditugaskan"}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground hidden text-sm lg:table-cell">
-                      {outlet.salesName ?? "Belum ditugaskan"}
                     </TableCell>
                     <TableCell>
                       <Badge

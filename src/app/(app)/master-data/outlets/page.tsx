@@ -3,7 +3,7 @@ import { and, asc, eq } from "drizzle-orm";
 
 import { PageHeader } from "@/components/page-header";
 import { db } from "@/db";
-import { notDeleted, outletTypes, outlets, users, warehouses } from "@/db/schema";
+import { notDeleted, outletTypes, outlets, warehouses } from "@/db/schema";
 import { requirePermission } from "@/lib/auth";
 
 import { OutletsClient } from "./outlets-client";
@@ -34,8 +34,6 @@ export default async function OutletsPage() {
         status: outlets.status,
         warehouseId: outlets.warehouseId,
         warehouseName: warehouses.name,
-        salesId: outlets.salesId,
-        salesName: users.name,
         outletTypeId: outlets.outletTypeId,
         outletTypeName: outletTypes.name,
       outletTypeColor: outletTypes.color,
@@ -50,7 +48,6 @@ export default async function OutletsPage() {
         warehouses,
         and(eq(outlets.warehouseId, warehouses.id), notDeleted(warehouses)),
       )
-      .leftJoin(users, and(eq(outlets.salesId, users.id), notDeleted(users)))
       .leftJoin(
         outletTypes,
         and(eq(outlets.outletTypeId, outletTypes.id), notDeleted(outletTypes)),
@@ -70,7 +67,7 @@ export default async function OutletsPage() {
     <div className="w-full">
       <PageHeader
         title="Outlet"
-        description="Toko pelanggan yang dikunjungi tenaga penjualan, lengkap dengan penugasan gudang dan tenaga penjualannya."
+        description="Toko pelanggan yang dikunjungi tenaga penjualan, beserta gudang yang melayaninya."
       />
       <OutletsClient
         outlets={outletsList}

@@ -3,7 +3,13 @@
 > Handoff notes for AI agents doing "vibe coding" on this repo.
 > Read this first; it captures the project context, conventions, and what has
 > already been built so you can continue without re-discovering everything.
-> Last updated: 2026-11-09 (**Outlet area filter and Sales PIC**) — outlet create/edit first selects a warehouse area, which filters warehouse options. Edit derives the area from the existing warehouse, including an option for legacy warehouses without an area. Changing area clears the warehouse selection and locks the shop address and map until a warehouse is selected again. PIC choices and server validation allow only active Sales users from the same organization.
+> Last updated: 2026-11-09 (**Outlet PIC removed**) — outlet master data no longer assigns Sales PIC. Removed the field and its validation from create/edit, detail queries, and the list. Sales assignment is reserved for routing. The **Outlet aktif** switch uses a compact inline control. Migration `0019_remove-outlet-sales-pic` applied and removed the legacy column, index, and FK.
+>
+> Previous: 2026-11-09 (**Outlet PIC by warehouse**) — create/edit filters eligible active Sales users by the selected warehouse using non-deleted `user_warehouse_assignments`. Changing warehouse clears the PIC if no longer eligible. Server validates the same warehouse assignment and organization on save.
+>
+> Previous: 2026-11-09 (**Required outlet details and upload limit**) — outlet create/edit requires name, outlet type, warehouse and active Sales PIC. Validation runs in the form and server actions. The form keeps entered values when a save is rejected. The Next.js Server Actions request limit is 3 MB to fit the existing 2 MB image allowance plus multipart fields.
+>
+> Previous: 2026-11-09 (**Outlet area filter and Sales PIC**) — outlet create/edit first selects a warehouse area, which filters warehouse options. Edit derives the area from the existing warehouse, including an option for legacy warehouses without an area. Changing area clears the warehouse selection and locks the shop address and map until a warehouse is selected again. PIC choices and server validation allow only active Sales users from the same organization.
 >
 > Previous: 2026-11-09 (**Outlet warehouse-first location**) — create/edit requires a non-deleted warehouse from the same organization. The selected warehouse coordinates provide the outlet map’s initial pin only; saved or user-selected outlet coordinates take priority and only those are persisted. Legacy outlets without a warehouse require assignment on the next save. The form no longer geocodes the organization’s region as the starting point.
 >
@@ -399,6 +405,8 @@ Defined in `src/db/schema/*` and re-exported from `index.ts`.
 6. Run `npm run db:generate -- --name <change>` then `npm run db:migrate`.
 
 ### Migration history
+
+- `0019_remove-outlet-sales-pic.sql` — drops the outlet Sales PIC column and its index and foreign key. **Applied.**
 
 - `0018_outlet-type-appearance.sql` — adds non-null `outlet_types.color` and `icon` with defaults for existing rows. **Applied.**
 

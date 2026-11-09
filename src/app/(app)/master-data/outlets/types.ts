@@ -14,11 +14,6 @@ export type WarehouseLocationOption = WarehouseOption & {
   longitude: number | null;
 };
 
-export type MemberOption = {
-  id: number;
-  name: string;
-};
-
 export type OutletTypeOption = {
   id: number;
   name: string;
@@ -31,8 +26,6 @@ export type OutletRow = {
   status: string;
   warehouseId: number | null;
   warehouseName: string | null;
-  salesId: number | null;
-  salesName: string | null;
   outletTypeId: number | null;
   outletTypeName: string | null;
   outletTypeColor: string | null;

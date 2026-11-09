@@ -9,7 +9,6 @@ import {
   notDeleted,
   outletTypes,
   outlets,
-  users,
   warehouses,
 } from "@/db/schema";
 import { can, getCurrentUser } from "@/lib/auth";
@@ -44,9 +43,8 @@ const optionalText = (max: number) =>
     .max(max)
     .transform((value) => (value ? value : null));
 
-const optionalId = z
-  .union([z.literal(""), z.coerce.number().int().positive()])
-  .transform((value) => (typeof value === "number" ? value : null));
+const requiredId = (message: string) =>
+  z.coerce.number({ error: message }).int({ error: message }).positive({ error: message });
 
 const optionalCoordinate = (min: number, max: number, label: string) =>
   z
@@ -68,12 +66,11 @@ const optionalEmail = z
   });
 
 const OutletSchema = z.object({
-  name: z.string().trim().min(2, "Gunakan minimal 2 karakter.").max(200),
+  name: z.string().trim().min(1, "Nama outlet wajib diisi.").min(2, "Gunakan minimal 2 karakter.").max(200),
   code: optionalText(80),
   status: z.enum(["active", "inactive"]),
-  warehouseId: z.coerce.number().int().positive({ message: "Pilih gudang terlebih dahulu." }),
-  salesId: optionalId,
-  outletTypeId: optionalId,
+  warehouseId: requiredId("Pilih gudang terlebih dahulu."),
+  outletTypeId: requiredId("Pilih tipe outlet."),
   ownerName: optionalText(150),
   ownerAddress: optionalText(2000),
   phone: optionalText(30),
@@ -103,7 +100,6 @@ function readForm(formData: FormData) {
     code: text(formData.get("code")),
     status: text(formData.get("status")),
     warehouseId: text(formData.get("warehouseId")),
-    salesId: text(formData.get("salesId")),
     outletTypeId: text(formData.get("outletTypeId")),
     ownerName: text(formData.get("ownerName")),
     ownerAddress: text(formData.get("ownerAddress")),
@@ -128,7 +124,7 @@ function readForm(formData: FormData) {
 }
 
 async function idBelongsToOrg(
-  table: typeof warehouses | typeof users | typeof outletTypes,
+  table: typeof warehouses | typeof outletTypes,
   id: number,
   organizationId: number,
 ) {
@@ -140,7 +136,6 @@ async function idBelongsToOrg(
         eq(table.id, id),
         eq(table.organizationId, organizationId),
         notDeleted(table),
-        table === users ? and(eq(users.userType, "sales"), eq(users.isActive, true)) : undefined,
       ),
     )
     .limit(1);
@@ -154,13 +149,7 @@ async function validateReferences(
   if (!(await idBelongsToOrg(warehouses, data.warehouseId, organizationId))) {
     return { warehouseId: "Pilih gudang yang valid." };
   }
-  if (data.salesId && !(await idBelongsToOrg(users, data.salesId, organizationId))) {
-    return { salesId: "Pilih pengguna Sales yang aktif." };
-  }
-  if (
-    data.outletTypeId &&
-    !(await idBelongsToOrg(outletTypes, data.outletTypeId, organizationId))
-  ) {
+  if (!(await idBelongsToOrg(outletTypes, data.outletTypeId, organizationId))) {
     return { outletTypeId: "Pilih tipe outlet yang valid." };
   }
   return null;

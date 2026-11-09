@@ -46,7 +46,6 @@ export default async function EditOutletPage({
         outlet={outlet}
         areas={options.areas}
         warehouses={options.warehouses}
-        members={options.members}
         outletTypes={options.outletTypes}
       />
     </div>
