@@ -162,6 +162,13 @@
       "when": 1794236198154,
       "tag": "0022_outlet-map-index",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1794238826139,
+      "tag": "0023_product-catalog-and-pricing",
+      "breakpoints": true
     }
   ]
 }

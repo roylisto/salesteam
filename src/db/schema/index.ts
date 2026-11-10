@@ -10,3 +10,5 @@ export * from "./payments";
 export * from "./system";
 export * from "./regions";
 export * from "./audit";
+export * from "./product-reference";
+export * from "./product-pricing";

@@ -14,6 +14,7 @@ import {
 import { primaryId, timestamps } from "./_shared";
 import { organizations } from "./organizations";
 import { users } from "./auth";
+import { brands, productTypes, productUnits } from "./product-reference";
 
 /** Area office / region grouping above warehouses. */
 export const areaOffices = pgTable(
@@ -189,6 +190,9 @@ export const products = pgTable(
     description: text("description"),
     imageUrl: text("image_url"),
     brand: varchar("brand", { length: 120 }),
+    brandId: bigint("brand_id", { mode: "number" }).references(() => brands.id),
+    productTypeId: bigint("product_type_id", { mode: "number" }).references(() => productTypes.id),
+    baseUnitId: bigint("base_unit_id", { mode: "number" }).references(() => productUnits.id),
     division: varchar("division", { length: 120 }),
     category: varchar("category", { length: 120 }),
     supplier: varchar("supplier", { length: 150 }),

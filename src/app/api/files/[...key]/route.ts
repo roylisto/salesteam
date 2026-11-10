@@ -19,7 +19,8 @@ export async function GET(
 
   const { key } = await params;
   const objectKey = key.map(decodeURIComponent).join("/");
-  const thumbnail = new URL(request.url).searchParams.get("thumbnail") === "outlet";
+  const variant = new URL(request.url).searchParams.get("thumbnail");
+  const thumbnail = variant === "outlet" || variant === "catalog";
 
   if (
     !objectKey ||
@@ -29,7 +30,8 @@ export async function GET(
     return new Response("Not found", { status: 404 });
   }
 
-  if (thumbnail && !objectKey.startsWith(`organizations/${context.organization.id}/outlets/`)) {
+  const thumbnailFolders = variant === "catalog" ? ["brands", "products"] : ["outlets"];
+  if (thumbnail && !thumbnailFolders.some((folder) => objectKey.startsWith(`organizations/${context.organization.id}/${folder}/`))) {
     return new Response("Not found", { status: 404 });
   }
 

@@ -3,7 +3,9 @@
 > Handoff notes for AI agents doing "vibe coding" on this repo.
 > Read this first; it captures the project context, conventions, and what has
 > already been built so you can continue without re-discovering everything.
-> Last updated: 2026-11-09 (**Server-side table queries**) — Area, Gudang, Tipe Gudang, Outlet, Tipe Outlet, Tim and audit-history tables now page, search, filter and sort in PostgreSQL where applicable. Peran cards also use server search/paging. Shared page sizes are 10/20/30/40/50, default 20, and query changes reset to the first page. Tim preserves reporting scope through a recursive SQL query; its separate hierarchy view still loads the tree. Audit history has its own URL keys for search, action and paging. Dialog links can load a selected row outside the current page. No migration.
+> Last updated: 2026-11-09 (**Product catalogue and sale pricing**) — Manajemen Produk includes Brand, Tipe Produk, Satuan, Daftar Produk and Harga Jual, each with tenant-scoped server pagination/search and audit history. New or updated SKUs require a brand, type, photo and base unit; alternative sale units have per-SKU decimal conversion factors. Unit definitions flag whether fractional quantities are allowed. Sale prices are unique per product sale unit, outlet type and scope. Effective price previews use the warehouse assigned to the outlet and resolve Warehouse → its Area → Global for the same outlet type and unit. Product deletion soft-deletes sale units and prices, and referenced master records cannot be deleted while in use. Legacy product columns were retained. No inventory or order UI was added. Migration `0023_product-catalog-and-pricing` applied.
+>
+> Previous: 2026-11-09 (**Server-side table queries**) — Area, Gudang, Tipe Gudang, Outlet, Tipe Outlet, Tim and audit-history tables now page, search, filter and sort in PostgreSQL where applicable. Peran cards also use server search/paging. Shared page sizes are 10/20/30/40/50, default 20, and query changes reset to the first page. Tim preserves reporting scope through a recursive SQL query; its separate hierarchy view still loads the tree. Audit history has its own URL keys for search, action and paging. Dialog links can load a selected row outside the current page. No migration.
 >
 > Previous: 2026-11-09 (**Outlet GIS zoom hierarchy**) — after Tampilkan Outlet, the map uses OSM basemap tiles with transparent BIG administrative boundary overlays. Zoom 0–6 shows full filtered province totals (including outlets with a province but no coordinates), 7–9 regency/city, 10–12 district, 13–14 village, and 15+ pins with the existing dense-view fallback. Lower levels use the visible viewport. Province totals and boundary image reuse a fixed national view request; finer boundary requests contain only public viewport coordinates. The province list shows totals even when a province has no point to place on the map.
 >
@@ -417,6 +419,8 @@ Defined in `src/db/schema/*` and re-exported from `index.ts`.
 6. Run `npm run db:generate -- --name <change>` then `npm run db:migrate`.
 
 ### Migration history
+
+- `0023_product-catalog-and-pricing.sql` — adds catalogue reference, sale unit and price tables and product reference fields. **Applied.**
 
 - `0022_outlet-map-index.sql` — indexes live outlet coordinates by organization for viewport queries. **Applied.**
 

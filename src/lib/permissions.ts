@@ -11,6 +11,10 @@
 export const PERMISSIONS = [
   { key: "dashboard", label: "Dasbor" },
   { key: "products", label: "Produk" },
+  { key: "product_brands", label: "Brand Produk" },
+  { key: "product_types", label: "Tipe Produk" },
+  { key: "product_units", label: "Satuan Produk" },
+  { key: "product_prices", label: "Harga Jual Produk" },
   { key: "outlets", label: "Outlet" },
   { key: "outlet_types", label: "Tipe Outlet" },
   { key: "warehouses", label: "Gudang" },

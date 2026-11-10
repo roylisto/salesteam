@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 
 import { Brand } from "@/components/brand";
+import { CATALOG_SECTIONS, catalogPath, type CatalogSection } from "@/lib/catalog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -73,6 +74,18 @@ const PRIMARY_NAV: NavItem[] = [
 ];
 
 const MASTER_NAV: NavItem[] = [
+  {
+    label: "Manajemen Produk",
+    href: catalogPath("list"),
+    icon: BoxesIcon,
+    permission: "products",
+    children: (["list", "brands", "types", "units", "prices"] as CatalogSection[]).map((section) => ({
+      label: CATALOG_SECTIONS[section].title,
+      href: catalogPath(section),
+      icon: section === "list" ? BoxesIcon : TagsIcon,
+      permission: CATALOG_SECTIONS[section].permission,
+    })),
+  },
   {
     label: "Manajemen Area",
     href: "/master-data/areas",
