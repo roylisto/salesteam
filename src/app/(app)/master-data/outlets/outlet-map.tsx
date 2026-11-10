@@ -45,7 +45,7 @@ function BoundaryLayer({ engine }: { engine: Engine }) {
 
     function cancelPending() {
       clearTimeout(timeout);
-      pending?.off().remove();
+      pending?.remove();
       pending = undefined;
       pendingUrl = "";
     }
@@ -76,10 +76,12 @@ function BoundaryLayer({ engine }: { engine: Engine }) {
         pending = overlay;
         pendingUrl = url;
         function fail() {
+          if (pending !== overlay) return;
           cancelPending();
           setUnavailable(true);
         }
-        overlay.once("load", () => {
+        function finish() {
+          if (pending !== overlay) return;
           clearTimeout(timeout);
           current?.remove();
           current = overlay;
@@ -87,8 +89,13 @@ function BoundaryLayer({ engine }: { engine: Engine }) {
           pendingUrl = "";
           lastUrl = url;
           setUnavailable(false);
-        });
+        }
+        overlay.once("load", finish);
         overlay.once("error", fail);
+        overlay.once("remove", () => {
+          // Keep Leaflet's own remove listener so it can detach map events.
+          overlay.off("load", finish).off("error", fail);
+        });
         timeout = setTimeout(fail, 30_000);
         overlay.addTo(map);
       }, 220);
@@ -99,7 +106,7 @@ function BoundaryLayer({ engine }: { engine: Engine }) {
     return () => {
       clearTimeout(timer);
       cancelPending();
-      current?.off().remove();
+      current?.remove();
       map.off("moveend resize", refresh);
     };
   }, [engine]);
