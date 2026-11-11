@@ -58,6 +58,7 @@ export function OutletMapControls({ types }: {
               <Label htmlFor={id}>{field.label}</Label>
               <Combobox
                 id={id}
+                className="block"
                 options={field.options.map(({ nama }) => ({ value: nama, label: nama }))}
                 value={field.value}
                 placeholder={field.loading ? "Memuat…" : `Semua ${field.label.toLowerCase()}`}
@@ -69,10 +70,13 @@ export function OutletMapControls({ types }: {
         })}
         <div className="space-y-1.5">
           <Label htmlFor="outlet-map-type">Tipe outlet</Label>
-          <Combobox id="outlet-map-type" options={typeOptions} value={type} placeholder="Semua tipe"
+          <Combobox id="outlet-map-type" className="block" options={typeOptions} value={type} placeholder="Semua tipe"
             onValueChange={setType} />
         </div>
-        <Button onClick={() => setApplied((current) => ({ filters, revision: (current?.revision ?? 0) + 1 }))}>
+        <Button
+          className="sm:-translate-y-1.5"
+          onClick={() => setApplied((current) => ({ filters, revision: (current?.revision ?? 0) + 1 }))}
+        >
           <MapPinIcon />
           Tampilkan Outlet
         </Button>

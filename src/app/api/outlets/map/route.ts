@@ -4,26 +4,28 @@ import { z } from "zod";
 import { db } from "@/db";
 import { notDeleted, outlets, outletTypes } from "@/db/schema";
 import { can, getCurrentUser } from "@/lib/auth";
-import { OUTLET_MAP_MAX_ZOOM, OUTLET_PIN_ZOOM, outletMapRegion, type OutletMapRegion, type OutletMapResult } from "@/lib/outlet-map";
+import { OUTLET_MAP_MAX_ZOOM, OUTLET_PIN_ZOOM, outletMapRegion, type OutletMapBounds, type OutletMapRegion, type OutletMapResult } from "@/lib/outlet-map";
 
 const PIN_LIMIT = 750;
 const GROUP_LIMIT = 8_000;
 const optionalId = z.coerce.number().int().positive().max(Number.MAX_SAFE_INTEGER).optional();
 const optionalRegion = z.string().trim().min(1).max(120).optional();
-const querySchema = z.object({
-  south: z.coerce.number().min(-90).max(90),
-  north: z.coerce.number().min(-90).max(90),
-  west: z.coerce.number().min(-180).max(180),
-  east: z.coerce.number().min(-180).max(180),
-  zoom: z.coerce.number().int().min(0).max(OUTLET_MAP_MAX_ZOOM),
+const filterSchema = z.object({
   type: optionalId,
   province: optionalRegion,
   city: optionalRegion,
   district: optionalRegion,
   village: optionalRegion,
+});
+const viewportSchema = filterSchema.extend({
+  south: z.coerce.number().min(-90).max(90),
+  north: z.coerce.number().min(-90).max(90),
+  west: z.coerce.number().min(-180).max(180),
+  east: z.coerce.number().min(-180).max(180),
+  zoom: z.coerce.number().int().min(0).max(OUTLET_MAP_MAX_ZOOM),
 }).refine(({ south, north, west, east }) => south < north && west < east);
 
-function reply(result: OutletMapResult) {
+function reply(result: OutletMapResult | { bounds: OutletMapBounds | null }) {
   return Response.json(result, { headers: { "Cache-Control": "private, no-store" } });
 }
 
@@ -32,10 +34,10 @@ export async function GET(request: Request) {
   if (!user) return new Response(null, { status: 401 });
   if (!can(user, "outlets")) return new Response(null, { status: 403 });
 
-  const query = querySchema.safeParse(Object.fromEntries(new URL(request.url).searchParams));
+  const params = Object.fromEntries(new URL(request.url).searchParams);
+  const query = filterSchema.safeParse(params);
   if (!query.success) return new Response(null, { status: 400 });
-  const { south, north, west, east, zoom, type } = query.data;
-  const mode = outletMapRegion(zoom);
+  const { type } = query.data;
   const organizationId = user.organization.id;
   const regionName = (key: OutletMapRegion) => sql<string | null>`upper(nullif(btrim(${outlets[key]}), ''))`;
   const regionFilters = (["province", "city", "district", "village"] as const).map((key) => {
@@ -47,19 +49,38 @@ export async function GET(request: Request) {
     select 1 from ${outletTypes} where ${outletTypes.id} = ${type}
       and ${outletTypes.organizationId} = ${organizationId} and ${notDeleted(outletTypes)}
   )`;
-  const filters = and(
+  const matchingOutlets = and(
     eq(outlets.organizationId, organizationId),
     notDeleted(outlets),
     ...regionFilters,
-    mode === "province" ? undefined : and(
-      isNotNull(outlets.latitude),
-      isNotNull(outlets.longitude),
-      between(outlets.latitude, south, north),
-      between(outlets.longitude, west, east),
-    ),
     type === undefined ? undefined : eq(outlets.outletTypeId, type),
     typeScope,
   );
+
+  const validPoint = and(between(outlets.latitude, -90, 90), between(outlets.longitude, -180, 180));
+  if (params.view === "bounds") {
+    const [extent] = await db.select({
+      south: sql<number | null>`min(${outlets.latitude})`,
+      west: sql<number | null>`min(${outlets.longitude})`,
+      north: sql<number | null>`max(${outlets.latitude})`,
+      east: sql<number | null>`max(${outlets.longitude})`,
+    }).from(outlets).where(and(matchingOutlets, validPoint));
+    const { south, west, north, east } = extent;
+    return reply({ bounds: south === null || west === null || north === null || east === null
+      ? null
+      : { south, west, north, east } });
+  }
+
+  const viewport = viewportSchema.safeParse(params);
+  if (!viewport.success) return new Response(null, { status: 400 });
+  const { south, north, west, east, zoom } = viewport.data;
+  const mode = outletMapRegion(zoom);
+  const filters = and(matchingOutlets, mode === "province" ? undefined : and(
+    isNotNull(outlets.latitude),
+    isNotNull(outlets.longitude),
+    between(outlets.latitude, south, north),
+    between(outlets.longitude, west, east),
+  ));
 
   if (zoom >= OUTLET_PIN_ZOOM) {
     const pins = await db.select({
@@ -85,7 +106,6 @@ export async function GET(request: Request) {
   const city = mode === "province" ? null : regionName("city");
   const district = mode === "province" || mode === "city" ? null : regionName("district");
   const village = mode === "village" ? regionName("village") : null;
-  const validPoint = and(between(outlets.latitude, -90, 90), between(outlets.longitude, -180, 180));
   const groups = await db.select({
     province,
     city: city ?? sql<null>`null`,

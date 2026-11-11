@@ -6,6 +6,13 @@ export const OUTLET_MAP_MAX_ZOOM = 19;
 
 export type OutletMapRegion = "province" | "city" | "district" | "village";
 
+export type OutletMapBounds = {
+  south: number;
+  west: number;
+  north: number;
+  east: number;
+};
+
 export const outletRegionLabels: Record<OutletMapRegion, string> = {
   province: "provinsi",
   city: "kabupaten/kota",

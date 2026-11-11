@@ -12,7 +12,7 @@ import { DEFAULT_OUTLET_COLOR, DEFAULT_OUTLET_ICON, OUTLET_ICON_KEYS } from "@/l
 import { BIG_BOUNDARY_SOURCE, outletBoundaryImageUrl } from "@/lib/outlet-boundaries";
 import {
   OUTLET_MAP_MAX_ZOOM, outletMapRegion, outletRegionLabels, outletRegionNextZoom,
-  type OutletMapGroup, type OutletMapPin, type OutletMapRegion, type OutletMapResult,
+  type OutletMapBounds, type OutletMapGroup, type OutletMapPin, type OutletMapRegion, type OutletMapResult,
 } from "@/lib/outlet-map";
 
 import type { OutletMapFilters } from "./outlet-map-controls";
@@ -261,6 +261,7 @@ function GroupLayer({ engine, groups, mode }: {
 export function OutletMap({ filters, revision }: { filters: OutletMapFilters; revision: number }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [engine, setEngine] = useState<Engine | null>(null);
+  const [hasViewport, setHasViewport] = useState(false);
   const [result, setResult] = useState<OutletMapResult | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   useActionProgress(status === "loading");
@@ -274,8 +275,7 @@ export function OutletMap({ filters, revision }: { filters: OutletMapFilters; re
       const container = containerRef.current;
       if (disposed || !container) return;
       const world = L.latLngBounds([-85, -180], [85, 180]);
-      map = L.map(container, { minZoom: 3, maxBounds: world, maxBoundsViscosity: 1 });
-      map.fitBounds(INDONESIA_BOUNDS, { maxZoom: 5 });
+      map = L.map(container, { minZoom: 0, maxBounds: world, maxBoundsViscosity: 1 });
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
         maxZoom: OUTLET_MAP_MAX_ZOOM,
@@ -294,7 +294,12 @@ export function OutletMap({ filters, revision }: { filters: OutletMapFilters; re
 
   useEffect(() => {
     if (!engine) return;
-    const { map } = engine;
+    const { map, L } = engine;
+    const fitRequest = new AbortController();
+    const filterQuery = new URLSearchParams();
+    for (const [key, value] of Object.entries(filters)) {
+      if (value) filterQuery.set(key, value);
+    }
     let request: AbortController | undefined;
     let timer: ReturnType<typeof setTimeout>;
     let lastQuery: string | undefined;
@@ -308,14 +313,15 @@ export function OutletMap({ filters, revision }: { filters: OutletMapFilters; re
         const bounds = map.getBounds();
         const zoom = map.getZoom();
         const national = outletMapRegion(zoom) === "province";
-        const query = new URLSearchParams({
+        const query = new URLSearchParams(filterQuery);
+        const viewport = {
           south: national ? "-90" : String(Math.max(-90, bounds.getSouth())),
           north: national ? "90" : String(Math.min(90, bounds.getNorth())),
           west: national ? "-180" : String(Math.max(-180, bounds.getWest())),
           east: national ? "180" : String(Math.min(180, bounds.getEast())),
           zoom: national ? "0" : String(zoom),
-        });
-        for (const [key, value] of Object.entries(filters)) if (value) query.set(key, value);
+        };
+        for (const [key, value] of Object.entries(viewport)) query.set(key, value);
         const key = query.toString();
         if (lastQuery === key) return;
         lastQuery = undefined;
@@ -336,9 +342,38 @@ export function OutletMap({ filters, revision }: { filters: OutletMapFilters; re
       }, 160);
     }
 
-    map.on("moveend resize", refresh);
-    refresh();
+    async function fitToOutlets() {
+      setResult(null);
+      setStatus("loading");
+      try {
+        const query = new URLSearchParams(filterQuery);
+        query.set("view", "bounds");
+        const response = await fetch(`/api/outlets/map?${query}`, { signal: fitRequest.signal });
+        if (!response.ok) throw new Error("Map bounds request failed");
+        const { bounds }: { bounds: OutletMapBounds | null } = await response.json();
+        if (fitRequest.signal.aborted) return;
+
+        map.invalidateSize({ pan: false });
+        if (bounds) {
+          map.fitBounds(L.latLngBounds(
+            [bounds.south, bounds.west],
+            [bounds.north, bounds.east],
+          ), { padding: [32, 32], maxZoom: 16, animate: false });
+        } else {
+          map.fitBounds(INDONESIA_BOUNDS, { maxZoom: 5, animate: false });
+        }
+        setHasViewport(true);
+        map.on("moveend resize", refresh);
+        refresh();
+      } catch {
+        if (!fitRequest.signal.aborted) setStatus("error");
+      }
+    }
+
+    const frame = requestAnimationFrame(() => void fitToOutlets());
     return () => {
+      cancelAnimationFrame(frame);
+      fitRequest.abort();
       clearTimeout(timer);
       request?.abort();
       map.off("moveend resize", refresh);
@@ -364,7 +399,7 @@ export function OutletMap({ filters, revision }: { filters: OutletMapFilters; re
       }}>Coba muat peta lagi</Button>}
       <div className="relative isolate overflow-hidden rounded-xl border">
         <div ref={containerRef} className="h-[65svh] min-h-96 w-full" role="region" aria-label="Peta lokasi outlet" />
-        {engine && <BoundaryLayer engine={engine} />}
+        {engine && hasViewport && <BoundaryLayer engine={engine} />}
         {engine && result?.mode === "pins" && result.pins.map((pin) => <OutletPin key={pin.id} engine={engine} pin={pin} />)}
         {engine && result && "groups" in result && (
           <GroupLayer engine={engine} groups={result.groups} mode={result.mode} />
