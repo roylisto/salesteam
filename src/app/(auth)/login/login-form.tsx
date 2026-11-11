@@ -30,7 +30,7 @@ export function LoginForm({ next }: { next?: string }) {
       <CardHeader>
         <CardTitle className="text-lg">Masuk</CardTitle>
         <CardDescription>
-          Gunakan email atau nama pengguna dan kata sandi akun Salesteam Anda.
+          Gunakan email atau nama pengguna dan kata sandi akun Anda.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

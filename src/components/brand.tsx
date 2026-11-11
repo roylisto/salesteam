@@ -1,6 +1,8 @@
 "use client";
 
 import { toFileSrc } from "@/lib/files";
+import Image from "next/image";
+import appIcon from "@/app/icon.png";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 
@@ -41,9 +43,7 @@ export function Brand({
           />
         </span>
       ) : (
-        <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-linear-to-br from-indigo-500 via-violet-500 to-fuchsia-500 text-sm font-semibold text-white shadow-sm">
-          {label.charAt(0).toUpperCase()}
-        </span>
+        <Image src={appIcon} alt="Salesteam" className="size-8 shrink-0 object-contain" sizes="32px" />
       )}
       <span className="font-heading truncate text-[0.95rem] font-semibold tracking-tight">
         {displayName}

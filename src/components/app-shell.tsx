@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useProgressTransition } from "@/components/action-progress";
@@ -23,6 +24,8 @@ import {
 } from "lucide-react";
 
 import { Brand } from "@/components/brand";
+import appIcon from "@/app/icon.png";
+import { version } from "../../package.json";
 import { CATALOG_SECTIONS, catalogPath, type CatalogSection } from "@/lib/catalog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -270,13 +273,13 @@ function SidebarContent({
   return (
     <div className={cn("text-sidebar-foreground flex h-full flex-col gap-6 p-3", collapsed && "px-2")}>
       <Brand
-        className="px-1.5 pt-1.5"
+        className="shrink-0 px-1.5 pt-1.5"
         name={user.organizationName}
         logoUrl={user.organizationLogoUrl}
         collapsed={collapsed}
       />
 
-      <div className="flex-1 space-y-6">
+      <div className="min-h-0 flex-1 space-y-6 overflow-y-auto">
         {primary.length > 0 ? (
           <NavLinks items={primary} onNavigate={onNavigate} collapsed={collapsed} />
         ) : null}
@@ -302,6 +305,18 @@ function SidebarContent({
             <NavLinks items={settings} onNavigate={onNavigate} collapsed={collapsed} />
           </div>
         ) : null}
+      </div>
+      <div
+        className={cn(
+          "text-sidebar-foreground/50 flex shrink-0 items-center gap-2 px-1.5 text-[11px]",
+          collapsed && "flex-col gap-1 px-0",
+        )}
+        title={`Salesteam v${version}`}
+      >
+        <Image src={appIcon} alt="Salesteam" className="size-5 shrink-0 object-contain" sizes="20px" />
+        <span className={cn("tabular-nums", collapsed && "text-[9px]")}>
+          {!collapsed && "Salesteam · "}v{version}
+        </span>
       </div>
     </div>
   );

@@ -1,3 +1,8 @@
+"use client";
+
+import Image from "next/image";
+import { usePathname } from "next/navigation";
+import appIcon from "@/app/icon.png";
 import { Brand } from "@/components/brand";
 
 export default function AuthLayout({
@@ -5,6 +10,8 @@ export default function AuthLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const isLogin = usePathname() === "/login";
+
   return (
     <div className="relative flex min-h-svh flex-col items-center justify-center overflow-hidden px-4 py-12">
       <div
@@ -12,7 +19,17 @@ export default function AuthLayout({
         className="pointer-events-none absolute -top-40 left-1/2 -z-10 size-144 -translate-x-1/2 rounded-full bg-linear-to-br from-indigo-500/15 via-violet-500/10 to-fuchsia-500/15 blur-3xl"
       />
       <div className="w-full max-w-sm space-y-6">
-        <Brand className="justify-center" />
+        {isLogin ? (
+          <Image
+            src={appIcon}
+            alt="Logo Salesteam"
+            className="mx-auto size-24 object-contain"
+            sizes="96px"
+            preload
+          />
+        ) : (
+          <Brand className="justify-center" />
+        )}
         {children}
       </div>
       <p className="text-muted-foreground mt-8 text-xs">
