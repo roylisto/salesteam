@@ -5,6 +5,7 @@ import {
   doublePrecision,
   index,
   integer,
+  numeric,
   pgTable,
   text,
   uniqueIndex,
@@ -281,7 +282,7 @@ export const warehouseStocks = pgTable(
     productId: bigint("product_id", { mode: "number" })
       .notNull()
       .references(() => products.id, { onDelete: "cascade" }),
-    quantity: integer("quantity").default(0).notNull(),
+    quantity: numeric("quantity", { precision: 20, scale: 6 }).default("0").notNull(),
     ...timestamps,
   },
   (table) => [

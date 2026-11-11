@@ -12,7 +12,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { CatalogSection } from "@/lib/catalog";
-import { formatCatalogPrice } from "@/lib/catalog-format";
 import type { TablePagination } from "@/lib/table-query";
 
 import { CatalogEditor } from "./catalog-editor";
@@ -25,14 +24,13 @@ function Thumbnail({ src }: { src: string | null }) {
     <span className="bg-muted text-muted-foreground flex size-10 shrink-0 items-center justify-center rounded-md"><BoxesIcon className="size-4" /></span>;
 }
 
-export function CatalogClient({ section, rows, pagination, editor, editorKey, missing, currency }: {
+export function CatalogClient({ section, rows, pagination, editor, editorKey, missing }: {
   section: CatalogSection;
-  rows: CatalogListRow[];
+  rows: (CatalogListRow & { priceLabel: string | null })[];
   pagination: TablePagination;
   editor: CatalogEditorData | null;
   editorKey?: string;
   missing: boolean;
-  currency: string;
 }) {
   const { q, setQuery, setPage, setPageSize, sortKey, sortDir, toggleSort, pending, startTransition } = useServerTable();
   const [modal, setModal] = useQueryState("edit", parseAsString.withOptions({ shallow: false, startTransition }));
@@ -72,7 +70,7 @@ export function CatalogClient({ section, rows, pagination, editor, editorKey, mi
               {hasImage && <Thumbnail key={row.image} src={row.image} />}{row.name}
             </button></TableCell>
             {hasDetail && <TableCell className="text-muted-foreground">{row.detail || "—"}</TableCell>}
-            <TableCell>{isPrice && row.amount !== null ? formatCatalogPrice(row.amount, currency) : <Badge variant={row.active ? "secondary" : "outline"}>{row.active ? "Aktif" : "Tidak aktif"}</Badge>}</TableCell>
+            <TableCell>{isPrice && row.priceLabel !== null ? row.priceLabel : <Badge variant={row.active ? "secondary" : "outline"}>{row.active ? "Aktif" : "Tidak aktif"}</Badge>}</TableCell>
             <TableCell><Button variant="ghost" size="icon" aria-label={`Ubah ${row.name}`} onClick={() => void setModal(String(row.id))}><EditIcon /></Button></TableCell>
           </TableRow>)}
         </TableBody>

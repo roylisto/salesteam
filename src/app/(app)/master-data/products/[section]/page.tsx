@@ -4,6 +4,7 @@ import { AuditTabs } from "@/components/audit-tabs";
 import { PageHeader } from "@/components/page-header";
 import { requirePermission } from "@/lib/auth";
 import { CATALOG_SECTIONS, catalogPath, isCatalogSection } from "@/lib/catalog";
+import { formatCatalogPrice } from "@/lib/catalog-format";
 
 import { CatalogClient } from "./catalog-client";
 import { loadCatalogEditor, loadCatalogList } from "./data";
@@ -32,7 +33,10 @@ export default async function CatalogPage({ params, searchParams }: {
   return <div className="w-full">
     <PageHeader title={title} description={section === "prices" ? "Kelola harga per satuan jual, tipe outlet, dan cakupan wilayah." : "Kelola katalog produk organisasi Anda."} />
     <AuditTabs path={path} label={title} />
-    <CatalogClient section={section} rows={rows} pagination={pagination} editor={editor}
-      editorKey={editorKey} missing={loadEditor && !editor} currency={user.organization.currency} />
+    <CatalogClient section={section} rows={rows.map((row) => ({
+      ...row,
+      priceLabel: row.amount === null ? null : formatCatalogPrice(row.amount, user.organization.currency),
+    }))} pagination={pagination} editor={editor}
+      editorKey={editorKey} missing={loadEditor && !editor} />
   </div>;
 }

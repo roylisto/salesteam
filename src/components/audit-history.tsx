@@ -23,7 +23,7 @@ const actionLabels: Record<string, string> = {
   reset_password: "Reset kata sandi",
 };
 
-export async function AuditHistoryPage({ user, module, path, title, params, label, map, mapLabel, memberIds = [] }: {
+export async function AuditHistoryPage({ user, module, path, title, params, label, map, mapLabel, memberIds = [], tabs }: {
   user: CurrentUser;
   module: AuditModule;
   path: string;
@@ -33,6 +33,7 @@ export async function AuditHistoryPage({ user, module, path, title, params, labe
   map?: boolean;
   mapLabel?: string;
   memberIds?: number[];
+  tabs?: React.ReactNode;
 }) {
   if (module !== "profile" && !can(user, module)) return null;
 
@@ -71,7 +72,7 @@ export async function AuditHistoryPage({ user, module, path, title, params, labe
   return (
     <div className="w-full">
       <PageHeader title={title} description="Riwayat tindakan pengguna pada halaman ini." />
-      <AuditTabs path={path} label={label} map={map} mapLabel={mapLabel} />
+      {tabs ?? <AuditTabs path={path} label={label} map={map} mapLabel={mapLabel} />}
       <AuditTableFilters actionLabels={actionLabels} />
       <div className="overflow-hidden rounded-xl border">
         <Table>

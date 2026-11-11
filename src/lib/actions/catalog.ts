@@ -7,7 +7,7 @@ import sharp from "sharp";
 import { z } from "zod";
 
 import { db, type Database } from "@/db";
-import { areaOffices, brands, notDeleted, outletTypes, productPrices, products, productSellUnits, productTypes, productUnits, warehouses } from "@/db/schema";
+import { areaOffices, brands, notDeleted, outletTypes, productPrices, products, productSellUnits, productTypes, productUnits, stockMovementItems, warehouseStocks, warehouses } from "@/db/schema";
 import { recordAudit } from "@/lib/audit";
 import { can, getCurrentUser } from "@/lib/auth";
 import { CATALOG_SECTIONS, catalogPath, isCatalogSection } from "@/lib/catalog";
@@ -89,6 +89,15 @@ export async function saveCatalog(section: string, form: FormData): Promise<{ ok
         const scope = and(eq(products.organizationId, organizationId), notDeleted(products));
         const [existing] = entityId ? await tx.select().from(products).where(and(scope, eq(products.id, entityId))) : [];
         if (entityId && !existing) return { error: "Produk tidak ditemukan." };
+        if (existing?.baseUnitId && existing.baseUnitId !== baseUnitId) {
+          const [used] = await tx.select({ id: stockMovementItems.id }).from(stockMovementItems).where(and(
+            eq(stockMovementItems.productId, existing.id), eq(stockMovementItems.organizationId, organizationId),
+          )).limit(1);
+          const [balance] = await tx.select({ id: warehouseStocks.id }).from(warehouseStocks).where(and(
+            eq(warehouseStocks.productId, existing.id), eq(warehouseStocks.organizationId, organizationId), notDeleted(warehouseStocks),
+          )).limit(1);
+          if (used || balance) return { error: "Satuan dasar produk sudah digunakan pada stok gudang dan tidak dapat diubah." };
+        }
         const [duplicate] = await tx.select({ id: products.id }).from(products).where(and(scope, eq(products.code, code)));
         if (duplicate && duplicate.id !== entityId) return { error: "SKU sudah digunakan." };
         const currentUnits = existing ? await tx.select().from(productSellUnits).where(and(
@@ -168,6 +177,13 @@ export async function saveCatalog(section: string, form: FormData): Promise<{ ok
       const scope = and(eq(table.organizationId, organizationId), notDeleted(table));
       const [existing] = entityId ? await tx.select({ id: table.id }).from(table).where(and(scope, eq(table.id, entityId))) : [];
       if (entityId && !existing) return { error: "Data tidak ditemukan." };
+      if (section === "units" && existing && form.get("allowFraction") !== "on") {
+        const [fractionalStock] = await tx.select({ id: warehouseStocks.id }).from(warehouseStocks)
+          .innerJoin(products, and(eq(warehouseStocks.productId, products.id), eq(products.organizationId, organizationId)))
+          .where(and(eq(warehouseStocks.organizationId, organizationId), notDeleted(warehouseStocks),
+            eq(products.baseUnitId, existing.id), sql`mod(${warehouseStocks.quantity}, 1) <> 0`)).limit(1);
+        if (fractionalStock) return { error: "Satuan masih digunakan pada saldo stok desimal. Opsi qty pecahan harus tetap aktif." };
+      }
       const [duplicate] = await tx.select({ id: table.id }).from(table).where(and(scope, eq(table.name, parsedName.data)));
       if (duplicate && duplicate.id !== entityId) return { error: "Nama sudah digunakan." };
       const imageUrl = section === "brands" ? await saveImage(form.get("image"), organizationId, "brands") : null;
@@ -207,6 +223,11 @@ export async function deleteCatalog(section: string, entityId: number): Promise<
       [entity] = await tx.update(productPrices).set({ deletedAt }).where(and(eq(productPrices.id, entityId), eq(productPrices.organizationId, orgId), notDeleted(productPrices)))
         .returning({ id: productPrices.id, name: sql<string>`'Harga ' || ${productPrices.amount}` });
     } else if (section === "list") {
+      const [balance] = await tx.select({ id: warehouseStocks.id }).from(warehouseStocks).where(and(
+        eq(warehouseStocks.organizationId, orgId), eq(warehouseStocks.productId, entityId),
+        notDeleted(warehouseStocks), sql`${warehouseStocks.quantity} <> 0`,
+      )).limit(1);
+      if (balance) return { error: "Produk masih memiliki stok gudang. Kosongkan stok sebelum menghapus produk." };
       [entity] = await tx.update(products).set({ deletedAt }).where(and(eq(products.id, entityId), eq(products.organizationId, orgId), notDeleted(products)))
         .returning({ id: products.id, name: products.name });
       if (entity) {

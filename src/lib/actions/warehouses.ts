@@ -5,8 +5,8 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { db } from "@/db";
-import { auditMutation } from "@/lib/audit";
-import { areaOffices, notDeleted, users, warehouses, warehouseTypes } from "@/db/schema";
+import { auditMutation, recordAudit } from "@/lib/audit";
+import { areaOffices, notDeleted, users, warehouses, warehouseStocks, warehouseTypes } from "@/db/schema";
 import { can, getCurrentUser } from "@/lib/auth";
 import { toFieldErrors } from "@/lib/validation";
 
@@ -336,15 +336,26 @@ export async function deleteWarehouse(formData: FormData): Promise<WarehouseForm
 
   if (!warehouse) return { error: "Gudang tidak ditemukan." };
 
-  // Soft delete: outlets and stock rows keep their references.
-  const saved = await auditMutation(manager, "warehouses", "delete", (tx) =>
-    tx
+  const result = await db.transaction(async (tx) => {
+    const [current] = await tx.select({ id: warehouses.id }).from(warehouses).where(and(
+      eq(warehouses.id, id), eq(warehouses.organizationId, manager.organization.id), notDeleted(warehouses),
+    )).for("update");
+    if (!current) return { error: "Gudang tidak ditemukan." };
+    const [balance] = await tx.select({ id: warehouseStocks.id }).from(warehouseStocks).where(and(
+      eq(warehouseStocks.warehouseId, id), eq(warehouseStocks.organizationId, manager.organization.id),
+      notDeleted(warehouseStocks), ne(warehouseStocks.quantity, "0"),
+    )).limit(1);
+    if (balance) return { error: "Gudang masih memiliki stok. Pindahkan seluruh stok sebelum menghapus gudang." };
+    const [saved] = await tx
       .update(warehouses)
       .set({ deletedAt: new Date() })
       .where(and(eq(warehouses.id, id), eq(warehouses.organizationId, manager.organization.id), notDeleted(warehouses)))
-      .returning({ id: warehouses.id, name: warehouses.name }),
-  );
-  if (!saved) return { error: "Gudang tidak ditemukan." };
+      .returning({ id: warehouses.id, name: warehouses.name });
+    if (!saved) return { error: "Gudang tidak ditemukan." };
+    await recordAudit(tx, manager, "warehouses", "delete", saved);
+    return { ok: true as const };
+  });
+  if (result.error) return result;
 
   revalidatePath(WAREHOUSES_PATH);
   return { ok: true };

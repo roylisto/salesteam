@@ -176,6 +176,13 @@
       "when": 1794361103327,
       "tag": "0024_detach-outlets-from-warehouses",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1794408095736,
+      "tag": "0025_warehouse-stock-management",
+      "breakpoints": true
     }
   ]
 }

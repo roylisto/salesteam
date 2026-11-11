@@ -25,7 +25,7 @@ import {
 
 import { Brand } from "@/components/brand";
 import appIcon from "@/app/icon.png";
-import { version } from "../../package.json";
+import appPackage from "../../package.json";
 import { CATALOG_SECTIONS, catalogPath, type CatalogSection } from "@/lib/catalog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -78,6 +78,16 @@ const PRIMARY_NAV: NavItem[] = [
 ];
 
 const MASTER_NAV: NavItem[] = [
+  {
+    label: "Manajemen Stok",
+    href: "/inventory/warehouses",
+    icon: BoxesIcon,
+    permission: "warehouse_movements",
+    children: [
+      { label: "Stok Gudang", href: "/inventory/warehouses", icon: WarehouseIcon, permission: "warehouse_movements" },
+      { label: "Stok Sales", href: "/inventory/sales", icon: UsersIcon, permission: "sales_inventory" },
+    ],
+  },
   {
     label: "Manajemen Produk",
     href: catalogPath("list"),
@@ -311,11 +321,11 @@ function SidebarContent({
           "text-sidebar-foreground/50 flex shrink-0 items-center gap-2 px-1.5 text-[11px]",
           collapsed && "flex-col gap-1 px-0",
         )}
-        title={`Salesteam v${version}`}
+        title={`Salesteam v${appPackage.version}`}
       >
         <Image src={appIcon} alt="Salesteam" className="size-5 shrink-0 object-contain" sizes="20px" />
         <span className={cn("tabular-nums", collapsed && "text-[9px]")}>
-          {!collapsed && "Salesteam · "}v{version}
+          {!collapsed && "Salesteam · "}v{appPackage.version}
         </span>
       </div>
     </div>

@@ -4,6 +4,7 @@ import {
   date,
   index,
   integer,
+  numeric,
   pgTable,
   uniqueIndex,
   varchar,
@@ -34,6 +35,8 @@ export const stockMovements = pgTable(
     transactionDate: date("transaction_date"),
     transactionNumber: varchar("transaction_number", { length: 60 }),
     referenceNumber: varchar("reference_number", { length: 60 }),
+    requestKey: varchar("request_key", { length: 36 }),
+    requestHash: varchar("request_hash", { length: 64 }),
     sourceWarehouseId: bigint("source_warehouse_id", { mode: "number" }).references(
       () => warehouses.id,
       { onDelete: "set null" },
@@ -56,6 +59,7 @@ export const stockMovements = pgTable(
     ),
     index("stock_movements_status_idx").on(table.status),
     index("stock_movements_transaction_number_idx").on(table.transactionNumber),
+    uniqueIndex("stock_movements_request_unique").on(table.organizationId, table.requestKey),
   ],
 );
 
@@ -73,7 +77,7 @@ export const stockMovementItems = pgTable(
     productId: bigint("product_id", { mode: "number" })
       .notNull()
       .references(() => products.id, { onDelete: "cascade" }),
-    quantity: integer("quantity").default(0).notNull(),
+    quantity: numeric("quantity", { precision: 20, scale: 6 }).default("0").notNull(),
     ...timestamps,
   },
   (table) => [
