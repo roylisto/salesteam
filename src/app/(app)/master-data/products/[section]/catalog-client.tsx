@@ -15,7 +15,7 @@ import type { CatalogSection } from "@/lib/catalog";
 import { formatCatalogPrice } from "@/lib/catalog-format";
 import type { TablePagination } from "@/lib/table-query";
 
-import { CatalogEditor, CatalogPricePreview } from "./catalog-editor";
+import { CatalogEditor } from "./catalog-editor";
 import type { CatalogEditorData, CatalogListRow } from "./data";
 
 function Thumbnail({ src }: { src: string | null }) {
@@ -53,7 +53,6 @@ export function CatalogClient({ section, rows, pagination, editor, editorKey, mi
           : <><option value="">Semua status</option><option value="active">Aktif</option><option value="inactive">Tidak aktif</option></>}
       </select>
       <div className="ml-auto flex flex-wrap gap-2">
-        {isPrice && <Button variant="outline" disabled={pending} onClick={() => void setModal("preview")}>Pratinjau harga efektif</Button>}
         <Button disabled={pending} onClick={() => void setModal("new")}><PlusIcon /> Tambah</Button>
       </div>
     </div>
@@ -81,6 +80,5 @@ export function CatalogClient({ section, rows, pagination, editor, editorKey, mi
     </div>
     <ServerTablePagination pagination={pagination} pending={pending} onPage={setPage} onPageSize={setPageSize} />
     {editor && modal === editorKey && <CatalogEditor key={editorKey} data={editor} onClose={close} />}
-    {isPrice && modal === "preview" && <CatalogPricePreview currency={currency} onClose={close} />}
   </div>;
 }

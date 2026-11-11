@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useProgressTransition } from "@/components/action-progress";
 import Link from "next/link";
 import Image from "next/image";
@@ -25,8 +25,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-import { ALL_WAREHOUSES, NO_WAREHOUSE, outletListParsers } from "./list-query";
-import type { OutletListRow, WarehouseOption } from "./types";
+import { outletListParsers } from "./list-query";
+import type { OutletListRow } from "./types";
 
 const STATUS_FILTER_OPTIONS = [
   { value: "all", label: "Semua status" },
@@ -61,15 +61,13 @@ function OutletThumbnail({ outlet }: { outlet: OutletListRow }) {
 
 export function OutletsClient({
   outlets,
-  warehouses,
   pagination,
 }: {
   outlets: OutletListRow[];
-  warehouses: WarehouseOption[];
   pagination: TablePagination;
 }) {
   const [pending, startTransition] = useProgressTransition();
-  const [{ q, warehouse, status, sort, dir }, setQuery] = useQueryStates(outletListParsers, {
+  const [{ q, status, sort, dir }, setQuery] = useQueryStates(outletListParsers, {
     shallow: false,
     startTransition,
   });
@@ -77,21 +75,9 @@ export function OutletsClient({
   const setPageSize = (pageSize: PageSize) => void setQuery({ pageSize, page: 1 });
 
   function toggleSort(key: string) {
-    if (key !== "name" && key !== "type" && key !== "warehouse" && key !== "status") return;
+    if (key !== "name" && key !== "type" && key !== "status") return;
     void setQuery({ sort: key, dir: sort === key && dir === "asc" ? "desc" : "asc", page: 1 });
   }
-
-  const warehouseFilterOptions = useMemo(
-    () => [
-      { value: ALL_WAREHOUSES, label: "Semua gudang" },
-      { value: NO_WAREHOUSE, label: "Tanpa gudang" },
-      ...warehouses.map((warehouse) => ({
-        value: String(warehouse.id),
-        label: warehouse.name,
-      })),
-    ],
-    [warehouses],
-  );
 
   return (
     <div className="space-y-3">
@@ -107,17 +93,6 @@ export function OutletsClient({
             className="pl-8"
           />
         </div>
-
-        <Combobox
-          options={warehouseFilterOptions}
-          value={warehouse}
-          onValueChange={(value) => {
-            void setQuery({ warehouse: value || ALL_WAREHOUSES, page: 1 });
-          }}
-          placeholder="Semua gudang"
-          emptyText="Gudang tidak ditemukan."
-          className="w-44"
-        />
 
         <Combobox
           options={STATUS_FILTER_OPTIONS}
@@ -164,14 +139,6 @@ export function OutletsClient({
                   className="hidden md:table-cell"
                 />
                 <SortableHead
-                  label="Gudang"
-                  columnKey="warehouse"
-                  sortKey={sort}
-                  sortDir={dir}
-                  onSort={toggleSort}
-                  className="hidden lg:table-cell"
-                />
-                <SortableHead
                   label="Status"
                   columnKey="status"
                   sortKey={sort}
@@ -185,7 +152,7 @@ export function OutletsClient({
               {outlets.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={5}
+                    colSpan={4}
                     className="text-muted-foreground h-24 text-center"
                   >
                     Tidak ada outlet yang cocok dengan filter ini.
@@ -214,9 +181,6 @@ export function OutletsClient({
                     </TableCell>
                     <TableCell className="text-muted-foreground hidden text-sm md:table-cell">
                       {outlet.outletTypeName ?? "—"}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground hidden text-sm lg:table-cell">
-                      {outlet.warehouseName ?? "Belum ditugaskan"}
                     </TableCell>
                     <TableCell>
                       <Badge

@@ -1,59 +1,17 @@
 import { and, asc, eq } from "drizzle-orm";
 
 import { db } from "@/db";
-import { areaOffices, notDeleted, outletTypes, outlets, warehouses } from "@/db/schema";
+import { notDeleted, outletTypes, outlets } from "@/db/schema";
 
-import type {
-  AreaOption,
-  OutletDetail,
-  OutletTypeOption,
-  WarehouseLocationOption,
-} from "./types";
+import type { OutletDetail, OutletTypeOption } from "./types";
 
-/** Area / warehouse / outlet-type choices shared by the create and edit pages. */
-export async function loadFormOptions(organizationId: number): Promise<{
-  areas: AreaOption[];
-  warehouses: WarehouseLocationOption[];
-  outletTypes: OutletTypeOption[];
-}> {
-  const [areaRows, warehouseRows, outletTypeRows] = await Promise.all([
-    db
-      .select({ id: areaOffices.id, name: areaOffices.name })
-      .from(areaOffices)
-      .where(and(eq(areaOffices.organizationId, organizationId), notDeleted(areaOffices)))
-      .orderBy(asc(areaOffices.name)),
-    db
-      .select({
-        id: warehouses.id,
-        name: warehouses.name,
-        areaOfficeId: areaOffices.id,
-        latitude: warehouses.latitude,
-        longitude: warehouses.longitude,
-      })
-      .from(warehouses)
-      .leftJoin(areaOffices, and(
-        eq(warehouses.areaOfficeId, areaOffices.id),
-        eq(areaOffices.organizationId, organizationId),
-        notDeleted(areaOffices),
-      ))
-      .where(
-        and(eq(warehouses.organizationId, organizationId), notDeleted(warehouses)),
-      )
-      .orderBy(asc(warehouses.name)),
-    db
-      .select({ id: outletTypes.id, name: outletTypes.name })
-      .from(outletTypes)
-      .where(
-        and(eq(outletTypes.organizationId, organizationId), notDeleted(outletTypes)),
-      )
-      .orderBy(asc(outletTypes.name)),
-  ]);
+export async function loadFormOptions(organizationId: number): Promise<{ outletTypes: OutletTypeOption[] }> {
+  const types = await db.select({ id: outletTypes.id, name: outletTypes.name })
+    .from(outletTypes)
+    .where(and(eq(outletTypes.organizationId, organizationId), notDeleted(outletTypes)))
+    .orderBy(asc(outletTypes.name));
 
-  return {
-    areas: areaRows,
-    warehouses: warehouseRows,
-    outletTypes: outletTypeRows,
-  };
+  return { outletTypes: types };
 }
 
 /** Full outlet record for the edit page, or null when it is missing/deleted. */
@@ -67,8 +25,6 @@ export async function loadOutletDetail(
       code: outlets.code,
       name: outlets.name,
       status: outlets.status,
-      warehouseId: outlets.warehouseId,
-      warehouseName: warehouses.name,
       outletTypeId: outlets.outletTypeId,
       outletTypeName: outletTypes.name,
       outletTypeColor: outletTypes.color,
@@ -97,10 +53,6 @@ export async function loadOutletDetail(
       updatedAt: outlets.updatedAt,
     })
     .from(outlets)
-    .leftJoin(
-      warehouses,
-      and(eq(outlets.warehouseId, warehouses.id), notDeleted(warehouses)),
-    )
     .leftJoin(
       outletTypes,
       and(eq(outlets.outletTypeId, outletTypes.id), notDeleted(outletTypes)),

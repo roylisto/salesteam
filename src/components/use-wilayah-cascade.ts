@@ -45,6 +45,9 @@ export function normalizeWilayahName(name: string) {
 export function findSimilarWilayah(options: WilayahOption[], targetName: string) {
   if (!targetName) return undefined;
 
+  const exact = options.find((option) => option.nama === targetName);
+  if (exact) return exact;
+
   const normalizedTarget = normalizeWilayahName(targetName);
   if (!normalizedTarget) return undefined;
 
@@ -134,6 +137,7 @@ export function useWilayahCascade(initial: WilayahValue = EMPTY) {
       const found = findSimilarWilayah(provinces, province);
       if (!found) {
         if (!ignore) {
+          setLoadingRegency(false);
           setRegencies([]);
           setDistricts([]);
           setVillages([]);
@@ -178,6 +182,7 @@ export function useWilayahCascade(initial: WilayahValue = EMPTY) {
       const found = findSimilarWilayah(regencies, regency);
       if (!found) {
         if (!ignore) {
+          setLoadingDistrict(false);
           setDistricts([]);
           setVillages([]);
           if (regencies.length > 0) {
@@ -218,6 +223,7 @@ export function useWilayahCascade(initial: WilayahValue = EMPTY) {
       const found = findSimilarWilayah(districts, district);
       if (!found) {
         if (!ignore) {
+          setLoadingVillage(false);
           setVillages([]);
           if (districts.length > 0) {
             setDistrictState("");

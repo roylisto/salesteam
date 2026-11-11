@@ -35,14 +35,7 @@ import {
 } from "@/lib/actions/outlets";
 import { toFileSrc } from "@/lib/files";
 
-import type {
-  AreaOption,
-  OutletDetail,
-  OutletTypeOption,
-  WarehouseLocationOption,
-} from "./types";
-
-const NO_AREA = "no-area";
+import type { OutletDetail, OutletTypeOption } from "./types";
 
 const LIST_PATH = "/master-data/outlets";
 
@@ -53,13 +46,9 @@ function FieldError({ message }: { message?: string }) {
 
 export function OutletForm({
   outlet,
-  areas,
-  warehouses,
   outletTypes,
 }: {
   outlet: OutletDetail | null;
-  areas: AreaOption[];
-  warehouses: WarehouseLocationOption[];
   outletTypes: OutletTypeOption[];
 }) {
   const router = useRouter();
@@ -70,11 +59,6 @@ export function OutletForm({
   const isEdit = outlet !== null;
 
   const [active, setActive] = useState(outlet ? outlet.status === "active" : true);
-  const initialWarehouse = warehouses.find((warehouse) => warehouse.id === outlet?.warehouseId);
-  const [warehouseId, setWarehouseId] = useState(initialWarehouse ? String(initialWarehouse.id) : "");
-  const [areaFilter, setAreaFilter] = useState(
-    initialWarehouse ? String(initialWarehouse.areaOfficeId ?? NO_AREA) : "",
-  );
   const [outletTypeId, setOutletTypeId] = useState(
     outlet?.outletTypeId ? String(outlet.outletTypeId) : "",
   );
@@ -86,15 +70,6 @@ export function OutletForm({
   );
   const [postalCode, setPostalCode] = useState(outlet?.postalCode ?? "");
   const [address, setAddress] = useState(outlet?.address ?? "");
-
-  const selectedWarehouse = warehouses.find((warehouse) => String(warehouse.id) === warehouseId);
-  const hasOutletLocation = latitude !== "" && longitude !== "";
-  const warehouseLatitude = selectedWarehouse?.latitude;
-  const warehouseLongitude = selectedWarehouse?.longitude;
-  const hasWarehouseLocation = warehouseLatitude != null && warehouseLongitude != null &&
-    Number.isFinite(warehouseLatitude) && Number.isFinite(warehouseLongitude) &&
-    Math.abs(warehouseLatitude) <= 90 && Math.abs(warehouseLongitude) <= 180;
-  const useWarehouseLocation = !hasOutletLocation && hasWarehouseLocation;
 
   const {
     province,
@@ -143,19 +118,6 @@ export function OutletForm({
     () => outletTypes.map((type) => ({ value: String(type.id), label: type.name })),
     [outletTypes],
   );
-  const areaOptions = useMemo(() => {
-    const options = areas.map((area) => ({ value: String(area.id), label: area.name }));
-    if (warehouses.some((warehouse) => warehouse.areaOfficeId === null)) {
-      options.push({ value: NO_AREA, label: "Tanpa area" });
-    }
-    return options;
-  }, [areas, warehouses]);
-  const warehouseOptions = useMemo(
-    () => warehouses
-      .filter((warehouse) => String(warehouse.areaOfficeId ?? NO_AREA) === areaFilter)
-      .map((warehouse) => ({ value: String(warehouse.id), label: warehouse.name })),
-    [areaFilter, warehouses],
-  );
   const provinceOptions = useMemo(
     () => provinces.map((item) => ({ value: item.nama, label: item.nama })),
     [provinces],
@@ -199,21 +161,14 @@ export function OutletForm({
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
-    const requiredFields = [
-      { key: "outletTypeId", id: "outlet-type", valid: outletTypes.some((type) => String(type.id) === outletTypeId), message: "Pilih tipe outlet." },
-      { key: "warehouseId", id: "outlet-warehouse", valid: Boolean(selectedWarehouse), message: "Pilih gudang terlebih dahulu." },
-    ];
-    const missing = requiredFields.filter((field) => !field.valid);
-    if (missing.length) {
-      setErrors(Object.fromEntries(missing.map((field) => [field.key, field.message])));
-      const firstId = missing[0].key === "warehouseId" && !areaFilter ? "outlet-area" : missing[0].id;
-      document.getElementById(firstId)?.focus();
+    if (!outletTypes.some((type) => String(type.id) === outletTypeId)) {
+      setErrors({ outletTypeId: "Pilih tipe outlet." });
+      document.getElementById("outlet-type")?.focus();
       return;
     }
 
     if (outlet) formData.set("id", String(outlet.id));
     formData.set("status", active ? "active" : "inactive");
-    formData.set("warehouseId", warehouseId);
     formData.set("outletTypeId", outletTypeId);
     formData.set("latitude", latitude);
     formData.set("longitude", longitude);
@@ -355,39 +310,6 @@ export function OutletForm({
             <FieldError message={errors.outletTypeId} />
           </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="outlet-area">Area gudang</Label>
-            <Combobox
-              id="outlet-area"
-              options={areaOptions}
-              value={areaFilter}
-              onValueChange={(value) => {
-                if (value === areaFilter) return;
-                setAreaFilter(value);
-                setWarehouseId("");
-              }}
-              placeholder="Pilih area"
-              emptyText="Area tidak ditemukan."
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <Label htmlFor="outlet-warehouse">Gudang (wajib)</Label>
-            <Combobox
-              id="outlet-warehouse"
-              options={warehouseOptions}
-              value={warehouseId}
-              onValueChange={(value) => {
-                setWarehouseId(value);
-                if (value) setErrors((previous) => ({ ...previous, warehouseId: "" }));
-              }}
-              disabled={!areaFilter}
-              placeholder={areaFilter ? "Pilih gudang" : "Pilih area terlebih dahulu"}
-              emptyText="Tidak ada gudang di area ini."
-            />
-            <FieldError message={errors.warehouseId} />
-          </div>
-
           <div className="inline-flex w-fit items-center gap-2 self-end rounded-lg border px-3 py-2">
             <Switch id="outlet-active" checked={active} onCheckedChange={setActive} />
             <Label htmlFor="outlet-active">Outlet aktif</Label>
@@ -466,34 +388,18 @@ export function OutletForm({
         </CardHeader>
         <CardContent className="grid gap-6 lg:grid-cols-[500px_1fr]">
           <div className="lg:sticky lg:top-4 lg:self-start">
-            {useWarehouseLocation && (
-              <p className="text-muted-foreground mb-2 text-sm">
-                Peta dimulai dari lokasi gudang. Klik atau geser pin untuk menetapkan lokasi outlet.
-              </p>
-            )}
-            {selectedWarehouse && !hasWarehouseLocation && !hasOutletLocation && (
-              <p className="text-muted-foreground mb-2 text-sm">
-                Gudang ini belum memiliki titik lokasi. Cari alamat atau pilih titik outlet di peta.
-              </p>
-            )}
-            {!selectedWarehouse ? (
-              <p className="text-muted-foreground rounded-lg border p-4 text-sm">
-                Pilih gudang untuk membuka peta lokasi outlet.
-              </p>
-            ) : (
-              <LocationPicker
-                latitude={useWarehouseLocation ? String(warehouseLatitude) : latitude}
-                longitude={useWarehouseLocation ? String(warehouseLongitude) : longitude}
-                onChange={(nextLatitude, nextLongitude) => {
-                  setLatitude(nextLatitude);
-                  setLongitude(nextLongitude);
-                }}
-                onAddressChange={handleAddressChange}
-                compact
-              />
-            )}
+            <LocationPicker
+              latitude={latitude}
+              longitude={longitude}
+              onChange={(nextLatitude, nextLongitude) => {
+                setLatitude(nextLatitude);
+                setLongitude(nextLongitude);
+              }}
+              onAddressChange={handleAddressChange}
+              compact
+            />
           </div>
-          <fieldset disabled={!selectedWarehouse} aria-label="Alamat toko" className="min-w-0 space-y-4 lg:max-h-[calc(100vh-200px)] lg:overflow-y-auto lg:pr-2">
+          <fieldset aria-label="Alamat toko" className="min-w-0 space-y-4 lg:max-h-[calc(100vh-200px)] lg:overflow-y-auto lg:pr-2">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label>Provinsi</Label>
@@ -503,7 +409,7 @@ export function OutletForm({
                   onValueChange={setProvince}
                   placeholder={loadingProvince ? "Memuat..." : "Cari provinsi"}
                   emptyText="Provinsi tidak ditemukan."
-                  disabled={!selectedWarehouse || loadingProvince}
+                  disabled={loadingProvince}
                 />
                 <FieldError message={errors.province} />
               </div>
@@ -516,7 +422,7 @@ export function OutletForm({
                   onValueChange={setRegency}
                   placeholder={loadingRegency ? "Memuat..." : "Cari kabupaten/kota"}
                   emptyText="Kabupaten/kota tidak ditemukan."
-                  disabled={!selectedWarehouse || loadingRegency}
+                  disabled={loadingRegency}
                 />
                 <FieldError message={errors.city} />
               </div>
@@ -529,7 +435,7 @@ export function OutletForm({
                   onValueChange={setDistrict}
                   placeholder={loadingDistrict ? "Memuat..." : "Cari kecamatan"}
                   emptyText="Kecamatan tidak ditemukan."
-                  disabled={!selectedWarehouse || loadingDistrict}
+                  disabled={loadingDistrict}
                 />
                 <FieldError message={errors.district} />
               </div>
@@ -542,7 +448,7 @@ export function OutletForm({
                   onValueChange={setVillage}
                   placeholder={loadingVillage ? "Memuat..." : "Cari kelurahan/desa"}
                   emptyText="Kelurahan/desa tidak ditemukan."
-                  disabled={!selectedWarehouse || loadingVillage}
+                  disabled={loadingVillage}
                 />
                 <FieldError message={errors.village} />
               </div>

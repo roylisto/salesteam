@@ -169,6 +169,13 @@
       "when": 1794238826139,
       "tag": "0023_product-catalog-and-pricing",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1794361103327,
+      "tag": "0024_detach-outlets-from-warehouses",
+      "breakpoints": true
     }
   ]
 }

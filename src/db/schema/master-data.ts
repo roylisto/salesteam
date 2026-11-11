@@ -225,10 +225,6 @@ export const outlets = pgTable(
     organizationId: bigint("organization_id", { mode: "number" })
       .notNull()
       .references(() => organizations.id, { onDelete: "cascade" }),
-    warehouseId: bigint("warehouse_id", { mode: "number" }).references(
-      () => warehouses.id,
-      { onDelete: "set null" },
-    ),
     outletTypeId: bigint("outlet_type_id", { mode: "number" }).references(
       () => outletTypes.id,
       { onDelete: "set null" },
@@ -263,7 +259,6 @@ export const outlets = pgTable(
       .on(table.organizationId, table.code)
       .where(isNull(table.deletedAt)),
     index("outlets_organization_idx").on(table.organizationId),
-    index("outlets_warehouse_idx").on(table.warehouseId),
     index("outlets_outlet_type_idx").on(table.outletTypeId),
     index("outlets_name_idx").on(table.name),
     index("outlets_org_map_coordinates_idx")

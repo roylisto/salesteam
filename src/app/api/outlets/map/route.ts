@@ -2,22 +2,25 @@ import { and, between, count, eq, isNotNull, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { db } from "@/db";
-import { areaOffices, notDeleted, outlets, outletTypes, warehouses } from "@/db/schema";
+import { notDeleted, outlets, outletTypes } from "@/db/schema";
 import { can, getCurrentUser } from "@/lib/auth";
 import { OUTLET_MAP_MAX_ZOOM, OUTLET_PIN_ZOOM, outletMapRegion, type OutletMapRegion, type OutletMapResult } from "@/lib/outlet-map";
 
 const PIN_LIMIT = 750;
 const GROUP_LIMIT = 8_000;
 const optionalId = z.coerce.number().int().positive().max(Number.MAX_SAFE_INTEGER).optional();
+const optionalRegion = z.string().trim().min(1).max(120).optional();
 const querySchema = z.object({
   south: z.coerce.number().min(-90).max(90),
   north: z.coerce.number().min(-90).max(90),
   west: z.coerce.number().min(-180).max(180),
   east: z.coerce.number().min(-180).max(180),
   zoom: z.coerce.number().int().min(0).max(OUTLET_MAP_MAX_ZOOM),
-  area: optionalId,
-  warehouse: optionalId,
   type: optionalId,
+  province: optionalRegion,
+  city: optionalRegion,
+  district: optionalRegion,
+  village: optionalRegion,
 }).refine(({ south, north, west, east }) => south < north && west < east);
 
 function reply(result: OutletMapResult) {
@@ -31,21 +34,15 @@ export async function GET(request: Request) {
 
   const query = querySchema.safeParse(Object.fromEntries(new URL(request.url).searchParams));
   if (!query.success) return new Response(null, { status: 400 });
-  const { south, north, west, east, zoom, area, warehouse, type } = query.data;
+  const { south, north, west, east, zoom, type } = query.data;
   const mode = outletMapRegion(zoom);
   const organizationId = user.organization.id;
+  const regionName = (key: OutletMapRegion) => sql<string | null>`upper(nullif(btrim(${outlets[key]}), ''))`;
+  const regionFilters = (["province", "city", "district", "village"] as const).map((key) => {
+    const name = query.data[key];
+    return name === undefined ? undefined : sql`${regionName(key)} = upper(${name})`;
+  });
 
-  const warehouseScope = db.select({ id: warehouses.id }).from(warehouses)
-    .where(and(
-      eq(warehouses.organizationId, organizationId),
-      notDeleted(warehouses),
-      warehouse === undefined ? undefined : eq(warehouses.id, warehouse),
-      area === undefined ? undefined : eq(warehouses.areaOfficeId, area),
-      area === undefined ? undefined : sql`exists (
-        select 1 from ${areaOffices} where ${areaOffices.id} = ${area}
-          and ${areaOffices.organizationId} = ${organizationId} and ${notDeleted(areaOffices)}
-      )`,
-    ));
   const typeScope = type === undefined ? undefined : sql`exists (
     select 1 from ${outletTypes} where ${outletTypes.id} = ${type}
       and ${outletTypes.organizationId} = ${organizationId} and ${notDeleted(outletTypes)}
@@ -53,13 +50,13 @@ export async function GET(request: Request) {
   const filters = and(
     eq(outlets.organizationId, organizationId),
     notDeleted(outlets),
+    ...regionFilters,
     mode === "province" ? undefined : and(
       isNotNull(outlets.latitude),
       isNotNull(outlets.longitude),
       between(outlets.latitude, south, north),
       between(outlets.longitude, west, east),
     ),
-    area === undefined && warehouse === undefined ? undefined : sql`${outlets.warehouseId} in (${warehouseScope})`,
     type === undefined ? undefined : eq(outlets.outletTypeId, type),
     typeScope,
   );
@@ -84,7 +81,6 @@ export async function GET(request: Request) {
     if (pins.length <= PIN_LIMIT) return reply({ mode: "pins", pins });
   }
 
-  const regionName = (key: OutletMapRegion) => sql<string | null>`upper(nullif(btrim(${outlets[key]}), ''))`;
   const province = regionName("province");
   const city = mode === "province" ? null : regionName("city");
   const district = mode === "province" || mode === "city" ? null : regionName("district");

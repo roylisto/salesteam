@@ -10,7 +10,6 @@ import {
   notDeleted,
   outletTypes,
   outlets,
-  warehouses,
 } from "@/db/schema";
 import { can, getCurrentUser } from "@/lib/auth";
 import { uploadToS3 } from "@/lib/storage";
@@ -70,7 +69,6 @@ const OutletSchema = z.object({
   name: z.string().trim().min(1, "Nama outlet wajib diisi.").min(2, "Gunakan minimal 2 karakter.").max(200),
   code: optionalText(80),
   status: z.enum(["active", "inactive"]),
-  warehouseId: requiredId("Pilih gudang terlebih dahulu."),
   outletTypeId: requiredId("Pilih tipe outlet."),
   ownerName: optionalText(150),
   ownerAddress: optionalText(2000),
@@ -100,7 +98,6 @@ function readForm(formData: FormData) {
     name: text(formData.get("name")),
     code: text(formData.get("code")),
     status: text(formData.get("status")),
-    warehouseId: text(formData.get("warehouseId")),
     outletTypeId: text(formData.get("outletTypeId")),
     ownerName: text(formData.get("ownerName")),
     ownerAddress: text(formData.get("ownerAddress")),
@@ -124,19 +121,18 @@ function readForm(formData: FormData) {
   });
 }
 
-async function idBelongsToOrg(
-  table: typeof warehouses | typeof outletTypes,
+async function outletTypeBelongsToOrg(
   id: number,
   organizationId: number,
 ) {
   const [row] = await db
-    .select({ id: table.id })
-    .from(table)
+    .select({ id: outletTypes.id })
+    .from(outletTypes)
     .where(
       and(
-        eq(table.id, id),
-        eq(table.organizationId, organizationId),
-        notDeleted(table),
+        eq(outletTypes.id, id),
+        eq(outletTypes.organizationId, organizationId),
+        notDeleted(outletTypes),
       ),
     )
     .limit(1);
@@ -147,10 +143,7 @@ async function validateReferences(
   data: OutletInput,
   organizationId: number,
 ): Promise<Record<string, string> | null> {
-  if (!(await idBelongsToOrg(warehouses, data.warehouseId, organizationId))) {
-    return { warehouseId: "Pilih gudang yang valid." };
-  }
-  if (!(await idBelongsToOrg(outletTypes, data.outletTypeId, organizationId))) {
+  if (!(await outletTypeBelongsToOrg(data.outletTypeId, organizationId))) {
     return { outletTypeId: "Pilih tipe outlet yang valid." };
   }
   return null;

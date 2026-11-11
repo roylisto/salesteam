@@ -7,11 +7,10 @@ import sharp from "sharp";
 import { z } from "zod";
 
 import { db, type Database } from "@/db";
-import { areaOffices, brands, notDeleted, outlets, outletTypes, productPrices, products, productSellUnits, productTypes, productUnits, warehouses } from "@/db/schema";
+import { areaOffices, brands, notDeleted, outletTypes, productPrices, products, productSellUnits, productTypes, productUnits, warehouses } from "@/db/schema";
 import { recordAudit } from "@/lib/audit";
 import { can, getCurrentUser } from "@/lib/auth";
 import { CATALOG_SECTIONS, catalogPath, isCatalogSection } from "@/lib/catalog";
-import { resolveOutletProductPrice } from "@/lib/product-price";
 import { uploadToS3 } from "@/lib/storage";
 import { tableSearch } from "@/lib/table-sql";
 
@@ -238,25 +237,12 @@ export async function deleteCatalog(section: string, entityId: number): Promise<
   return result;
 }
 
-export async function previewCatalogPrice(sellUnitId: number, outletId: number) {
-  const user = await getCurrentUser();
-  if (!user || !can(user, "product_prices") || !id.safeParse(sellUnitId).success || !id.safeParse(outletId).success) return null;
-  return resolveOutletProductPrice(user.organization.id, sellUnitId, outletId);
-}
-
-export async function searchCatalogOptions(kind: "outlet" | "sell-unit", query: string) {
+export async function searchCatalogSellUnits(query: string) {
   const user = await getCurrentUser();
   if (!user || !can(user, "product_prices") || typeof query !== "string") return [];
   const needle = query.trim().slice(0, 100);
   if (needle.length < 2) return [];
   const orgId = user.organization.id;
-  if (kind === "outlet") {
-    const rows = await db.select({ id: outlets.id, label: sql<string>`concat_ws(' · ', ${outlets.name}, ${outlets.code}, ${outlets.city})` })
-      .from(outlets).where(and(eq(outlets.organizationId, orgId), notDeleted(outlets), tableSearch(needle, outlets.name, outlets.code)))
-      .orderBy(asc(outlets.name), asc(outlets.id)).limit(25);
-    return rows.map((row) => ({ value: String(row.id), label: row.label || `Outlet #${row.id}` }));
-  }
-  if (kind !== "sell-unit") return [];
   const rows = await db.select({ id: productSellUnits.id, label: sql<string>`concat_ws(' · ', ${products.name}, ${products.code}, ${productUnits.name})` })
     .from(productSellUnits)
     .innerJoin(products, and(eq(productSellUnits.productId, products.id), eq(products.organizationId, orgId), notDeleted(products)))

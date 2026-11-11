@@ -12,9 +12,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { deleteCatalog, previewCatalogPrice, saveCatalog, searchCatalogOptions } from "@/lib/actions/catalog";
+import { deleteCatalog, saveCatalog, searchCatalogSellUnits } from "@/lib/actions/catalog";
 import { CATALOG_SECTIONS, type CatalogOption } from "@/lib/catalog";
-import { formatCatalogPrice } from "@/lib/catalog-format";
 import { toFileSrc } from "@/lib/files";
 
 import type { CatalogEditorData } from "./data";
@@ -31,8 +30,8 @@ function Choice({ label, name, options, defaultValue, disabled }: {
   </div>;
 }
 
-function Lookup({ kind, label, selection, onChange }: {
-  kind: "outlet" | "sell-unit"; label: string; selection: CatalogOption | null; onChange: (option: CatalogOption | null) => void;
+function SellUnitLookup({ label, selection, onChange }: {
+  label: string; selection: CatalogOption | null; onChange: (option: CatalogOption | null) => void;
 }) {
   const fieldId = useId();
   const [query, setQuery] = useState("");
@@ -42,12 +41,12 @@ function Lookup({ kind, label, selection, onChange }: {
     if (query.trim().length < 2) return;
     let disposed = false;
     const timer = setTimeout(() => {
-      void searchCatalogOptions(kind, query).then((rows) => {
+      void searchCatalogSellUnits(query).then((rows) => {
         if (!disposed) { setResults(rows); setFailed(false); }
       }).catch(() => { if (!disposed) setFailed(true); });
     }, 300);
     return () => { disposed = true; clearTimeout(timer); };
-  }, [kind, query]);
+  }, [query]);
   const options = selection && !results.some((row) => row.value === selection.value) ? [selection, ...results] : results;
   return <div className="space-y-1.5">
     <Label htmlFor={`${fieldId}-search`}>Cari {label.toLowerCase()}</Label>
@@ -121,7 +120,7 @@ function PriceFields({ data }: { data: Extract<CatalogEditorData, { section: "pr
   const [selection, setSelection] = useState<CatalogOption | null>(price ? { value: String(price.sellUnitId), label: price.label } : null);
   const [scope, setScope] = useState(price?.warehouseId ? "warehouse" : price?.areaId ? "area" : "global");
   return <>
-    <Lookup kind="sell-unit" label="Produk dan satuan jual" selection={selection} onChange={setSelection} />
+    <SellUnitLookup label="Produk dan satuan jual" selection={selection} onChange={setSelection} />
     <input type="hidden" name="sellUnitId" value={selection?.value ?? ""} />
     <Choice label="Tipe outlet" name="outletTypeId" options={typeOptions} defaultValue={String(price?.outletTypeId ?? "")} />
     <div className="space-y-1.5"><Label htmlFor="price-scope">Cakupan harga</Label>
@@ -187,32 +186,6 @@ export function CatalogEditor({ data, onClose }: { data: CatalogEditorData; onCl
           {!confirmDelete && <Button type="submit" disabled={pending}>{pending ? "Menyimpan…" : "Simpan"}</Button>}
         </DialogFooter>
       </form>
-    </DialogContent>
-  </Dialog>;
-}
-
-export function CatalogPricePreview({ currency, onClose }: { currency: string; onClose: () => void }) {
-  const [unit, setUnit] = useState<CatalogOption | null>(null);
-  const [outlet, setOutlet] = useState<CatalogOption | null>(null);
-  const [result, setResult] = useState<{ key: string; text: string } | null>(null);
-  const [pending, startTransition] = useProgressTransition();
-  const key = `${unit?.value}:${outlet?.value}`;
-  return <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
-    <DialogContent className="max-h-[90svh] overflow-y-auto">
-      <DialogHeader><DialogTitle>Pratinjau harga efektif</DialogTitle>
-        <DialogDescription>Harga dihitung dari tipe outlet dan gudang yang terdaftar pada outlet.</DialogDescription></DialogHeader>
-      <Lookup kind="sell-unit" label="Produk dan satuan jual" selection={unit} onChange={setUnit} />
-      <Lookup kind="outlet" label="Outlet" selection={outlet} onChange={setOutlet} />
-      {result?.key === key && <p role="status" className="rounded-lg border p-3 text-sm font-medium">{result.text}</p>}
-      <DialogFooter><Button disabled={!unit || !outlet || pending} onClick={() => {
-        if (!unit || !outlet) return;
-        startTransition(async () => {
-          try {
-            const price = await previewCatalogPrice(Number(unit.value), Number(outlet.value));
-            setResult({ key, text: price ? `${formatCatalogPrice(price.amount, currency)} · ${price.source}` : "Harga belum diatur." });
-          } catch { setResult({ key, text: "Harga gagal diperiksa. Coba lagi." }); }
-        });
-      }}>{pending ? "Memeriksa…" : "Periksa harga"}</Button></DialogFooter>
     </DialogContent>
   </Dialog>;
 }

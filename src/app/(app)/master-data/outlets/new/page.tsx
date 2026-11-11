@@ -29,8 +29,6 @@ export default async function NewOutletPage() {
       </PageHeader>
       <OutletForm
         outlet={null}
-        areas={options.areas}
-        warehouses={options.warehouses}
         outletTypes={options.outletTypes}
       />
     </div>

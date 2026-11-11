@@ -1,19 +1,3 @@
-export type WarehouseOption = {
-  id: number;
-  name: string;
-};
-
-export type AreaOption = {
-  id: number;
-  name: string;
-};
-
-export type WarehouseLocationOption = WarehouseOption & {
-  areaOfficeId: number | null;
-  latitude: number | null;
-  longitude: number | null;
-};
-
 export type OutletTypeOption = {
   id: number;
   name: string;
@@ -24,8 +8,6 @@ export type OutletRow = {
   code: string | null;
   name: string | null;
   status: string;
-  warehouseId: number | null;
-  warehouseName: string | null;
   outletTypeId: number | null;
   outletTypeName: string | null;
   outletTypeColor: string | null;
@@ -58,6 +40,6 @@ export type OutletDetail = OutletRow & {
 };
 
 export type OutletListRow = Pick<OutletRow,
-  "id" | "code" | "name" | "status" | "warehouseName" |
+  "id" | "code" | "name" | "status" |
   "outletTypeName" | "outletTypeColor" | "outletTypeIcon"
 > & { thumbnailSrc: string | null };

@@ -44,8 +44,6 @@ export default async function EditOutletPage({
       </PageHeader>
       <OutletForm
         outlet={outlet}
-        areas={options.areas}
-        warehouses={options.warehouses}
         outletTypes={options.outletTypes}
       />
     </div>
