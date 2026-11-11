@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useProgressTransition } from "@/components/action-progress";
 import { debounce, useQueryStates } from "nuqs";
 
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,7 @@ import { auditTableParsers, type TablePagination } from "@/lib/table-query";
 import { ServerTablePagination } from "./server-table-pagination";
 
 function useAuditTable() {
-  const [pending, startTransition] = useTransition();
+  const [pending, startTransition] = useProgressTransition();
   const [params, setParams] = useQueryStates(auditTableParsers, { shallow: false, startTransition });
   return { params, setParams, pending };
 }

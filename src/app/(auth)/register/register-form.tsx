@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useActionState } from "react";
+import { useActionProgress } from "@/components/action-progress";
 import { Loader2Icon } from "lucide-react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -30,6 +31,7 @@ export function RegisterForm() {
     OnboardingFormState,
     FormData
   >(createOrganization, undefined);
+  useActionProgress(pending);
 
   const errors = state?.fieldErrors ?? {};
 

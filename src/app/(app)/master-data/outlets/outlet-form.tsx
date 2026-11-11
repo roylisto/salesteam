@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useRef, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useMemo, useRef, useState } from "react";
+import { useProgressTransition } from "@/components/action-progress";
+import { useRouter } from "nextjs-toploader/app";
 import {
   ImagePlusIcon,
   Loader2Icon,
@@ -63,7 +64,7 @@ export function OutletForm({
 }) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
-  const [pending, startTransition] = useTransition();
+  const [pending, startTransition] = useProgressTransition();
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const isEdit = outlet !== null;
@@ -233,7 +234,7 @@ export function OutletForm({
         setErrors({});
         if (outlet) {
           setImageRemoved(false);
-          router.refresh();
+          startTransition(() => router.refresh());
         } else {
           router.push(LIST_PATH);
         }
@@ -257,7 +258,7 @@ export function OutletForm({
       if (result?.ok) {
         toast.success("Outlet dihapus.");
         router.push(LIST_PATH);
-        router.refresh();
+        startTransition(() => router.refresh());
         return;
       }
 

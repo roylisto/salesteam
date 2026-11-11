@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useActionProgress } from "@/components/action-progress";
 import { createPortal } from "react-dom";
 import type { ImageOverlay, LeafletMouseEvent, Map as LeafletMap } from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -262,6 +263,7 @@ export function OutletMap({ filters, revision }: { filters: OutletMapFilters; re
   const [engine, setEngine] = useState<Engine | null>(null);
   const [result, setResult] = useState<OutletMapResult | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
+  useActionProgress(status === "loading");
   const [mapAttempt, setMapAttempt] = useState(0);
 
   useEffect(() => {

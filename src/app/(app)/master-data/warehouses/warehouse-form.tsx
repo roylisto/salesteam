@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import { useProgressTransition } from "@/components/action-progress";
+import { useRouter } from "nextjs-toploader/app";
 import { Loader2Icon, Trash2Icon } from "lucide-react";
 import { toast } from "sonner";
 
@@ -59,7 +60,7 @@ export function WarehouseForm({
   defaultLocation?: { latitude: number; longitude: number } | null;
 }) {
   const router = useRouter();
-  const [pending, startTransition] = useTransition();
+  const [pending, startTransition] = useProgressTransition();
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [confirming, setConfirming] = useState(false);
 
@@ -200,7 +201,7 @@ export function WarehouseForm({
         toast.success(warehouse ? "Gudang tersimpan." : "Gudang dibuat.");
         setErrors({});
         if (warehouse) {
-          router.refresh();
+          startTransition(() => router.refresh());
         } else {
           router.push(LIST_PATH);
         }
@@ -224,7 +225,7 @@ export function WarehouseForm({
       if (result?.ok) {
         toast.success("Gudang dihapus.");
         router.push(LIST_PATH);
-        router.refresh();
+        startTransition(() => router.refresh());
         return;
       }
 

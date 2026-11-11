@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useRef, useState, useTransition } from "react";
+import { useRouter } from "nextjs-toploader/app";
+import { useRef, useState } from "react";
+import { useProgressTransition } from "@/components/action-progress";
 import { Loader2Icon } from "lucide-react";
 import { toast } from "sonner";
 
@@ -53,7 +54,7 @@ export function MemberEditForm({
 }) {
   const router = useRouter();
   const passwordForm = useRef<HTMLFormElement>(null);
-  const [pending, startTransition] = useTransition();
+  const [pending, startTransition] = useProgressTransition();
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [roleId, setRoleId] = useState(
     member.isOrganizationOwner || member.isAdmin
@@ -123,7 +124,7 @@ export function MemberEditForm({
       if (result?.ok) {
         toast.success("Anggota diperbarui.");
         setErrors({});
-        router.refresh();
+        startTransition(() => router.refresh());
         return;
       }
 
@@ -160,7 +161,7 @@ export function MemberEditForm({
       if (result?.ok) {
         toast.success("Anggota dihapus.");
         router.push(LIST_PATH);
-        router.refresh();
+        startTransition(() => router.refresh());
         return;
       }
 

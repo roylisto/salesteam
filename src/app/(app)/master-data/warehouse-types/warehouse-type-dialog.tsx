@@ -1,7 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useState } from "react";
+import { useProgressTransition } from "@/components/action-progress";
 import { Loader2Icon } from "lucide-react";
 import { toast } from "sonner";
 
@@ -44,7 +45,7 @@ export function WarehouseTypeDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const router = useRouter();
-  const [pending, startTransition] = useTransition();
+  const [pending, startTransition] = useProgressTransition();
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [confirming, setConfirming] = useState(false);
   const [active, setActive] = useState(warehouseType?.isActive ?? true);
@@ -68,7 +69,7 @@ export function WarehouseTypeDialog({
         toast.success(warehouseType ? "Tipe gudang diperbarui." : "Tipe gudang dibuat.");
         setErrors({});
         onOpenChange(false);
-        router.refresh();
+        startTransition(() => router.refresh());
         return;
       }
 
@@ -89,7 +90,7 @@ export function WarehouseTypeDialog({
       if (result?.ok) {
         toast.success("Tipe gudang dihapus.");
         onOpenChange(false);
-        router.refresh();
+        startTransition(() => router.refresh());
         return;
       }
 

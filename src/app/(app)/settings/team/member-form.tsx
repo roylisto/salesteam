@@ -1,7 +1,8 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useRouter } from "nextjs-toploader/app";
+import { useState } from "react";
+import { useProgressTransition } from "@/components/action-progress";
 import { CheckIcon, CopyIcon, Loader2Icon } from "lucide-react";
 import { toast } from "sonner";
 
@@ -48,7 +49,7 @@ export function MemberForm({
   isAdmin: boolean;
 }) {
   const router = useRouter();
-  const [pending, startTransition] = useTransition();
+  const [pending, startTransition] = useProgressTransition();
   const [errors, setErrors] = useState<Record<string, string>>({});
   // Admin is a virtual system role; only pre-selected when the actor may grant it.
   const [roleId, setRoleId] = useState<string>(
@@ -150,7 +151,7 @@ export function MemberForm({
           toast.warning(
             "Anggota ditambahkan, tetapi email tidak dapat dikirim. Bagikan kata sandi di bawah ini.",
           );
-        router.refresh();
+        startTransition(() => router.refresh());
         return;
       }
 

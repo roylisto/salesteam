@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState } from "react";
+import { useProgressTransition } from "@/components/action-progress";
 import Link from "next/link";
 import Image from "next/image";
 import { OutletTypeSymbol } from "@/components/outlet-type-symbol";
@@ -67,7 +68,7 @@ export function OutletsClient({
   warehouses: WarehouseOption[];
   pagination: TablePagination;
 }) {
-  const [pending, startTransition] = useTransition();
+  const [pending, startTransition] = useProgressTransition();
   const [{ q, warehouse, status, sort, dir }, setQuery] = useQueryStates(outletListParsers, {
     shallow: false,
     startTransition,

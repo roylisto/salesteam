@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { useActionProgress, useProgressTransition } from "@/components/action-progress";
 import { Loader2Icon, LocateFixedIcon, SearchIcon } from "lucide-react";
 
 import "leaflet/dist/leaflet.css";
@@ -225,6 +226,8 @@ export function LocationPicker({
 
   const [query, setQuery] = useState("");
   const [busy, setBusy] = useState(false);
+  useActionProgress(busy);
+  const [, startAddressLookup] = useProgressTransition();
   const [message, setMessage] = useState<string | null>(null);
   const [mapReady, setMapReady] = useState(false);
 
@@ -280,14 +283,14 @@ export function LocationPicker({
 
       if (hasCoords) place(startLat, startLng, false);
 
-      map.on("click", async (event: LeafletMouseEvent) => {
+      map.on("click", (event: LeafletMouseEvent) => {
         const lat = event.latlng.lat;
         const lng = event.latlng.lng;
         place(lat, lng, false);
         onChangeRef.current(lat.toFixed(7), lng.toFixed(7));
 
         // Reverse geocode to get address components
-        await syncAddressRef.current(lat, lng);
+        startAddressLookup(() => syncAddressRef.current(lat, lng));
       });
 
       mapRef.current = map;
@@ -302,7 +305,7 @@ export function LocationPicker({
       markerRef.current = null;
       focusRef.current = null;
     };
-  }, [latitude, longitude]);
+  }, [latitude, longitude, startAddressLookup]);
 
   const handleSearch = useCallback(async () => {
     const value = query.trim();

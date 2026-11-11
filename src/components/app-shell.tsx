@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useState } from "react";
+import { useProgressTransition } from "@/components/action-progress";
 import {
   BoxesIcon,
   Building2Icon,
@@ -307,7 +308,7 @@ function SidebarContent({
 }
 
 function UserMenu({ user }: { user: ShellUser }) {
-  const [pending, startTransition] = useTransition();
+  const [pending, startTransition] = useProgressTransition();
 
   return (
     <DropdownMenu>

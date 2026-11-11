@@ -1,6 +1,7 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useRef, useState } from "react";
+import { useProgressTransition } from "@/components/action-progress";
 import { Loader2Icon } from "lucide-react";
 import { toast } from "sonner";
 
@@ -47,7 +48,7 @@ export function ProfileForm({
 }) {
   const formRef = useRef<HTMLFormElement>(null);
   const [state, setState] = useState<AuthFormState>();
-  const [pending, startTransition] = useTransition();
+  const [pending, startTransition] = useProgressTransition();
 
   function handleSubmit(formData: FormData) {
     startTransition(async () => {

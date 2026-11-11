@@ -1,7 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useState } from "react";
+import { useProgressTransition } from "@/components/action-progress";
 import { Loader2Icon } from "lucide-react";
 import { toast } from "sonner";
 
@@ -44,7 +45,7 @@ export function OutletTypeDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const router = useRouter();
-  const [pending, startTransition] = useTransition();
+  const [pending, startTransition] = useProgressTransition();
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [confirming, setConfirming] = useState(false);
   const [active, setActive] = useState(outletType?.isActive ?? true);
@@ -69,7 +70,7 @@ export function OutletTypeDialog({
         toast.success(outletType ? "Tipe outlet diperbarui." : "Tipe outlet dibuat.");
         setErrors({});
         onOpenChange(false);
-        router.refresh();
+        startTransition(() => router.refresh());
         return;
       }
 
@@ -90,7 +91,7 @@ export function OutletTypeDialog({
       if (result?.ok) {
         toast.success("Tipe outlet dihapus.");
         onOpenChange(false);
-        router.refresh();
+        startTransition(() => router.refresh());
         return;
       }
 

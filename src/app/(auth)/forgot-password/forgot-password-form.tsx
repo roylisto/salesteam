@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useTransition } from "react";
+import { useState } from "react";
+import { useProgressTransition } from "@/components/action-progress";
 import { Loader2Icon } from "lucide-react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -31,8 +32,8 @@ export function ForgotPasswordForm() {
   const [email, setEmail] = useState("");
   const [requestState, setRequestState] = useState<PasswordResetState>();
   const [resetState, setResetState] = useState<PasswordResetState>();
-  const [requestPending, startRequest] = useTransition();
-  const [resetPending, startReset] = useTransition();
+  const [requestPending, startRequest] = useProgressTransition();
+  const [resetPending, startReset] = useProgressTransition();
 
   function handleRequest(formData: FormData) {
     startRequest(async () => {

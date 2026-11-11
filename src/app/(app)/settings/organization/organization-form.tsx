@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useRef, useState, useTransition } from "react";
+import { useMemo, useRef, useState } from "react";
+import { useProgressTransition } from "@/components/action-progress";
 import { Building2Icon, ImagePlusIcon, Loader2Icon, Trash2Icon } from "lucide-react";
 import { toast } from "sonner";
 
@@ -32,7 +33,7 @@ export function OrganizationForm({
   organization: OrganizationDetail;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
-  const [pending, startTransition] = useTransition();
+  const [pending, startTransition] = useProgressTransition();
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [currency, setCurrency] = useState(organization.currency);
   const [timezone, setTimezone] = useState(organization.timezone);

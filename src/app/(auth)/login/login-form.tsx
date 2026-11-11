@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useActionState } from "react";
+import { useActionProgress } from "@/components/action-progress";
 import { Loader2Icon } from "lucide-react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -22,6 +23,7 @@ export function LoginForm({ next }: { next?: string }) {
     login,
     undefined,
   );
+  useActionProgress(pending);
 
   return (
     <Card className="ring-foreground/5 shadow-sm">

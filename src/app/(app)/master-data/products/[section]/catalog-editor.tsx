@@ -1,7 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useId, useState, useTransition } from "react";
+import { useEffect, useId, useState } from "react";
+import { useProgressTransition } from "@/components/action-progress";
 import { PlusIcon, Trash2Icon } from "lucide-react";
 import { toast } from "sonner";
 
@@ -138,7 +139,7 @@ export function CatalogEditor({ data, onClose }: { data: CatalogEditorData; onCl
   const entity = data.section === "list" ? data.product : data.section === "prices" ? data.price : data.reference;
   const [error, setError] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [pending, startTransition] = useTransition();
+  const [pending, startTransition] = useProgressTransition();
 
   function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -194,7 +195,7 @@ export function CatalogPricePreview({ currency, onClose }: { currency: string; o
   const [unit, setUnit] = useState<CatalogOption | null>(null);
   const [outlet, setOutlet] = useState<CatalogOption | null>(null);
   const [result, setResult] = useState<{ key: string; text: string } | null>(null);
-  const [pending, startTransition] = useTransition();
+  const [pending, startTransition] = useProgressTransition();
   const key = `${unit?.value}:${outlet?.value}`;
   return <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
     <DialogContent className="max-h-[90svh] overflow-y-auto">

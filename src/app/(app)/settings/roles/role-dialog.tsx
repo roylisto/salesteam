@@ -1,7 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useState } from "react";
+import { useProgressTransition } from "@/components/action-progress";
 import { Loader2Icon } from "lucide-react";
 import { toast } from "sonner";
 
@@ -38,7 +39,7 @@ export function RoleDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const router = useRouter();
-  const [pending, startTransition] = useTransition();
+  const [pending, startTransition] = useProgressTransition();
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [selected, setSelected] = useState<string[]>(
     role?.permissions ?? ["dashboard"],
@@ -68,7 +69,7 @@ export function RoleDialog({
         toast.success(role ? "Peran diperbarui." : "Peran dibuat.");
         setErrors({});
         onOpenChange(false);
-        router.refresh();
+        startTransition(() => router.refresh());
         return;
       }
 
@@ -89,7 +90,7 @@ export function RoleDialog({
       if (result?.ok) {
         toast.success("Peran dihapus.");
         onOpenChange(false);
-        router.refresh();
+        startTransition(() => router.refresh());
         return;
       }
 

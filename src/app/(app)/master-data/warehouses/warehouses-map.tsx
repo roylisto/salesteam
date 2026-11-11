@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useActionProgress } from "@/components/action-progress";
 import { createPortal } from "react-dom";
 import { Building2Icon } from "lucide-react";
 import type { Map as LeafletMap } from "leaflet";
@@ -20,6 +21,7 @@ function hasCoordinates(location: { latitude: number | null; longitude: number |
 export function WarehousesMap({ warehouses, headOffice }: { warehouses: WarehouseRow[]; headOffice: HeadOfficeLocation }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
+  useActionProgress(status === "loading");
   const [attempt, setAttempt] = useState(0);
   const [pinPortals, setPinPortals] = useState<{ element: HTMLElement; content: ReactNode }[]>([]);
   const located = useMemo(() => warehouses.filter(hasCoordinates), [warehouses]);

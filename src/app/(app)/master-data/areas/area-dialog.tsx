@@ -1,7 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useState } from "react";
+import { useProgressTransition } from "@/components/action-progress";
 import { Loader2Icon } from "lucide-react";
 import { toast } from "sonner";
 
@@ -36,7 +37,7 @@ export function AreaDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const router = useRouter();
-  const [pending, startTransition] = useTransition();
+  const [pending, startTransition] = useProgressTransition();
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [confirming, setConfirming] = useState(false);
 
@@ -54,7 +55,7 @@ export function AreaDialog({
         toast.success(area ? "Area diperbarui." : "Area dibuat.");
         setErrors({});
         onOpenChange(false);
-        router.refresh();
+        startTransition(() => router.refresh());
         return;
       }
 
@@ -75,7 +76,7 @@ export function AreaDialog({
       if (result?.ok) {
         toast.success("Area dihapus.");
         onOpenChange(false);
-        router.refresh();
+        startTransition(() => router.refresh());
         return;
       }
 

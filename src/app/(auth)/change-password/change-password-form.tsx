@@ -1,7 +1,8 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useRouter } from "nextjs-toploader/app";
+import { useState } from "react";
+import { useProgressTransition } from "@/components/action-progress";
 import { Loader2Icon } from "lucide-react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -25,8 +26,8 @@ function FieldError({ message }: { message?: string }) {
 export function ChangePasswordForm() {
   const router = useRouter();
   const [state, setState] = useState<AuthFormState>();
-  const [pending, startTransition] = useTransition();
-  const [signOutPending, startSignOut] = useTransition();
+  const [pending, startTransition] = useProgressTransition();
+  const [signOutPending, startSignOut] = useProgressTransition();
 
   function handleSubmit(formData: FormData) {
     startTransition(async () => {

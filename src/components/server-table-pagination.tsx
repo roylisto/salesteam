@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useProgressTransition } from "@/components/action-progress";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import { debounce, useQueryStates } from "nuqs";
 
@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { PAGE_SIZES, tableParsers, type PageSize, type TablePagination } from "@/lib/table-query";
 
 export function useServerTable() {
-  const [pending, startTransition] = useTransition();
+  const [pending, startTransition] = useProgressTransition();
   const [{ q, sort, dir }, setParams] = useQueryStates(tableParsers, { shallow: false, startTransition });
 
   return {

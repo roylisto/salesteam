@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { useActionProgress } from "@/components/action-progress";
 import {
   getCities,
   getDistricts,
@@ -93,6 +94,7 @@ export function useWilayahCascade(initial: WilayahValue = EMPTY) {
   const [loadingRegency, setLoadingRegency] = useState(false);
   const [loadingDistrict, setLoadingDistrict] = useState(false);
   const [loadingVillage, setLoadingVillage] = useState(false);
+  useActionProgress(loadingProvince || loadingRegency || loadingDistrict || loadingVillage);
 
   const pendingRef = useRef<WilayahTarget>({});
   const villageRef = useRef(village);
