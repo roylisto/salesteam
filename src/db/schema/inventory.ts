@@ -1,4 +1,4 @@
-import { isNull } from "drizzle-orm";
+import { isNull, sql } from "drizzle-orm";
 import {
   bigint,
   date,
@@ -6,6 +6,7 @@ import {
   integer,
   numeric,
   pgTable,
+  primaryKey,
   uniqueIndex,
   varchar,
 } from "drizzle-orm/pg-core";
@@ -60,8 +61,20 @@ export const stockMovements = pgTable(
     index("stock_movements_status_idx").on(table.status),
     index("stock_movements_transaction_number_idx").on(table.transactionNumber),
     uniqueIndex("stock_movements_request_unique").on(table.organizationId, table.requestKey),
+    uniqueIndex("stock_movements_org_number_unique").on(table.organizationId, table.transactionNumber),
   ],
 );
+
+/** Transactional counter per tenant, warehouse and movement direction. */
+export const stockMovementCounters = pgTable("stock_movement_counters", {
+  organizationId: bigint("organization_id", { mode: "number" }).notNull().references(() => organizations.id),
+  warehouseId: bigint("warehouse_id", { mode: "number" }).notNull().references(() => warehouses.id),
+  type: stockMovementTypeEnum("type").notNull(),
+  lastNumber: bigint("last_number", { mode: "bigint" }).default(sql`0`).notNull(),
+  ...timestamps,
+}, (table) => [
+  primaryKey({ columns: [table.organizationId, table.warehouseId, table.type] }),
+]);
 
 /** Line items of a warehouse stock movement. */
 export const stockMovementItems = pgTable(
