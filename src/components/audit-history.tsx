@@ -21,6 +21,7 @@ const actionLabels: Record<string, string> = {
   logout: "Keluar",
   change_password: "Ubah kata sandi",
   reset_password: "Reset kata sandi",
+  reverse: "Pembalikan",
 };
 
 export async function AuditHistoryPage({ user, module, path, title, params, label, map, mapLabel, memberIds = [], tabs }: {

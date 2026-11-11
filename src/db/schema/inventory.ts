@@ -2,13 +2,16 @@ import { isNull, sql } from "drizzle-orm";
 import {
   bigint,
   date,
+  check,
   index,
   integer,
   numeric,
   pgTable,
   primaryKey,
+  text,
   uniqueIndex,
   varchar,
+  type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 
 import { primaryId, timestamps } from "./_shared";
@@ -38,6 +41,13 @@ export const stockMovements = pgTable(
     referenceNumber: varchar("reference_number", { length: 60 }),
     requestKey: varchar("request_key", { length: 36 }),
     requestHash: varchar("request_hash", { length: 64 }),
+    reversalOfId: bigint("reversal_of_id", { mode: "number" }).references(
+      (): AnyPgColumn => stockMovements.id,
+    ),
+    replacementOfId: bigint("replacement_of_id", { mode: "number" }).references(
+      (): AnyPgColumn => stockMovements.id,
+    ),
+    correctionReason: text("correction_reason"),
     sourceWarehouseId: bigint("source_warehouse_id", { mode: "number" }).references(
       () => warehouses.id,
       { onDelete: "set null" },
@@ -62,6 +72,9 @@ export const stockMovements = pgTable(
     index("stock_movements_transaction_number_idx").on(table.transactionNumber),
     uniqueIndex("stock_movements_request_unique").on(table.organizationId, table.requestKey),
     uniqueIndex("stock_movements_org_number_unique").on(table.organizationId, table.transactionNumber),
+    uniqueIndex("stock_movements_reversal_unique").on(table.reversalOfId),
+    uniqueIndex("stock_movements_replacement_unique").on(table.replacementOfId),
+    check("stock_movements_one_correction_kind", sql`${table.reversalOfId} is null or ${table.replacementOfId} is null`),
   ],
 );
 

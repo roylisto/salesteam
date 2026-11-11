@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "nextjs-toploader/app";
+import Link from "next/link";
 import { toast } from "sonner";
 import { useActionProgress, useProgressTransition } from "@/components/action-progress";
 import { Button } from "@/components/ui/button";
@@ -12,30 +13,38 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ServerTablePagination } from "@/components/server-table-pagination";
 import { loadStockProducts, saveWarehouseStock } from "@/lib/actions/warehouse-stock";
-import { STOCK_PATH, stockQuantity } from "@/lib/stock";
+import { STOCK_PATH, stockQuantity, type StockReplacement } from "@/lib/stock";
 import type { PageSize } from "@/lib/table-query";
 import type { stockOptions } from "../data";
 
 type Scope = "all" | "type" | "brand";
-type ProductQuery = { scope: Scope; scopeId?: number; warehouseId: number };
+type ProductQuery = { scope: Scope; scopeId?: number; warehouseId: number; productIds?: number[] };
 type ProductPage = Awaited<ReturnType<typeof loadStockProducts>>;
 
-export function StockForm({ type, options, defaultDate }: {
+export function StockForm({ type, options, defaultDate, replacement }: {
   type: "in" | "out";
   options: Awaited<ReturnType<typeof stockOptions>>;
   defaultDate: string;
+  replacement?: StockReplacement;
 }) {
   const router = useRouter();
-  const [warehouse, setWarehouse] = useState("");
-  const [destination, setDestination] = useState("");
+  const initialWarehouse = options.warehouses.find((row) => row.id === replacement?.warehouseId);
+  const [warehouse, setWarehouse] = useState(initialWarehouse ? String(initialWarehouse.id) : "");
+  const [destination, setDestination] = useState(
+    options.warehouses.some((row) => row.id === replacement?.destinationId) ? String(replacement!.destinationId) : "",
+  );
   const [scope, setScope] = useState<Scope>("all");
   const [scopeId, setScopeId] = useState("");
-  const [applied, setApplied] = useState<ProductQuery | null>(null);
+  const [applied, setApplied] = useState<ProductQuery | null>(
+    replacement && initialWarehouse && Object.keys(replacement.quantities).length > 0
+      ? { scope: "all", warehouseId: initialWarehouse.id, productIds: Object.keys(replacement.quantities).map(Number) }
+      : null,
+  );
   const [q, setQuery] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<PageSize>(20);
   const [products, setProducts] = useState<{ key: string; data: ProductPage } | null>(null);
-  const [quantities, setQuantities] = useState<Record<number, string>>({});
+  const [quantities, setQuantities] = useState<Record<number, string>>(replacement?.quantities ?? {});
   const [loading, setLoading] = useState(false);
   const [pending, startTransition] = useProgressTransition();
   const [error, setError] = useState("");
@@ -73,6 +82,7 @@ export function StockForm({ type, options, defaultDate }: {
       type, warehouseId: Number(warehouse), destinationId: type === "out" ? Number(destination) : undefined,
       date: String(form.get("date")), reference: String(form.get("reference") ?? ""),
       items: chosen.map(([productId, quantity]) => ({ productId: Number(productId), quantity })),
+      replacementOfId: replacement?.id,
     };
     const signature = JSON.stringify(data);
     if (lastAttempt.current?.signature !== signature) lastAttempt.current = { signature, key: crypto.randomUUID() };
@@ -92,6 +102,11 @@ export function StockForm({ type, options, defaultDate }: {
 
   return <form onSubmit={submit}>
     <fieldset disabled={pending} className="space-y-4">
+      {replacement && <p className="bg-muted rounded-lg border p-3 text-sm">
+        Pengganti transaksi <Link href={`${STOCK_PATH}/${replacement.id}`} className="font-medium underline underline-offset-4">
+          {replacement.number ?? `#${replacement.id}`}
+        </Link>. Periksa dan sesuaikan SKU, qty, gudang, tanggal, dan referensi sebelum menyimpan.
+      </p>}
       <Card size="sm">
         <CardHeader><CardTitle>Informasi transaksi</CardTitle>
           <CardDescription>{type === "out" ? "Stok gudang asal berkurang dan stok gudang tujuan bertambah saat transaksi disimpan." : "Penerimaan dapat dicatat ke semua gudang aktif."}</CardDescription>
@@ -102,7 +117,9 @@ export function StockForm({ type, options, defaultDate }: {
             <Combobox id="stock-warehouse" options={warehouseOptions} value={warehouse} placeholder="Pilih gudang" disabled={pending}
               onValueChange={(value) => {
                 if (value === warehouse) return;
-                setWarehouse(value); setQuantities({}); setApplied(null); setProducts(null); setLoading(false);
+                setWarehouse(value);
+                if (!replacement) setQuantities({});
+                setApplied(null); setProducts(null); setLoading(false);
                 if (value === destination) setDestination("");
               }} />
           </div>
@@ -114,7 +131,8 @@ export function StockForm({ type, options, defaultDate }: {
           <div className="space-y-1.5"><Label htmlFor="stock-date">Tanggal (wajib)</Label>
             <Input id="stock-date" name="date" type="date" defaultValue={defaultDate} required /></div>
           <div className="space-y-1.5"><Label htmlFor="stock-reference">Nomor referensi</Label>
-            <Input id="stock-reference" name="reference" maxLength={60} placeholder="Nomor Order / Surat Jalan / Dokumen" /></div>
+            <Input id="stock-reference" name="reference" maxLength={60} defaultValue={replacement?.reference ?? ""}
+              placeholder="Nomor Order / Surat Jalan / Dokumen" /></div>
         </CardContent>
       </Card>
       <Card size="sm">

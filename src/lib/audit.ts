@@ -8,7 +8,7 @@ export type AuditModule = "areas" | "warehouses" | "warehouse_types" | "outlets"
   "product_brands" | "product_types" | "product_units" | "product_prices" | "warehouse_movements";
 
 type AuditAction = "create" | "update" | "delete" | "login" | "logout" |
-  "change_password" | "reset_password";
+  "change_password" | "reset_password" | "reverse";
 
 type AuditActor = { id: number; name: string; organization: { id: number } };
 type AuditEntity = { id: number; name?: string | null };

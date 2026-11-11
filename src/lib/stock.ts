@@ -1,5 +1,25 @@
 export const STOCK_PATH = "/inventory/warehouses";
 
+export function stockMovementLabel(type: "in" | "out", originalType?: "in" | "out" | null) {
+  if (originalType) return originalType === "in" ? "Pembalikan Stock In" : "Pembalikan Stock Out";
+  return type === "in" ? "Stock In" : "Stock Out";
+}
+
+export function stockStatusLabel(status: string) {
+  if (status === "reversed") return "Dibatalkan";
+  if (status === "completed") return "Selesai";
+  return status === "draft" ? "Draf" : "Diproses";
+}
+
+export type StockReplacement = {
+  id: number;
+  number: string | null;
+  warehouseId: number | null;
+  destinationId: number | null;
+  reference: string | null;
+  quantities: Record<number, string>;
+};
+
 export function stockQuantity(value: string) {
   return new Intl.NumberFormat("id-ID", { maximumFractionDigits: 6 }).format(value as `${number}`);
 }

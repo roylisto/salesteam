@@ -60,15 +60,18 @@ export async function stockHistory(orgId: number, params: Record<string, string 
   const { q, page, pageSize } = loadTableQuery(params);
   const source = alias(warehouses, "source");
   const destination = alias(warehouses, "destination");
+  const original = alias(stockMovements, "original_movement");
   const warehouseId = filterId(params.warehouse);
   const base = db.select({
     id: stockMovements.id, date: stockMovements.transactionDate, number: stockMovements.transactionNumber,
     reference: stockMovements.referenceNumber, type: stockMovements.type, status: stockMovements.status,
     source: source.name, destination: destination.name, actor: users.name,
+    originalType: original.type, reversalOfId: stockMovements.reversalOfId, replacementOfId: stockMovements.replacementOfId,
   }).from(stockMovements)
     .leftJoin(source, and(eq(stockMovements.sourceWarehouseId, source.id), eq(source.organizationId, orgId)))
     .leftJoin(destination, and(eq(stockMovements.destinationWarehouseId, destination.id), eq(destination.organizationId, orgId)))
     .leftJoin(users, and(eq(stockMovements.inputById, users.id), eq(users.organizationId, orgId)))
+    .leftJoin(original, and(eq(stockMovements.reversalOfId, original.id), eq(original.organizationId, orgId)))
     .where(and(eq(stockMovements.organizationId, orgId), notDeleted(stockMovements),
       tableSearch(q, stockMovements.transactionNumber, stockMovements.referenceNumber, source.name, destination.name),
       warehouseId === undefined ? undefined : or(eq(stockMovements.sourceWarehouseId, warehouseId), eq(stockMovements.destinationWarehouseId, warehouseId)),

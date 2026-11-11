@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ServerTablePagination, useServerTable } from "@/components/server-table-pagination";
 import { SortableHead } from "@/components/table-sort";
-import { STOCK_PATH, stockQuantity } from "@/lib/stock";
+import { STOCK_PATH, stockQuantity, stockMovementLabel, stockStatusLabel } from "@/lib/stock";
 import type { stockBalance, stockHistory, stockOptions } from "./data";
 
 export function StockClient({ options, balances, history }: {
@@ -70,12 +70,15 @@ export function StockClient({ options, balances, history }: {
             router.push(`${STOCK_PATH}/${row.id}`);
           }}>
             <TableCell><Link href={`${STOCK_PATH}/${row.id}`} className="block font-medium underline-offset-4 hover:underline"
-              aria-label={`Lihat detail ${row.type === "in" ? "Stock In" : "Stock Out"} ${row.number ?? row.id}`}>
+              aria-label={`Lihat detail ${stockMovementLabel(row.type, row.originalType)} ${row.number ?? row.id}`}>
               {row.number ?? `#${row.id}`}
             </Link>
               <p className="text-muted-foreground text-xs">{row.date ?? "—"}</p></TableCell>
-            <TableCell>{row.type === "in" ? "Stock In" : "Stock Out"}<p className="text-muted-foreground text-xs">{row.status === "completed" ? "Selesai" : row.status === "draft" ? "Draf" : "Diproses"}</p></TableCell>
-            <TableCell>{row.source ?? "Eksternal"} → {row.destination ?? "—"}</TableCell>
+            <TableCell>{stockMovementLabel(row.type, row.originalType)}
+              <p className={`text-xs ${row.status === "reversed" ? "text-destructive" : "text-muted-foreground"}`}>
+                {stockStatusLabel(row.status)}{row.replacementOfId ? " · Pengganti" : ""}
+              </p></TableCell>
+            <TableCell>{row.source ?? "Eksternal"} → {row.destination ?? "Eksternal"}</TableCell>
             <TableCell>{row.reference ?? "—"}</TableCell><TableCell>{row.actor ?? "—"}</TableCell>
           </TableRow>)}
         </TableBody>

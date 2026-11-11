@@ -8,6 +8,7 @@ export const stockMovementStatusEnum = pgEnum("stock_movement_status", [
   "draft",
   "in_progress",
   "completed",
+  "reversed",
 ]);
 
 /** Sales stock (in/out) direction. */
