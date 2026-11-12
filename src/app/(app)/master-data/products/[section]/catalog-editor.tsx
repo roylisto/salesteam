@@ -115,21 +115,43 @@ function ProductFields({ data }: { data: Extract<CatalogEditorData, { section: "
   </>;
 }
 
+function PriceLocations({ label, name, options, selected, onChange }: {
+  label: string; name: string; options: CatalogOption[]; selected: string[]; onChange: (value: string[]) => void;
+}) {
+  const [search, setSearch] = useState("");
+  return <fieldset className="space-y-2 rounded-lg border p-3">
+    <legend className="px-1 text-sm font-medium">{label} · {selected.length} dipilih</legend>
+    {selected.map((value) => <input key={value} type="hidden" name={name} value={value} />)}
+    <Input aria-label={`Cari ${label.toLowerCase()}`} placeholder={`Cari ${label.toLowerCase()}`} value={search} onChange={(event) => setSearch(event.target.value)} />
+    <div className="max-h-40 space-y-2 overflow-y-auto">
+      {options.filter((option) => option.label.toLowerCase().includes(search.toLowerCase())).map((option) => <label key={option.value} className="flex items-center gap-2 text-sm">
+        <input type="checkbox" checked={selected.includes(option.value)} onChange={(event) => onChange(event.target.checked ? [...selected, option.value] : selected.filter((value) => value !== option.value))} />
+        {option.label}
+      </label>)}
+    </div>
+  </fieldset>;
+}
+
 function PriceFields({ data }: { data: Extract<CatalogEditorData, { section: "prices" }> }) {
   const { price, typeOptions, areaOptions, warehouseOptions } = data;
   const [selection, setSelection] = useState<CatalogOption | null>(price ? { value: String(price.sellUnitId), label: price.label } : null);
-  const [scope, setScope] = useState(price?.warehouseId ? "warehouse" : price?.areaId ? "area" : "global");
+  const [scope, setScope] = useState(price?.warehouseId || price?.areaId ? "custom" : "global");
+  const [areaIds, setAreaIds] = useState(price?.areaId ? [String(price.areaId)] : []);
+  const [warehouseIds, setWarehouseIds] = useState(price?.warehouseId ? [String(price.warehouseId)] : []);
   return <>
     <SellUnitLookup label="Produk dan satuan jual" selection={selection} onChange={setSelection} />
     <input type="hidden" name="sellUnitId" value={selection?.value ?? ""} />
     <Choice label="Tipe outlet" name="outletTypeId" options={typeOptions} defaultValue={String(price?.outletTypeId ?? "")} />
     <div className="space-y-1.5"><Label htmlFor="price-scope">Cakupan harga</Label>
       <select id="price-scope" name="scope" className="border-input bg-background h-8 w-full rounded-md border px-2 text-sm" value={scope} onChange={(event) => setScope(event.target.value)}>
-        <option value="global">Global · semua area dan gudang</option><option value="area">Area tertentu</option><option value="warehouse">Gudang tertentu</option>
+        <option value="global">Global · semua area dan gudang</option><option value="custom">Area dan gudang tertentu</option>
       </select>
     </div>
-    {scope === "area" && <Choice key="area" label="Area" name="locationId" options={areaOptions} defaultValue={String(price?.areaId ?? "")} />}
-    {scope === "warehouse" && <Choice key="warehouse" label="Gudang" name="locationId" options={warehouseOptions} defaultValue={String(price?.warehouseId ?? "")} />}
+    {scope === "custom" && <>
+      <p className="text-muted-foreground text-xs">Harga yang sama diterapkan ke setiap area dan gudang yang dipilih. Harga yang sudah ada pada pilihan tersebut akan diperbarui.</p>
+      <PriceLocations label="Area" name="areaIds" options={areaOptions} selected={areaIds} onChange={setAreaIds} />
+      <PriceLocations label="Gudang" name="warehouseIds" options={warehouseOptions} selected={warehouseIds} onChange={setWarehouseIds} />
+    </>}
     <div className="space-y-1.5"><Label htmlFor="price-amount">Harga jual</Label><Input id="price-amount" name="amount" type="number" min="0" step="0.01" required defaultValue={price?.amount} /></div>
   </>;
 }

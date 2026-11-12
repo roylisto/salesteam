@@ -5,7 +5,7 @@ import { auditLogs } from "@/db/schema";
 
 export type AuditModule = "areas" | "warehouses" | "warehouse_types" | "outlets" |
   "outlet_types" | "team" | "roles" | "organization" | "profile" | "products" |
-  "product_brands" | "product_types" | "product_units" | "product_prices" | "warehouse_movements";
+  "product_brands" | "product_types" | "product_units" | "product_prices" | "warehouse_movements" | "sales_inventory";
 
 type AuditAction = "create" | "update" | "delete" | "login" | "logout" |
   "change_password" | "reset_password" | "reverse";

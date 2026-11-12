@@ -7,7 +7,7 @@ import sharp from "sharp";
 import { z } from "zod";
 
 import { db, type Database } from "@/db";
-import { areaOffices, brands, notDeleted, outletTypes, productPrices, products, productSellUnits, productTypes, productUnits, stockMovementItems, warehouseStocks, warehouses } from "@/db/schema";
+import { areaOffices, brands, notDeleted, outletTypes, productPrices, products, productSellUnits, productTypes, productUnits, salesInventory, stockMovementItems, warehouseStocks, warehouses } from "@/db/schema";
 import { recordAudit } from "@/lib/audit";
 import { can, getCurrentUser } from "@/lib/auth";
 import { CATALOG_SECTIONS, catalogPath, isCatalogSection } from "@/lib/catalog";
@@ -27,7 +27,7 @@ const productInput = z.object({
   description: z.string().trim().max(2000),
   alternatives: z.array(z.object({ unitId: id, factor })).max(50),
 });
-const priceInput = z.object({ sellUnitId: id, outletTypeId: id, amount, scope: z.enum(["global", "area", "warehouse"]) });
+const priceInput = z.object({ sellUnitId: id, outletTypeId: id, amount, scope: z.enum(["global", "custom", "area", "warehouse"]) });
 
 async function lockCatalog(tx: Tx, organizationId: number) {
   await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${`catalog:${organizationId}`}, 0))`);
@@ -96,7 +96,10 @@ export async function saveCatalog(section: string, form: FormData): Promise<{ ok
           const [balance] = await tx.select({ id: warehouseStocks.id }).from(warehouseStocks).where(and(
             eq(warehouseStocks.productId, existing.id), eq(warehouseStocks.organizationId, organizationId), notDeleted(warehouseStocks),
           )).limit(1);
-          if (used || balance) return { error: "Satuan dasar produk sudah digunakan pada stok gudang dan tidak dapat diubah." };
+          const [salesBalance] = await tx.select({ id: salesInventory.id }).from(salesInventory).where(and(
+            eq(salesInventory.productId, existing.id), eq(salesInventory.organizationId, organizationId), notDeleted(salesInventory),
+          )).limit(1);
+          if (used || balance || salesBalance) return { error: "Satuan dasar produk sudah digunakan pada stok dan tidak dapat diubah." };
         }
         const [duplicate] = await tx.select({ id: products.id }).from(products).where(and(scope, eq(products.code, code)));
         if (duplicate && duplicate.id !== entityId) return { error: "SKU sudah digunakan." };
@@ -133,10 +136,17 @@ export async function saveCatalog(section: string, form: FormData): Promise<{ ok
       const parsed = priceInput.safeParse(Object.fromEntries(form));
       if (!parsed.success) return { error: "Pilih satuan jual, tipe outlet, cakupan, dan harga yang valid." };
       const { sellUnitId, outletTypeId, scope, amount } = parsed.data;
-      const locationId = scope === "global" ? null : id.safeParse(form.get("locationId"));
-      if (locationId && !locationId.success) return { error: "Pilih area atau gudang untuk cakupan ini." };
-      const areaId = scope === "area" ? locationId?.data ?? null : null;
-      const warehouseId = scope === "warehouse" ? locationId?.data ?? null : null;
+      const selections = (key: string, legacy: string) => z.array(id).max(10000).safeParse(
+        form.getAll(key).length ? form.getAll(key) : scope === legacy ? [form.get("locationId")] : [],
+      );
+      const areas = selections("areaIds", "area"), locations = selections("warehouseIds", "warehouse");
+      if (!areas.success || !locations.success) return { error: "Pilih area dan gudang yang valid." };
+      const areaIds = [...new Set(areas.data)], warehouseIds = [...new Set(locations.data)];
+      const targets = scope === "global" ? [{ areaId: null, warehouseId: null }] : [
+        ...areaIds.map((areaId) => ({ areaId, warehouseId: null })),
+        ...warehouseIds.map((warehouseId) => ({ areaId: null, warehouseId })),
+      ];
+      if (!targets.length) return { error: "Pilih minimal satu area atau gudang." };
       const result = await db.transaction(async (tx) => {
         await lockCatalog(tx, organizationId);
         const [product] = await tx.select({ name: products.name, unit: productUnits.name }).from(productSellUnits)
@@ -146,23 +156,44 @@ export async function saveCatalog(section: string, form: FormData): Promise<{ ok
         const [type] = await tx.select({ name: outletTypes.name }).from(outletTypes)
           .where(and(eq(outletTypes.id, outletTypeId), eq(outletTypes.organizationId, organizationId), notDeleted(outletTypes)));
         if (!product || !type) return { error: "Produk, satuan jual, atau tipe outlet tidak tersedia." };
-        const location = scope === "area" ? areaOffices : warehouses;
-        let scopeName = "Global";
-        if (locationId?.data) {
-          const [row] = await tx.select({ name: location.name }).from(location).where(and(
-            eq(location.id, locationId.data), eq(location.organizationId, organizationId), notDeleted(location),
-          ));
-          if (!row) return { error: "Area atau gudang tidak tersedia." };
-          scopeName = `${scope === "area" ? "Area" : "Gudang"}: ${row.name}`;
+        const [existing] = entityId ? await tx.select().from(productPrices).where(and(
+          eq(productPrices.id, entityId), eq(productPrices.organizationId, organizationId), notDeleted(productPrices),
+        )) : [];
+        if (entityId && !existing) return { error: "Harga jual tidak ditemukan." };
+        const areaRows = areaIds.length && scope !== "global" ? await tx.select().from(areaOffices).where(and(
+          eq(areaOffices.organizationId, organizationId), notDeleted(areaOffices), inArray(areaOffices.id, areaIds),
+        )) : [];
+        const warehouseRows = warehouseIds.length && scope !== "global" ? await tx.select().from(warehouses).where(and(
+          eq(warehouses.organizationId, organizationId), notDeleted(warehouses), inArray(warehouses.id, warehouseIds),
+        )) : [];
+        if (scope !== "global" && (areaRows.length !== areaIds.length || warehouseRows.length !== warehouseIds.length)) {
+          return { error: "Ada area atau gudang yang tidak tersedia." };
         }
-        const values = { sellUnitId, outletTypeId, amount, areaId, warehouseId };
-        const [saved] = entityId
-          ? await tx.update(productPrices).set(values).where(and(eq(productPrices.id, entityId), eq(productPrices.organizationId, organizationId), notDeleted(productPrices))).returning({ id: productPrices.id })
-          : await tx.insert(productPrices).values({ ...values, organizationId }).returning({ id: productPrices.id });
-        if (!saved) return { error: "Harga jual tidak ditemukan." };
-        await recordAudit(tx, user, permission, entityId ? "update" : "create", {
-          ...saved, name: `${product.name} · ${product.unit} · ${type.name} · ${scopeName} · ${amount}`,
-        });
+        const previous = await tx.select({ id: productPrices.id }).from(productPrices).where(and(
+          eq(productPrices.organizationId, organizationId), eq(productPrices.sellUnitId, sellUnitId),
+          eq(productPrices.outletTypeId, outletTypeId), notDeleted(productPrices),
+        ));
+        const values = sql.join(targets.map((target) => sql`(${organizationId}::bigint, ${sellUnitId}::bigint, ${outletTypeId}::bigint, ${amount}::numeric, ${target.areaId}::bigint, ${target.warehouseId}::bigint)`), sql`, `);
+        const saved = await tx.execute<{ id: number; areaId: number | null; warehouseId: number | null }>(sql`
+          insert into product_prices (organization_id, sell_unit_id, outlet_type_id, amount, area_id, warehouse_id)
+          values ${values}
+          on conflict (sell_unit_id, outlet_type_id, (coalesce(area_id, 0)), (coalesce(warehouse_id, 0))) where deleted_at is null
+          do update set amount = excluded.amount, updated_at = now()
+          where product_prices.organization_id = ${organizationId}
+          returning id::float8 as id, area_id::float8 as "areaId", warehouse_id::float8 as "warehouseId"
+        `);
+        if (saved.length !== targets.length) throw new Error("Harga gagal diperbarui.");
+        for (const row of saved) {
+          const scopeName = row.areaId ? `Area ${areaRows.find((area) => area.id === row.areaId)?.name}`
+            : row.warehouseId ? `Gudang ${warehouseRows.find((warehouse) => warehouse.id === row.warehouseId)?.name}` : "Global";
+          await recordAudit(tx, user, permission, previous.some((old) => old.id === row.id) ? "update" : "create", {
+            id: row.id, name: `${product.name} · ${product.unit} · ${type.name} · ${scopeName} · ${amount}`,
+          });
+        }
+        if (existing && !saved.some((row) => row.id === existing.id)) {
+          await tx.update(productPrices).set({ deletedAt: new Date() }).where(eq(productPrices.id, existing.id));
+          await recordAudit(tx, user, permission, "delete", { id: existing.id, name: `${product.name} · cakupan harga sebelumnya` });
+        }
         return { ok: true as const };
       });
       if (result.ok) refreshCatalog();
@@ -183,6 +214,11 @@ export async function saveCatalog(section: string, form: FormData): Promise<{ ok
           .where(and(eq(warehouseStocks.organizationId, organizationId), notDeleted(warehouseStocks),
             eq(products.baseUnitId, existing.id), sql`mod(${warehouseStocks.quantity}, 1) <> 0`)).limit(1);
         if (fractionalStock) return { error: "Satuan masih digunakan pada saldo stok desimal. Opsi qty pecahan harus tetap aktif." };
+        const [salesFraction] = await tx.select({ id: salesInventory.id }).from(salesInventory)
+          .innerJoin(products, and(eq(salesInventory.productId, products.id), eq(products.organizationId, organizationId)))
+          .where(and(eq(salesInventory.organizationId, organizationId), notDeleted(salesInventory),
+            eq(products.baseUnitId, existing.id), sql`mod(${salesInventory.quantity}, 1) <> 0`)).limit(1);
+        if (salesFraction) return { error: "Satuan masih digunakan pada saldo Sales desimal. Opsi qty pecahan harus tetap aktif." };
       }
       const [duplicate] = await tx.select({ id: table.id }).from(table).where(and(scope, eq(table.name, parsedName.data)));
       if (duplicate && duplicate.id !== entityId) return { error: "Nama sudah digunakan." };
@@ -228,6 +264,11 @@ export async function deleteCatalog(section: string, entityId: number): Promise<
         notDeleted(warehouseStocks), sql`${warehouseStocks.quantity} <> 0`,
       )).limit(1);
       if (balance) return { error: "Produk masih memiliki stok gudang. Kosongkan stok sebelum menghapus produk." };
+      const [salesBalance] = await tx.select({ id: salesInventory.id }).from(salesInventory).where(and(
+        eq(salesInventory.organizationId, orgId), eq(salesInventory.productId, entityId), notDeleted(salesInventory),
+        sql`${salesInventory.quantity} <> 0`,
+      )).limit(1);
+      if (salesBalance) return { error: "Produk masih memiliki Stok Sales. Kosongkan stok sebelum menghapus produk." };
       [entity] = await tx.update(products).set({ deletedAt }).where(and(eq(products.id, entityId), eq(products.organizationId, orgId), notDeleted(products)))
         .returning({ id: products.id, name: products.name });
       if (entity) {

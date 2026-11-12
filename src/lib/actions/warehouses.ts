@@ -6,7 +6,7 @@ import { z } from "zod";
 
 import { db } from "@/db";
 import { auditMutation, recordAudit } from "@/lib/audit";
-import { areaOffices, notDeleted, users, warehouses, warehouseStocks, warehouseTypes } from "@/db/schema";
+import { areaOffices, notDeleted, salesInventory, users, warehouses, warehouseStocks, warehouseTypes } from "@/db/schema";
 import { can, getCurrentUser } from "@/lib/auth";
 import { toFieldErrors } from "@/lib/validation";
 
@@ -346,6 +346,11 @@ export async function deleteWarehouse(formData: FormData): Promise<WarehouseForm
       notDeleted(warehouseStocks), ne(warehouseStocks.quantity, "0"),
     )).limit(1);
     if (balance) return { error: "Gudang masih memiliki stok. Pindahkan seluruh stok sebelum menghapus gudang." };
+    const [salesBalance] = await tx.select({ id: salesInventory.id }).from(salesInventory).where(and(
+      eq(salesInventory.organizationId, manager.organization.id), eq(salesInventory.warehouseId, id),
+      notDeleted(salesInventory), ne(salesInventory.quantity, "0"),
+    )).limit(1);
+    if (salesBalance) return { error: "Masih ada Stok Sales yang berasal dari gudang ini. Selesaikan stok Sales terlebih dahulu." };
     const [saved] = await tx
       .update(warehouses)
       .set({ deletedAt: new Date() })

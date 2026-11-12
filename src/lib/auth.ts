@@ -13,6 +13,7 @@ export type CurrentUser = {
   username: string | null;
   code: string | null;
   avatarUrl: string | null;
+  userType: "back_office" | "sales";
   isOrganizationOwner: boolean;
   isAdmin: boolean;
   /** True while the member still uses the system-generated password (forced change on first login). */
@@ -75,6 +76,7 @@ export const getCurrentUser = cache(
       username: context.user.username,
       code: context.user.code,
       avatarUrl: context.user.avatarUrl,
+      userType: context.user.userType,
       isOrganizationOwner: context.user.isOrganizationOwner,
       isAdmin: context.user.isAdmin,
       mustChangePassword: context.user.mustChangePassword,

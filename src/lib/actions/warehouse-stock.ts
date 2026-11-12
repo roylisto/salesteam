@@ -5,13 +5,15 @@ import { and, asc, count, eq, inArray, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/db";
-import { brands, notDeleted, products, productTypes, productUnits, stockMovementItems, stockMovements, warehouses, warehouseStocks } from "@/db/schema";
+import { brands, notDeleted, products, productTypes, productUnits, salesStocks, stockMovementItems, stockMovements, warehouses, warehouseStocks } from "@/db/schema";
 import { can, getCurrentUser } from "@/lib/auth";
 import { recordAudit } from "@/lib/audit";
 import { quantityMicros, STOCK_PATH, type StockProduct } from "@/lib/stock";
 import { paginateTable, PAGE_SIZES } from "@/lib/table-query";
 import { tableSearch } from "@/lib/table-sql";
 import { nextWarehouseMovementNumber } from "@/lib/stock-number";
+import { warehouseBalanceQuery } from "@/lib/warehouse-balance";
+import { warehouseReversalQuery } from "@/lib/warehouse-reversal";
 import { applyWarehouseStock, lockWarehouseStock, StockError } from "@/lib/warehouse-stock-mutation";
 
 const id = z.number().int().positive().max(Number.MAX_SAFE_INTEGER);
@@ -118,6 +120,7 @@ export async function saveWarehouseStock(input: unknown): Promise<{ id?: number;
 const reversalSchema = z.object({
   movementId: id, requestKey: z.string().uuid(),
   reason: z.string().trim().min(1).max(1000),
+  items: z.array(z.object({ productId: id, quantity })).min(1).max(10_000).optional(),
 });
 
 export async function reverseWarehouseStock(input: unknown): Promise<{ id?: number; error?: string }> {
@@ -128,8 +131,10 @@ export async function reverseWarehouseStock(input: unknown): Promise<{ id?: numb
   const parsed = reversalSchema.safeParse(input);
   if (!parsed.success) return { error: "Alasan pembalikan wajib diisi, maksimal 1.000 karakter." };
   const { movementId, requestKey, reason } = parsed.data;
+  const requested = parsed.data.items?.slice().sort((a, b) => a.productId - b.productId);
+  if (requested && new Set(requested.map((item) => item.productId)).size !== requested.length) return { error: "SKU pembatalan tidak boleh duplikat." };
   const orgId = user.organization.id;
-  const requestHash = createHash("sha256").update(JSON.stringify({ action: "reverse", movementId, reason })).digest("hex");
+  const requestHash = createHash("sha256").update(JSON.stringify({ action: "reverse", movementId, reason, items: requested })).digest("hex");
   try {
     const reversalId = await db.transaction(async (tx) => {
       await lockWarehouseStock(tx, orgId);
@@ -144,24 +149,26 @@ export async function reverseWarehouseStock(input: unknown): Promise<{ id?: numb
         eq(stockMovements.id, movementId), eq(stockMovements.organizationId, orgId), notDeleted(stockMovements),
       )).for("update");
       if (!original) throw new StockError("Transaksi stok tidak ditemukan.");
-      if (original.reversalOfId) throw new StockError("Dokumen pembalikan tidak dapat dibalik kembali. Buat transaksi pengganti dari transaksi asal.");
-      const [existing] = await tx.select().from(stockMovements).where(and(
-        eq(stockMovements.organizationId, orgId), eq(stockMovements.reversalOfId, movementId),
+      const [salesLink] = await tx.select({ id: salesStocks.id }).from(salesStocks).where(and(
+        eq(salesStocks.organizationId, orgId), eq(salesStocks.warehouseMovementId, original.id),
       )).limit(1);
-      if (existing) {
-        if (existing.deletedAt) throw new StockError("Pembalikan sudah tercatat dan perlu diperiksa.");
-        return existing.id;
+      if (salesLink) throw new StockError("Transaksi ini terhubung ke Stok Sales. Catat pengambilan atau pengembalian melalui Stok Sales agar kedua saldo sesuai.");
+      if (original.reversalOfId) throw new StockError("Dokumen pembalikan tidak dapat dibalik kembali. Buat transaksi pengganti dari transaksi asal.");
+      if (original.status !== "completed" && original.status !== "partially_reversed") throw new StockError("Transaksi ini sudah dibatalkan atau belum selesai.");
+      const lines = await warehouseReversalQuery(tx, orgId, movementId);
+      if (!lines.length || lines.some((line) => quantityMicros(line.remaining) < BigInt(0))) throw new StockError("Rincian transaksi asal tidak valid.");
+      const remaining = new Map(lines.map((line) => [line.productId, line]));
+      const grouped = requested ?? lines.filter((line) => quantityMicros(line.remaining) > BigInt(0))
+        .map((line) => ({ productId: line.productId, quantity: line.remaining }));
+      if (!grouped.length) throw new StockError("Seluruh qty transaksi ini sudah dibatalkan.");
+      for (const item of grouped) {
+        const line = remaining.get(item.productId);
+        if (!line || quantityMicros(item.quantity) > quantityMicros(line.remaining)) throw new StockError("Qty pembatalan melebihi sisa qty transaksi. Muat ulang rincian pembatalan.");
+        if (!quantity.safeParse(item.quantity).success) throw new StockError("Qty pembatalan tidak valid.");
+        if (requested && line.allowFraction === false && quantityMicros(item.quantity) % BigInt(1_000_000) !== BigInt(0)) throw new StockError(`Qty ${line.name} harus bilangan bulat.`);
       }
-      if (original.status !== "completed") throw new StockError("Hanya transaksi selesai yang dapat dibalik.");
-      const grouped = await tx.select({
-        productId: stockMovementItems.productId,
-        quantity: sql<string>`sum(${stockMovementItems.quantity})::text`,
-      }).from(stockMovementItems).where(and(
-        eq(stockMovementItems.stockMovementId, movementId), eq(stockMovementItems.organizationId, orgId), notDeleted(stockMovementItems),
-      )).groupBy(stockMovementItems.productId).orderBy(asc(stockMovementItems.productId));
-      if (grouped.length === 0 || grouped.some((item) => !quantity.safeParse(item.quantity).success)) {
-        throw new StockError("Rincian qty transaksi asal tidak valid. Periksa transaksi sebelum pembalikan.");
-      }
+      const chosen = new Map(grouped.map((item) => [item.productId, quantityMicros(item.quantity)]));
+      const fullyReversed = lines.every((line) => quantityMicros(line.remaining) === (chosen.get(line.productId) ?? BigInt(0)));
       const productRows = await tx.select({ id: products.id, name: products.name }).from(products).where(and(
         eq(products.organizationId, orgId), inArray(products.id, grouped.map((item) => item.productId)), notDeleted(products),
       ));
@@ -190,11 +197,11 @@ export async function reverseWarehouseStock(input: unknown): Promise<{ id?: numb
       await tx.insert(stockMovementItems).values(grouped.map((item) => ({
         ...item, organizationId: orgId, stockMovementId: reversal.id,
       })));
-      await tx.update(stockMovements).set({ status: "reversed" }).where(and(
+      await tx.update(stockMovements).set({ status: fullyReversed ? "reversed" : "partially_reversed" }).where(and(
         eq(stockMovements.id, original.id), eq(stockMovements.organizationId, orgId),
       ));
       await recordAudit(tx, user, "warehouse_movements", "reverse", {
-        id: original.id, name: `${original.transactionNumber ?? original.id} → ${transactionNumber} · ${reason}`,
+        id: original.id, name: `${original.transactionNumber ?? original.id} → ${transactionNumber} · ${fullyReversed ? "Pembatalan seluruh sisa" : "Pembatalan sebagian"} · ${grouped.length} SKU · ${reason}`,
       });
       return reversal.id;
     });
@@ -241,5 +248,34 @@ export async function loadStockProducts(input: unknown) {
     .leftJoin(warehouseStocks, and(eq(warehouseStocks.productId, products.id), eq(warehouseStocks.warehouseId, warehouseId),
       eq(warehouseStocks.organizationId, orgId), notDeleted(warehouseStocks)))
     .where(filters).orderBy(asc(products.name), asc(products.id)).limit(pageSize).offset(pagination.offset);
+  return { rows, pagination };
+}
+
+export async function loadWarehouseReversalLines(input: unknown) {
+  const user = await getCurrentUser();
+  if (!user || !can(user, "warehouse_movements") || !can(user, "warehouse_stock_corrections")) throw new Error("Akses ditolak.");
+  const query = z.object({ movementId: id, q: z.string().max(200), page: z.number().int().positive(), pageSize: z.union(PAGE_SIZES.map((size) => z.literal(size))) }).parse(input);
+  const orgId = user.organization.id;
+  const [movement] = await db.select({ id: stockMovements.id }).from(stockMovements).where(and(
+    eq(stockMovements.id, query.movementId), eq(stockMovements.organizationId, orgId), notDeleted(stockMovements),
+  ));
+  if (!movement) throw new Error("Transaksi tidak ditemukan.");
+  const base = warehouseReversalQuery(db, orgId, query.movementId).where(tableSearch(query.q, products.name, products.code));
+  const [totals] = await db.select({ total: count() }).from(base.as("reversal_options"));
+  const pagination = paginateTable(totals.total, query.page, query.pageSize);
+  const rows = await base.limit(query.pageSize).offset(pagination.offset);
+  return { rows, pagination };
+}
+
+export async function loadWarehouseBalance(input: unknown) {
+  const user = await getCurrentUser();
+  if (!user || !can(user, "warehouse_movements")) throw new Error("Akses ditolak.");
+  const query = z.object({ warehouseId: id, brandId: id.optional(), typeId: id.optional(), q: z.string().max(200),
+    page: z.number().int().positive(), pageSize: z.union(PAGE_SIZES.map((size) => z.literal(size))),
+  }).parse(input);
+  const base = warehouseBalanceQuery(user.organization.id, query);
+  const [totals] = await db.select({ total: count() }).from(base.as("balance_details"));
+  const pagination = paginateTable(totals.total, query.page, query.pageSize);
+  const rows = await base.orderBy(asc(products.name), asc(warehouseStocks.id)).limit(query.pageSize).offset(pagination.offset);
   return { rows, pagination };
 }

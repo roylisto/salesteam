@@ -10,6 +10,7 @@ import {
   areaOffices,
   notDeleted,
   roles,
+  salesInventory,
   userAreaAssignments,
   userWarehouseAssignments,
   users,
@@ -766,7 +767,17 @@ export async function deleteMember(
   // Soft delete: keep the row for history, detach area assignments and
   // reattach direct reports to this member's reporting line so the tree
   // does not dangle.
+  let holdsSalesStock = false;
   const saved = await db.transaction(async (tx) => {
+    const [locked] = await tx.select({ id: users.id }).from(users).where(and(
+      eq(users.id, id), eq(users.organizationId, manager.organization.id), notDeleted(users),
+    )).for("update");
+    if (!locked) return false;
+    const [balance] = await tx.select({ id: salesInventory.id }).from(salesInventory).where(and(
+      eq(salesInventory.salesId, id), eq(salesInventory.organizationId, manager.organization.id),
+      notDeleted(salesInventory), ne(salesInventory.quantity, "0"),
+    )).limit(1);
+    if (balance) { holdsSalesStock = true; return false; }
     const [changed] = await tx
       .update(users)
       .set({ deletedAt: new Date(), isActive: false })
@@ -804,6 +815,7 @@ export async function deleteMember(
     await recordAudit(tx, manager, "team", "delete", target);
     return true;
   });
+  if (holdsSalesStock) return { error: "Anggota masih memegang Stok Sales. Selesaikan stoknya sebelum menghapus akun." };
   if (!saved) return { error: "Anggota tidak ditemukan." };
   revalidatePath(TEAM_PATH);
   return { ok: true };

@@ -1,4 +1,10 @@
 export const STOCK_PATH = "/inventory/warehouses";
+export const SALES_STOCK_PATH = "/inventory/sales";
+
+export type SalesStockContext = {
+  sales: StockOption[];
+  origins: { salesId: number; warehouseId: number | null }[];
+};
 
 export function stockMovementLabel(type: "in" | "out", originalType?: "in" | "out" | null) {
   if (originalType) return originalType === "in" ? "Pembalikan Stock In" : "Pembalikan Stock Out";
@@ -6,6 +12,7 @@ export function stockMovementLabel(type: "in" | "out", originalType?: "in" | "ou
 }
 
 export function stockStatusLabel(status: string) {
+  if (status === "partially_reversed") return "Dibatalkan sebagian";
   if (status === "reversed") return "Dibatalkan";
   if (status === "completed") return "Selesai";
   return status === "draft" ? "Draf" : "Diproses";

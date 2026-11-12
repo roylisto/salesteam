@@ -13,7 +13,8 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ServerTablePagination } from "@/components/server-table-pagination";
 import { loadStockProducts, saveWarehouseStock } from "@/lib/actions/warehouse-stock";
-import { STOCK_PATH, stockQuantity, type StockReplacement } from "@/lib/stock";
+import { loadSalesStockProducts, saveSalesStock } from "@/lib/actions/sales-stock";
+import { SALES_STOCK_PATH, STOCK_PATH, stockQuantity, type SalesStockContext, type StockReplacement } from "@/lib/stock";
 import type { PageSize } from "@/lib/table-query";
 import type { stockOptions } from "../data";
 
@@ -21,13 +22,16 @@ type Scope = "all" | "type" | "brand";
 type ProductQuery = { scope: Scope; scopeId?: number; warehouseId: number; productIds?: number[] };
 type ProductPage = Awaited<ReturnType<typeof loadStockProducts>>;
 
-export function StockForm({ type, options, defaultDate, replacement }: {
+export function StockForm({ type, options, defaultDate, replacement, salesContext }: {
   type: "in" | "out";
   options: Awaited<ReturnType<typeof stockOptions>>;
   defaultDate: string;
   replacement?: StockReplacement;
+  salesContext?: SalesStockContext;
 }) {
   const router = useRouter();
+  const [salesId, setSalesId] = useState(salesContext?.sales.length === 1 ? String(salesContext.sales[0].id) : "");
+  const salesLabel = type === "in" ? "Pengambilan" : "Pengembalian";
   const initialWarehouse = options.warehouses.find((row) => row.id === replacement?.warehouseId);
   const [warehouse, setWarehouse] = useState(initialWarehouse ? String(initialWarehouse.id) : "");
   const [destination, setDestination] = useState(
@@ -59,18 +63,23 @@ export function StockForm({ type, options, defaultDate, replacement }: {
     const timer = setTimeout(() => {
       setLoading(true);
       setProductError("");
-      void loadStockProducts({ ...applied, q, page, pageSize }).then((data) => {
+      const request = salesContext
+        ? loadSalesStockProducts({ ...applied, salesId: Number(salesId), type, q, page, pageSize })
+        : loadStockProducts({ ...applied, q, page, pageSize });
+      void request.then((data) => {
         if (!disposed) setProducts({ key: queryKey, data });
       }).catch(() => {
         if (!disposed) setProductError("Daftar SKU gagal dimuat. Klik Tampilkan SKU untuk mencoba lagi.");
       }).finally(() => { if (!disposed) setLoading(false); });
     }, 250);
     return () => { disposed = true; clearTimeout(timer); };
-  }, [applied, q, page, pageSize, queryKey]);
+  }, [applied, q, page, pageSize, queryKey, salesContext, salesId, type]);
 
   const ready = products?.key === queryKey;
   const chosen = Object.entries(quantities).filter(([, value]) => value.trim() !== "" && Number(value) !== 0);
-  const warehouseOptions = options.warehouses.map((row) => ({ value: String(row.id), label: row.name }));
+  const warehouseOptions = options.warehouses
+    .filter((row) => !salesContext || type === "in" || salesContext.origins.some((origin) => origin.salesId === Number(salesId) && origin.warehouseId === row.id))
+    .map((row) => ({ value: String(row.id), label: row.name }));
   const scopeOptions = (scope === "type" ? options.types : options.brands).map((row) => ({ value: String(row.id), label: row.name }));
 
   function submit(event: React.FormEvent<HTMLFormElement>) {
@@ -83,6 +92,7 @@ export function StockForm({ type, options, defaultDate, replacement }: {
       date: String(form.get("date")), reference: String(form.get("reference") ?? ""),
       items: chosen.map(([productId, quantity]) => ({ productId: Number(productId), quantity })),
       replacementOfId: replacement?.id,
+      salesId: salesContext ? Number(salesId) : undefined,
     };
     const signature = JSON.stringify(data);
     if (lastAttempt.current?.signature !== signature) lastAttempt.current = { signature, key: crypto.randomUUID() };
@@ -90,10 +100,12 @@ export function StockForm({ type, options, defaultDate, replacement }: {
     setError("");
     startTransition(async () => {
       try {
-        const result = await saveWarehouseStock({ ...data, requestKey });
+        const result = salesContext
+          ? await saveSalesStock({ ...data, requestKey, salesId: Number(salesId) })
+          : await saveWarehouseStock({ ...data, requestKey });
         if (!result.id) { setError(result.error ?? "Transaksi gagal disimpan."); return; }
-        toast.success(type === "in" ? "Stock In tersimpan." : "Stok berhasil ditransfer.");
-        router.push(`${STOCK_PATH}/${result.id}`);
+        toast.success(salesContext ? `${salesLabel} stok Sales tersimpan.` : type === "in" ? "Stock In tersimpan." : "Stok berhasil ditransfer.");
+        router.push(`${salesContext ? SALES_STOCK_PATH : STOCK_PATH}/${result.id}`);
       } catch {
         setError("Transaksi belum dapat dikonfirmasi. Coba simpan lagi dengan data yang sama.");
       }
@@ -109,12 +121,22 @@ export function StockForm({ type, options, defaultDate, replacement }: {
       </p>}
       <Card size="sm">
         <CardHeader><CardTitle>Informasi transaksi</CardTitle>
-          <CardDescription>{type === "out" ? "Stok gudang asal berkurang dan stok gudang tujuan bertambah saat transaksi disimpan." : "Penerimaan dapat dicatat ke semua gudang aktif."}</CardDescription>
+          <CardDescription>{salesContext
+            ? type === "in" ? "Saldo gudang berkurang dan saldo Sales bertambah saat disimpan." : "Saldo Sales berkurang dan stok kembali ke gudang asal pengambilan."
+            : type === "out" ? "Stok gudang asal berkurang dan stok gudang tujuan bertambah saat transaksi disimpan." : "Penerimaan dapat dicatat ke semua gudang aktif."}</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {salesContext && <div className="space-y-1.5">
+            <Label htmlFor="stock-sales">Sales (wajib)</Label>
+            <Combobox id="stock-sales" options={salesContext.sales.map((row) => ({ value: String(row.id), label: row.name }))}
+              value={salesId} disabled={pending} placeholder="Pilih Sales" onValueChange={(value) => {
+                if (value === salesId) return;
+                setSalesId(value); setWarehouse(""); setQuantities({}); setApplied(null); setProducts(null); setLoading(false);
+              }} />
+          </div>}
           <div className="space-y-1.5">
-            <Label htmlFor="stock-warehouse">{type === "in" ? "Gudang penerima" : "Gudang asal"} (wajib)</Label>
-            <Combobox id="stock-warehouse" options={warehouseOptions} value={warehouse} placeholder="Pilih gudang" disabled={pending}
+            <Label htmlFor="stock-warehouse">{salesContext ? type === "in" ? "Gudang sumber" : "Gudang asal pengambilan" : type === "in" ? "Gudang penerima" : "Gudang asal"} (wajib)</Label>
+            <Combobox id="stock-warehouse" options={warehouseOptions} value={warehouse} placeholder="Pilih gudang" disabled={pending || Boolean(salesContext && !salesId)}
               onValueChange={(value) => {
                 if (value === warehouse) return;
                 setWarehouse(value);
@@ -123,7 +145,7 @@ export function StockForm({ type, options, defaultDate, replacement }: {
                 if (value === destination) setDestination("");
               }} />
           </div>
-          {type === "out" && <div className="space-y-1.5">
+          {type === "out" && !salesContext && <div className="space-y-1.5">
             <Label htmlFor="stock-destination">Gudang tujuan (wajib)</Label>
             <Combobox id="stock-destination" options={warehouseOptions.filter((row) => row.value !== warehouse)}
               value={destination} onValueChange={setDestination} placeholder="Pilih gudang tujuan" disabled={pending} />
@@ -137,7 +159,9 @@ export function StockForm({ type, options, defaultDate, replacement }: {
       </Card>
       <Card size="sm">
         <CardHeader><CardTitle>SKU dan kuantitas</CardTitle>
-          <CardDescription>Isi qty dalam satuan dasar. Qty kosong atau nol dilewati. Isian tetap tersimpan saat berganti halaman dan filter.</CardDescription></CardHeader>
+          <CardDescription>Isi qty dalam satuan dasar. Qty kosong atau nol dilewati. Isian tetap tersimpan saat berganti halaman dan filter.
+            {salesContext && (type === "in" ? " Daftar menampilkan SKU dengan saldo gudang positif." : " Daftar menampilkan stok Sales dari gudang asal yang dipilih.")}
+          </CardDescription></CardHeader>
         <CardContent className="space-y-3">
           <div className="flex flex-wrap items-end gap-2">
             <div className="space-y-1.5"><Label htmlFor="stock-scope">Tampilkan SKU</Label>
@@ -188,8 +212,8 @@ export function StockForm({ type, options, defaultDate, replacement }: {
       </Card>
       {error && <p role="alert" className="text-destructive text-sm">{error}</p>}
       <div className="flex justify-end">
-        <Button type="submit" disabled={!warehouse || (type === "out" && (!destination || destination === warehouse)) || chosen.length === 0 || pending}>
-          {pending ? "Menyimpan…" : type === "in" ? "Simpan Stock In" : "Simpan Stock Out"}
+        <Button type="submit" disabled={!warehouse || (salesContext ? !salesId : type === "out" && (!destination || destination === warehouse)) || chosen.length === 0 || pending}>
+          {pending ? "Menyimpan…" : salesContext ? `Simpan ${salesLabel}` : type === "in" ? "Simpan Stock In" : "Simpan Stock Out"}
         </Button>
       </div>
     </fieldset>

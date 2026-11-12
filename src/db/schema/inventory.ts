@@ -4,7 +4,6 @@ import {
   date,
   check,
   index,
-  integer,
   numeric,
   pgTable,
   primaryKey,
@@ -72,7 +71,7 @@ export const stockMovements = pgTable(
     index("stock_movements_transaction_number_idx").on(table.transactionNumber),
     uniqueIndex("stock_movements_request_unique").on(table.organizationId, table.requestKey),
     uniqueIndex("stock_movements_org_number_unique").on(table.organizationId, table.transactionNumber),
-    uniqueIndex("stock_movements_reversal_unique").on(table.reversalOfId),
+    index("stock_movements_reversal_idx").on(table.reversalOfId),
     uniqueIndex("stock_movements_replacement_unique").on(table.replacementOfId),
     check("stock_movements_one_correction_kind", sql`${table.reversalOfId} is null or ${table.replacementOfId} is null`),
   ],
@@ -122,6 +121,10 @@ export const salesStocks = pgTable(
       .references(() => organizations.id, { onDelete: "cascade" }),
     transactionDate: date("transaction_date").notNull(),
     transactionNumber: varchar("transaction_number", { length: 60 }).notNull(),
+    referenceNumber: varchar("reference_number", { length: 60 }),
+    requestKey: varchar("request_key", { length: 36 }),
+    requestHash: varchar("request_hash", { length: 64 }),
+    warehouseMovementId: bigint("warehouse_movement_id", { mode: "number" }).references(() => stockMovements.id),
     salesId: bigint("sales_id", { mode: "number" })
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
@@ -143,6 +146,9 @@ export const salesStocks = pgTable(
     ),
     index("sales_stocks_sales_idx").on(table.salesId),
     index("sales_stocks_status_idx").on(table.status),
+    uniqueIndex("sales_stocks_request_unique").on(table.organizationId, table.requestKey),
+    uniqueIndex("sales_stocks_org_number_unique").on(table.organizationId, table.transactionNumber),
+    uniqueIndex("sales_stocks_warehouse_movement_unique").on(table.warehouseMovementId),
   ],
 );
 
@@ -160,7 +166,7 @@ export const salesStockItems = pgTable(
     productId: bigint("product_id", { mode: "number" })
       .notNull()
       .references(() => products.id, { onDelete: "cascade" }),
-    quantity: integer("quantity").notNull(),
+    quantity: numeric("quantity", { precision: 20, scale: 6 }).notNull(),
     ...timestamps,
   },
   (table) => [
@@ -169,7 +175,7 @@ export const salesStockItems = pgTable(
   ],
 );
 
-/** Current stock held by each sales rep (aggregate, one row per sales+product). */
+/** Sales stock by SKU and origin warehouse. Null origins preserve legacy balances. */
 export const salesInventory = pgTable(
   "sales_inventory",
   {
@@ -180,16 +186,25 @@ export const salesInventory = pgTable(
     salesId: bigint("sales_id", { mode: "number" })
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
+    warehouseId: bigint("warehouse_id", { mode: "number" }).references(() => warehouses.id),
     productId: bigint("product_id", { mode: "number" })
       .notNull()
       .references(() => products.id, { onDelete: "cascade" }),
-    quantity: integer("quantity").default(0).notNull(),
+    quantity: numeric("quantity", { precision: 20, scale: 6 }).default("0").notNull(),
     ...timestamps,
   },
   (table) => [
-    uniqueIndex("sales_inventory_sales_product_unique")
-      .on(table.salesId, table.productId)
+    uniqueIndex("sales_inventory_sales_product_origin_unique")
+      .on(table.salesId, table.productId, sql`coalesce(${table.warehouseId}, 0)`)
       .where(isNull(table.deletedAt)),
     index("sales_inventory_organization_idx").on(table.organizationId),
   ],
 );
+
+export const salesStockCounters = pgTable("sales_stock_counters", {
+  organizationId: bigint("organization_id", { mode: "number" }).notNull().references(() => organizations.id),
+  salesId: bigint("sales_id", { mode: "number" }).notNull().references(() => users.id),
+  type: salesStockTypeEnum("type").notNull(),
+  lastNumber: bigint("last_number", { mode: "bigint" }).default(sql`0`).notNull(),
+  ...timestamps,
+}, (table) => [primaryKey({ columns: [table.organizationId, table.salesId, table.type] })]);

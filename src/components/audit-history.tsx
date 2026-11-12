@@ -1,4 +1,4 @@
-import { and, count, desc, eq, inArray, or } from "drizzle-orm";
+import { and, count, desc, eq, inArray, or, type SQL } from "drizzle-orm";
 
 import { PageHeader } from "@/components/page-header";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -24,7 +24,7 @@ const actionLabels: Record<string, string> = {
   reverse: "Pembalikan",
 };
 
-export async function AuditHistoryPage({ user, module, path, title, params, label, map, mapLabel, memberIds = [], tabs }: {
+export async function AuditHistoryPage({ user, module, path, title, params, label, map, mapLabel, memberIds = [], tabs, entityFilter }: {
   user: CurrentUser;
   module: AuditModule;
   path: string;
@@ -35,6 +35,7 @@ export async function AuditHistoryPage({ user, module, path, title, params, labe
   mapLabel?: string;
   memberIds?: number[];
   tabs?: React.ReactNode;
+  entityFilter?: SQL;
 }) {
   if (module !== "profile" && !can(user, module)) return null;
 
@@ -45,6 +46,7 @@ export async function AuditHistoryPage({ user, module, path, title, params, labe
     eq(auditLogs.organizationId, user.organization.id),
     eq(auditLogs.module, module),
     notDeleted(auditLogs),
+    entityFilter,
     module === "profile" ? eq(auditLogs.actorId, user.id) : undefined,
     module === "team" && !isAdmin(user) ? or(
       eq(auditLogs.actorId, user.id),
