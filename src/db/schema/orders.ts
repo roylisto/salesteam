@@ -3,7 +3,7 @@ import {
   bigint,
   date,
   index,
-  integer,
+  jsonb,
   numeric,
   pgTable,
   text,
@@ -17,6 +17,7 @@ import { organizations } from "./organizations";
 import { outlets, products, warehouses } from "./master-data";
 import { users } from "./auth";
 import { invoiceStatusEnum } from "./enums";
+import { productSellUnits } from "./product-pricing";
 
 /** Sales order placed by a sales rep at an outlet. */
 export const orders = pgTable(
@@ -38,6 +39,17 @@ export const orders = pgTable(
     ),
     transactionNumber: varchar("transaction_number", { length: 60 }),
     referenceNumber: varchar("reference_number", { length: 60 }),
+    quotationNumber: varchar("quotation_number", { length: 60 }),
+    requestKey: varchar("request_key", { length: 36 }),
+    requestHash: varchar("request_hash", { length: 64 }),
+    notes: text("notes"),
+    snapshot: jsonb("snapshot").$type<{
+      customer: string; address: string; sales: string; warehouse: string; area: string;
+      company: string; companyAddress: string; phone: string; logo: string | null; currency: string;
+    }>(),
+    fulfilledAt: timestamp("fulfilled_at", { withTimezone: true }),
+    cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
+    cancellationReason: text("cancellation_reason"),
     orderedAt: timestamp("ordered_at", { withTimezone: true }),
     total: numeric("total", { precision: 15, scale: 2 })
       .default("0")
@@ -59,6 +71,8 @@ export const orders = pgTable(
     index("orders_sales_idx").on(table.salesId),
     index("orders_status_idx").on(table.status),
     index("orders_transaction_number_idx").on(table.transactionNumber),
+    uniqueIndex("orders_org_number_unique").on(table.organizationId, table.transactionNumber),
+    uniqueIndex("orders_org_request_unique").on(table.organizationId, table.requestKey),
   ],
 );
 
@@ -76,7 +90,14 @@ export const orderItems = pgTable(
     productId: bigint("product_id", { mode: "number" })
       .notNull()
       .references(() => products.id, { onDelete: "cascade" }),
-    quantity: integer("quantity").default(0).notNull(),
+    quantity: numeric("quantity", { precision: 20, scale: 6 }).default("0").notNull(),
+    sellUnitId: bigint("sell_unit_id", { mode: "number" }).references(() => productSellUnits.id),
+    productName: varchar("product_name", { length: 200 }),
+    productCode: varchar("product_code", { length: 80 }),
+    unitName: varchar("unit_name", { length: 150 }),
+    baseUnitName: varchar("base_unit_name", { length: 150 }),
+    conversionFactor: numeric("conversion_factor", { precision: 18, scale: 6 }),
+    baseQuantity: numeric("base_quantity", { precision: 20, scale: 6 }),
     unitPrice: numeric("unit_price", { precision: 15, scale: 2 })
       .default("0")
       .notNull(),
@@ -137,5 +158,6 @@ export const invoices = pgTable(
       table.status,
     ),
     index("invoices_due_date_idx").on(table.dueDate),
+    uniqueIndex("invoices_org_number_unique").on(table.organizationId, table.transactionNumber),
   ],
 );

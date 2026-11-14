@@ -10,11 +10,12 @@ import { ServerTablePagination, useServerTable } from "@/components/server-table
 import { SALES_STOCK_PATH, stockQuantity, stockStatusLabel } from "@/lib/stock";
 import type { salesBalance, salesHistory, salesOptions } from "./data";
 
-export function SalesClient({ options, balances, history, canTransact }: {
+export function SalesClient({ options, balances, history, canTransact, canOrder }: {
   options: Awaited<ReturnType<typeof salesOptions>>;
   balances: Awaited<ReturnType<typeof salesBalance>> | null;
   history: Awaited<ReturnType<typeof salesHistory>> | null;
   canTransact: boolean;
+  canOrder: boolean;
 }) {
   const table = useServerTable();
   const router = useRouter();
@@ -37,17 +38,18 @@ export function SalesClient({ options, balances, history, canTransact }: {
         <Button render={<Link href={`${SALES_STOCK_PATH}/new?type=in`} />} nativeButton={false}>Ambil Stok</Button>
         <Button variant="outline" render={<Link href={`${SALES_STOCK_PATH}/new?type=out`} />} nativeButton={false}>Kembalikan Stok</Button>
       </>}
+      {canOrder && <Button variant="outline" render={<Link href={filters.sales ? `/orders?sales=${filters.sales}` : "/orders"} />} nativeButton={false}>Order Penjualan</Button>}
     </div>
     <div className="overflow-hidden rounded-xl border" aria-busy={table.pending}>
       <Table><TableHeader><TableRow>
         {balances ? <><TableHead>Sales</TableHead><TableHead>SKU / Produk</TableHead><TableHead>Gudang asal</TableHead>
-          <TableHead className="text-right">Qty</TableHead><TableHead>Satuan dasar</TableHead></> :
+          <TableHead className="text-right">Fisik</TableHead><TableHead className="text-right">Dipesan</TableHead><TableHead className="text-right">Tersedia dijual</TableHead><TableHead>Satuan dasar</TableHead></> :
           <><TableHead>Nomor / Tanggal</TableHead><TableHead>Transaksi</TableHead><TableHead>Sales</TableHead><TableHead>Gudang asal</TableHead><TableHead>Referensi</TableHead></>}
       </TableRow></TableHeader><TableBody>
-        {pagination.total === 0 && <TableRow><TableCell colSpan={5} className="text-muted-foreground py-8 text-center">Belum ada data yang cocok.</TableCell></TableRow>}
+        {pagination.total === 0 && <TableRow><TableCell colSpan={balances ? 7 : 5} className="text-muted-foreground py-8 text-center">Belum ada data yang cocok.</TableCell></TableRow>}
         {balances?.rows.map((row) => <TableRow key={row.id}><TableCell>{row.sales}</TableCell>
           <TableCell><p className="font-medium">{row.product}</p><p className="text-muted-foreground text-xs">{row.code ?? "—"}</p></TableCell>
-          <TableCell>{row.warehouse ?? "Asal belum tercatat"}</TableCell><TableCell className="text-right tabular-nums">{stockQuantity(row.quantity)}</TableCell>
+          <TableCell>{row.warehouse ?? "Asal belum tercatat"}</TableCell><TableCell className="text-right tabular-nums">{stockQuantity(row.quantity)}</TableCell><TableCell className="text-right tabular-nums">{stockQuantity(row.reserved)}</TableCell><TableCell className="text-right font-semibold tabular-nums">{stockQuantity(row.available)}</TableCell>
           <TableCell>{row.unit ?? "—"}</TableCell></TableRow>)}
         {history?.rows.map((row) => <TableRow key={row.id} className="cursor-pointer" onClick={(event) => {
           if ((event.target as HTMLElement).closest("a") || event.metaKey || event.ctrlKey || window.getSelection()?.toString()) return;

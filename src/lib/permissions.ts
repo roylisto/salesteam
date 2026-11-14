@@ -24,6 +24,8 @@ export const PERMISSIONS = [
   { key: "sales_inventory", label: "Stok Sales" },
   { key: "sales_stock", label: "Transaksi Stok Sales" },
   { key: "orders", label: "Pesanan Penjualan" },
+  { key: "order_payments", label: "Catat Pembayaran Order" },
+  { key: "printer_settings", label: "Pengaturan Printer & Template" },
   { key: "visits", label: "Kunjungan" },
   { key: "finance", label: "Keuangan" },
   { key: "payments", label: "Metode Pembayaran" },

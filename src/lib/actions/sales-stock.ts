@@ -71,10 +71,10 @@ export async function saveSalesStock(input: unknown): Promise<{ id?: number; err
           eq(salesInventory.warehouseId, data.warehouseId), notDeleted(salesInventory),
           inArray(salesInventory.productId, items.map((item) => item.productId)),
         )).for("update");
-        const available = new Map(balances.map((row) => [row.productId, row.quantity]));
+        const available = new Map(balances.map((row) => [row.productId, quantityMicros(row.quantity) - quantityMicros(row.reservedQuantity)]));
         for (const item of items) {
-          if (quantityMicros(available.get(item.productId) ?? "0") < quantityMicros(item.quantity)) {
-            throw new StockError(`Stok Sales untuk ${productMap.get(item.productId)!.name} dari gudang asal ini tidak mencukupi.`);
+          if ((available.get(item.productId) ?? BigInt(0)) < quantityMicros(item.quantity)) {
+            throw new StockError(`Stok Sales untuk ${productMap.get(item.productId)!.name} yang belum dipesan dari gudang asal ini tidak mencukupi.`);
           }
         }
         const requested = sql.join(items.map((item) => sql`(${item.productId}::bigint, ${item.quantity}::numeric)`), sql`, `);
@@ -83,7 +83,7 @@ export async function saveSalesStock(input: unknown): Promise<{ id?: number; err
           from (values ${requested}) as requested(product_id, quantity)
           where balance.organization_id = ${orgId} and balance.sales_id = ${data.salesId}
             and balance.warehouse_id = ${data.warehouseId} and balance.product_id = requested.product_id
-            and balance.deleted_at is null and balance.quantity >= requested.quantity returning balance.id
+            and balance.deleted_at is null and balance.quantity - balance.reserved_quantity >= requested.quantity returning balance.id
         `);
         if (removed.length !== items.length) throw new StockError("Saldo Sales berubah. Muat ulang dan coba lagi.");
       }
@@ -151,7 +151,7 @@ export async function loadSalesStockProducts(input: unknown) {
   const owner = salesStockOwner(actor);
   if (owner !== undefined && owner !== salesId) throw new Error("Akses ditolak.");
   const orgId = actor.organization.id;
-  const available = type === "in" ? warehouseStocks.quantity : salesInventory.quantity;
+  const available = type === "in" ? sql`${warehouseStocks.quantity}` : sql`(${salesInventory.quantity} - ${salesInventory.reservedQuantity})`;
   const base = db.select({
     id: products.id, name: products.name, code: products.code, brand: brands.name, type: productTypes.name,
     unit: productUnits.name, allowFraction: productUnits.allowFraction, quantity: sql<string>`${available}::text`,

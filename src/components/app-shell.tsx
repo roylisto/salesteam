@@ -7,6 +7,8 @@ import { useEffect, useState } from "react";
 import { useProgressTransition } from "@/components/action-progress";
 import {
   BoxesIcon,
+  ShoppingCartIcon,
+  PrinterIcon,
   Building2Icon,
   ChevronRightIcon,
   ChevronsUpDownIcon,
@@ -69,6 +71,7 @@ type NavItem = {
 };
 
 const PRIMARY_NAV: NavItem[] = [
+  { label: "Order Penjualan", href: "/orders", icon: ShoppingCartIcon, permission: "orders" },
   {
     label: "Dasbor",
     href: "/dashboard",
@@ -129,6 +132,7 @@ const MASTER_NAV: NavItem[] = [
 ];
 
 const SETTINGS_NAV: NavItem[] = [
+  { label: "Printer & Template", href: "/settings/printers", icon: PrinterIcon, permission: "printer_settings" },
   {
     label: "Organisasi",
     href: "/settings/organization",

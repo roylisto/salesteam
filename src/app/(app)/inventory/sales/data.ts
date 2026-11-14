@@ -33,7 +33,8 @@ export async function salesBalance(user: CurrentUser, params: Record<string, str
   const warehouseId = filterId(params.warehouse);
   const { q, page, pageSize } = loadTableQuery(params);
   const base = db.select({
-    id: salesInventory.id, sales: users.name, warehouse: warehouses.name, quantity: salesInventory.quantity,
+    id: salesInventory.id, sales: users.name, warehouse: warehouses.name, quantity: salesInventory.quantity, reserved: salesInventory.reservedQuantity,
+    available: sql<string>`(${salesInventory.quantity} - ${salesInventory.reservedQuantity})::text`,
     product: products.name, code: products.code, unit: productUnits.name,
   }).from(salesInventory)
     .innerJoin(users, and(eq(salesInventory.salesId, users.id), eq(users.organizationId, orgId), notDeleted(users)))

@@ -217,7 +217,7 @@ export async function saveCatalog(section: string, form: FormData): Promise<{ ok
         const [salesFraction] = await tx.select({ id: salesInventory.id }).from(salesInventory)
           .innerJoin(products, and(eq(salesInventory.productId, products.id), eq(products.organizationId, organizationId)))
           .where(and(eq(salesInventory.organizationId, organizationId), notDeleted(salesInventory),
-            eq(products.baseUnitId, existing.id), sql`mod(${salesInventory.quantity}, 1) <> 0`)).limit(1);
+            eq(products.baseUnitId, existing.id), sql`(mod(${salesInventory.quantity}, 1) <> 0 or mod(${salesInventory.reservedQuantity}, 1) <> 0)`)).limit(1);
         if (salesFraction) return { error: "Satuan masih digunakan pada saldo Sales desimal. Opsi qty pecahan harus tetap aktif." };
       }
       const [duplicate] = await tx.select({ id: table.id }).from(table).where(and(scope, eq(table.name, parsedName.data)));

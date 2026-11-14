@@ -187,6 +187,7 @@ export const salesInventory = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     warehouseId: bigint("warehouse_id", { mode: "number" }).references(() => warehouses.id),
+    reservedQuantity: numeric("reserved_quantity", { precision: 20, scale: 6 }).default("0").notNull(),
     productId: bigint("product_id", { mode: "number" })
       .notNull()
       .references(() => products.id, { onDelete: "cascade" }),

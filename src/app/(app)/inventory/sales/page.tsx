@@ -26,6 +26,6 @@ export default async function SalesStockPage({ searchParams }: { searchParams: P
   return <div className="w-full">
     <PageHeader title="Stok Sales" description="Catat pengambilan stok dari gudang dan pengembalian ke gudang asal." />
     <SalesTabs />
-    <SalesClient options={options} balances={balances} history={history} canTransact={can(user, "sales_stock")} />
+    <SalesClient options={options} balances={balances} history={history} canTransact={can(user, "sales_stock")} canOrder={can(user, "orders")} />
   </div>;
 }

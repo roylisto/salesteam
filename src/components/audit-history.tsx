@@ -22,6 +22,10 @@ const actionLabels: Record<string, string> = {
   change_password: "Ubah kata sandi",
   reset_password: "Reset kata sandi",
   reverse: "Pembalikan",
+  confirm: "Konfirmasi",
+  deliver: "Penyerahan Barang",
+  cancel: "Pembatalan",
+  payment: "Pembayaran",
 };
 
 export async function AuditHistoryPage({ user, module, path, title, params, label, map, mapLabel, memberIds = [], tabs, entityFilter }: {
